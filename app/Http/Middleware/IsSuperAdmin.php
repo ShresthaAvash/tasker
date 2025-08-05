@@ -10,7 +10,6 @@ class IsSuperAdmin
 {
     public function handle(Request $request, Closure $next)
     {
-        // Only allow user with type 'S' (SuperAdmin)
         if (Auth::check() && Auth::user()->type === 'S') {
             return $next($request);
         }
@@ -18,3 +17,4 @@ class IsSuperAdmin
         abort(403, 'Unauthorized');
     }
 }
+

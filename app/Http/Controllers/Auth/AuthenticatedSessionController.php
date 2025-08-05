@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Illuminate\Http\Response;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -22,13 +23,25 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request): Response|RedirectResponse
     {
         $request->authenticate();
-
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $user = $request->user();
+
+        if ($user->type === 'S') {
+            // Directly return view for Super Admin dashboard
+            return response()->view('SuperAdmin.dashboard');
+        }
+
+        if ($user->type === 'O') {
+            // Redirect to route for Organization dashboard
+            return redirect()->route('organization.dashboard');
+        }
+
+        // Optional: redirect for clients, staff, or fallback
+        return redirect('/');
     }
 
     /**
@@ -39,7 +52,6 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect('/');

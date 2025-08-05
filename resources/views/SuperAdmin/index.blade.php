@@ -47,5 +47,4 @@
         </tbody>
     </table>
 
-    {{ $organizations->links() }}
 @endsection
