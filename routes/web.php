@@ -10,6 +10,7 @@ use App\Http\Controllers\Organization\StaffController;
 use App\Http\Controllers\Organization\ServiceController;
 use App\Http\Controllers\Organization\JobController;
 use App\Http\Controllers\Organization\TaskController;
+use App\Http\Controllers\Organization\CalendarController; // <-- ADD THIS LINE
 
 use Illuminate\Support\Facades\Auth;
 
@@ -17,11 +18,6 @@ use Illuminate\Support\Facades\Auth;
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
 */
 
 Route::get('/', function () {
@@ -42,6 +38,11 @@ Route::middleware(['auth', 'isSuperAdmin'])->prefix('superadmin')->group(functio
 // Organization routes
 Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
+
+    // Calendar Routes - ADDED LINES START HERE
+    Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
+    Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
+    // ADDED LINES END HERE
 
     // Client Management
     Route::get('clients/suspended', [ClientController::class, 'suspended'])->name('clients.suspended');
