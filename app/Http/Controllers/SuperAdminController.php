@@ -30,34 +30,40 @@ class SuperAdminController extends Controller
 
     // Store new organization
     public function store(Request $request)
-{
-    $id = $request->input('id');
+    {
+        $id = $request->input('id');
 
-    // Check if we're creating or updating
-    $user = empty($id) ? new User() : User::findOrFail($id);
+        // Check if we're creating or updating
+        $user = empty($id) ? new User() : User::findOrFail($id);
 
-    // Assign values manually
-    $user->name     = $request->input('name');
-    $user->email    = $request->input('email');
-    $user->phone    = $request->input('phone');
-    $user->address  = $request->input('address');
+        // Assign values manually
+        $user->name     = $request->input('name');
+        $user->email    = $request->input('email');
+        $user->phone    = $request->input('phone');
+        $user->address  = $request->input('address');
 
-    // If creating a new user or changing password
-    if (empty($id) || $request->filled('password')) {
-        $request->validate([
-            'password' => 'required|string|min:6|confirmed'
-        ]);
-        $user->password = bcrypt($request->input('password'));
+        // If creating a new user or changing password
+        if (empty($id) || $request->filled('password')) {
+            $request->validate([
+                'password' => 'required|string|min:6|confirmed'
+            ]);
+            $user->password = bcrypt($request->input('password'));
+        }
+
+        // Set type and status
+        $user->type   = 'O';  // ✅ Mark as Organization
+        $user->status = 'A';  // Active by default
+
+        $user->save();
+        
+        // ✅ ADDED: If creating, set organization_id to the new user's own ID
+        if (empty($id)) {
+            $user->organization_id = $user->id;
+            $user->save();
+        }
+
+        return redirect()->route('superadmin.organizations.index')->with('success', 'Organization saved successfully!');
     }
-
-    // Set type and status
-    $user->type   = 'O';  // ✅ Mark as Organization
-    $user->status = 'A';  // Active by default
-
-    $user->save();
-
-    return redirect()->route('superadmin.organizations.index')->with('success', 'Organization saved successfully!');
-}
 
     // Show details
     public function show($id)
@@ -104,5 +110,4 @@ class SuperAdminController extends Controller
 
         return redirect()->route('superadmin.organizations.index')->with('success', 'Organization status updated.');
     }
-}
-
+};

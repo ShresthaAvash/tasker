@@ -11,19 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('services', function (Blueprint $table) {
+        Schema::create('staff_designations', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description')->nullable();
-            // ✅ MODIFIED: Use 'A' for Active, 'I' for Inactive/Suspended for consistency
-            $table->string('status', 1)->default('A');
-            // ✅ ADDED: Link to the organization
             $table->unsignedBigInteger('organization_id');
             $table->timestamps();
 
-            // ✅ ADDED: Foreign key constraint
+            // Foreign key to link designations to the organization that created them
             $table->foreign('organization_id')->references('id')->on('users')->onDelete('cascade');
-             // ✅ ADDED: A service name should be unique for each organization
+
+            // A designation name should be unique for each organization
             $table->unique(['name', 'organization_id']);
         });
     }
@@ -33,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('services');
+        Schema::dropIfExists('staff_designations');
     }
 };

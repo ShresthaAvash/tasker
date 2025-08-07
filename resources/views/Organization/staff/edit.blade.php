@@ -1,0 +1,92 @@
+@extends('layouts.app')
+
+@section('title', 'Edit Staff')
+
+@section('content_header')
+    <h1>Edit Staff Member</h1>
+@stop
+
+@section('content')
+<div class="card">
+    <div class="card-body">
+        <form action="{{ route('staff.update', $staff->id) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            @method('PUT')
+            
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $staff->name) }}" required>
+                @error('name') <span class="invalid-feedback">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $staff->email) }}" required>
+                @error('email') <span class="invalid-feedback">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="form-group">
+                <label for="staff_designation_id">Designation</label>
+                <select name="staff_designation_id" id="staff_designation_id" class="form-control @error('staff_designation_id') is-invalid @enderror">
+                    <option value="">-- Select Designation --</option>
+                    @foreach($designations as $designation)
+                        <option value="{{ $designation->id }}" {{ old('staff_designation_id', $staff->staff_designation_id) == $designation->id ? 'selected' : '' }}>
+                            {{ $designation->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('staff_designation_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="phone">Phone</label>
+                    <input type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $staff->phone) }}">
+                    @error('phone') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="status">Status</label>
+                    <select name="status" id="status" class="form-control @error('status') is-invalid @enderror" required>
+                        <option value="A" {{ old('status', $staff->status) == 'A' ? 'selected' : '' }}>Active</option>
+                        <option value="I" {{ old('status', $staff->status) == 'I' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                     @error('status') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="address">Address</label>
+                <textarea name="address" id="address" class="form-control @error('address') is-invalid @enderror">{{ old('address', $staff->address) }}</textarea>
+                @error('address') <span class="invalid-feedback">{{ $message }}</span> @enderror
+            </div>
+            
+            <div class="form-group">
+                <label for="photo">Photo</label>
+                <input type="file" name="photo" id="photo" class="form-control-file @error('photo') is-invalid @enderror">
+                @if($staff->photo)
+                    <img src="{{ asset('storage/' . $staff->photo) }}" alt="Current Photo" class="img-thumbnail mt-2" width="100">
+                @endif
+                @error('photo') <span class="invalid-feedback">{{ $message }}</span> @enderror
+            </div>
+
+            <hr>
+            <p class="text-muted">Leave password fields blank to keep the current password.</p>
+            
+            <div class="form-row">
+                 <div class="form-group col-md-6">
+                    <label for="password">New Password</label>
+                    <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror">
+                    @error('password') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="password_confirmation">Confirm New Password</label>
+                    <input type="password" name="password_confirmation" id="password_confirmation" class="form-control">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Update Staff Member</button>
+            <a href="{{ route('staff.index') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+@stop

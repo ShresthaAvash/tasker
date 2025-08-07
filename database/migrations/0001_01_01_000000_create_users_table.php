@@ -23,9 +23,14 @@ return new class extends Migration
             $table->string('photo')->nullable();
             $table->string('status')->nullable();
             $table->string('type')->nullable();
+            // ✅ ADDED organization_id to link users to an organization
+            $table->unsignedBigInteger('organization_id')->nullable();
             $table->string('s_position')->nullable();
             $table->rememberToken();
             $table->timestamps();
+
+            // ✅ ADDED index for faster queries
+            $table->index('organization_id');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

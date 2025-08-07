@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'title' => 'AdminLTE 3',
+    'title' => 'Tasker',
     'title_prefix' => '',
     'title_postfix' => '',
 
@@ -63,12 +63,12 @@ return [
     |
     */
 
-    'logo' => '<b>Admin</b>LTE',
+    'logo' => '<b>Tasker</b>',
     'logo_img' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
     'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
     'logo_img_xl_class' => 'brand-image-xs',
-    'logo_img_alt' => 'Admin Logo',
+    'logo_img_alt' => 'Tasker Logo',
 
     /*
     |--------------------------------------------------------------------------
@@ -99,10 +99,7 @@ return [
     | Preloader Animation
     |--------------------------------------------------------------------------
     |
-    | Here you can change the preloader animation configuration. Currently, two
-    | modes are supported: 'fullscreen' for a fullscreen preloader animation
-    | and 'cwrapper' to attach the preloader animation into the content-wrapper
-    | element and avoid overlapping it with the sidebars and the top navbar.
+    | Here you can change the preloader animation configuration.
     |
     | For detailed instructions you can look the preloader section here:
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Basic-Configuration
@@ -272,10 +269,6 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here we can enable the Laravel Asset Bundling option for the admin panel.
-    | Currently, the next modes are supported: 'mix', 'vite' and 'vite_js_only'.
-    | When using 'vite_js_only', it's expected that your CSS is imported using
-    | JavaScript. Typically, in your application's 'resources/js/app.js' file.
-    | If you are not using any of these, leave it as 'false'.
     |
     | For detailed instructions you can look the asset bundling section here:
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Other-Configuration
@@ -299,35 +292,110 @@ return [
     */
 
     'menu' => [
-    'MAIN NAVIGATION',
-    [
-        'text' => 'Add User',
-        'url'  => 'superadmin/organizations/create',
-        'icon' => 'fas fa-user-plus',
-        'can'=>'is-superadmin',
-    ],
-    [
-        'text' => 'List Users',
-        'url'  => 'superadmin/organizations',
-        'icon' => 'fas fa-users',
-        'can'=>'is-superadmin',
-    ],
-    [
-        'text' => 'Add Clients',
-        'url'  => 'superadmin/organizations',
-        'icon' => 'fas fa-users',
-        'can' => 'is-organization'
-    ],
-    [
-        'text' => 'List Clients',
-        'url'  => 'superadmin/organizations',
-        'icon' => 'fas fa-users',
-        'can' => 'is-organization'
-    ],
+        // SUPER ADMIN MENU
+        [
+            'text' => 'Dashboard',
+            'url'  => 'superadmin/dashboard',
+            'icon' => 'fas fa-fw fa-tachometer-alt',
+            'can'  => 'is-superadmin',
+        ],
+        [
+            'text'    => 'Organizations',
+            'icon'    => 'fas fa-fw fa-building',
+            'can'     => 'is-superadmin',
+            'submenu' => [
+                [
+                    'text' => 'List Organizations',
+                    'url'  => 'superadmin/organizations',
+                    'icon' => 'fas fa-fw fa-list',
+                ],
+                [
+                    'text' => 'Add Organization',
+                    'url'  => 'superadmin/organizations/create',
+                    'icon' => 'fas fa-fw fa-plus',
+                ],
+            ],
+        ],
 
-],
-
-
+        // ORGANIZATION MENU
+        [
+            'text' => 'Dashboard',
+            'url'  => 'organization/dashboard',
+            'icon' => 'fas fa-fw fa-tachometer-alt',
+            'can'  => 'is-organization',
+        ],
+        [
+            'text'    => 'Clients',
+            'icon'    => 'fas fa-fw fa-users',
+            'can'     => 'is-organization',
+            'submenu' => [
+                [
+                    'text' => 'List Clients',
+                    'url'  => 'organization/clients',
+                    'icon' => 'fas fa-fw fa-list',
+                ],
+                [
+                    'text' => 'Add Client',
+                    'url'  => 'organization/clients/create',
+                    'icon' => 'fas fa-fw fa-plus',
+                ],
+                [
+                    'text' => 'Suspended Clients',
+                    'url'  => 'organization/clients/suspended',
+                    'icon' => 'fas fa-fw fa-user-lock',
+                ],
+            ],
+        ],
+        [
+            'text'    => 'Staff',
+            'icon'    => 'fas fa-fw fa-user-tie',
+            'can'     => 'is-organization',
+            'submenu' => [
+                 [
+                    'text' => 'List Staff',
+                    'url'  => 'organization/staff',
+                    'icon' => 'fas fa-fw fa-users-cog',
+                ],
+                [
+                    'text' => 'Add Staff',
+                    'url'  => 'organization/staff/create',
+                    'icon' => 'fas fa-fw fa-plus',
+                ],
+                [
+                    'text' => 'Suspended Staff',
+                    'url'  => 'organization/staff/suspended',
+                    'icon' => 'fas fa-fw fa-user-slash',
+                ],
+                [
+                    'text' => 'Staff Designations',
+                    'url'  => 'organization/staff-designations',
+                    'icon' => 'fas fa-fw fa-id-badge',
+                ],
+            ],
+        ],
+        [
+            'text'    => 'Services',
+            'icon'    => 'fas fa-fw fa-concierge-bell',
+            'can'     => 'is-organization',
+            'submenu' => [
+                [
+                    'text' => 'List Services',
+                    'url'  => 'organization/services',
+                    'icon' => 'fas fa-fw fa-list',
+                ],
+                [
+                    'text' => 'Add Service',
+                    'url'  => 'organization/services/create',
+                    'icon' => 'fas fa-fw fa-plus',
+                ],
+                [
+                    'text' => 'Suspended Services',
+                    'url'  => 'organization/services/suspended',
+                    'icon' => 'fas fa-fw fa-bell-slash',
+                ],
+            ],
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------

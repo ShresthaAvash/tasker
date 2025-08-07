@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Organization;
 
 use App\Http\Controllers\Controller;
@@ -7,17 +8,58 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
 {
-    // Show list of clients for logged-in org
-    public function index()
+    /**
+     * Display a list of clients for the logged-in organization.
+     */
+    public function index(Request $request)
+    {
+        $query = User::where('type', 'C')
+            ->where('organization_id', Auth::id());
+
+        // Search functionality
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('email', 'like', '%' . $request->search . '%');
+            });
+        }
+        
+        // ✅ MODIFIED: Set default sort to 'created_at' for "Recents"
+        $sort_by = $request->get('sort_by', 'created_at');
+        $sort_order = $request->get('sort_order', 'desc');
+        
+        // Whitelist of sortable columns to prevent errors
+        if (in_array($sort_by, ['name', 'email', 'status', 'created_at'])) {
+            $query->orderBy($sort_by, $sort_order);
+        }
+
+        $clients = $query->paginate(10);
+
+        if ($request->ajax()) {
+            return view('Organization.clients._clients_table', compact('clients', 'sort_by', 'sort_order'))->render();
+        }
+
+        return view('Organization.clients.index', compact('clients', 'sort_by', 'sort_order'));
+    }
+    
+    // ... (The rest of the controller methods remain unchanged)
+
+    /**
+     * Display a list of suspended clients.
+     */
+    public function suspended()
     {
         $clients = User::where('type', 'C')
-            ->where('organization_id', Auth::user()->organization_id)
-            ->get();
+            ->where('organization_id', Auth::id())
+            ->where('status', 'I') // Only suspended
+            ->orderBy('name')
+            ->paginate(10);
 
-        return view('organization.clients.index', compact('clients'));
+        return view('organization.clients.suspended', compact('clients'));
     }
 
     // Show create form
@@ -31,7 +73,7 @@ class ClientController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => ['required', 'email', Rule::unique('users')],
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
             'photo' => 'nullable|image|max:2048',
@@ -40,7 +82,7 @@ class ClientController extends Controller
         ]);
 
         $data = $request->only(['name', 'email', 'phone', 'address', 'status']);
-        $data['organization_id'] = Auth::user()->organization_id;
+        $data['organization_id'] = Auth::id(); // Use logged-in organization's ID
         $data['type'] = 'C';
         $data['password'] = Hash::make($request->password);
 
@@ -58,7 +100,7 @@ class ClientController extends Controller
     public function edit($id)
     {
         $client = User::where('type', 'C')
-            ->where('organization_id', Auth::user()->organization_id)
+            ->where('organization_id', Auth::id())
             ->findOrFail($id);
 
         return view('organization.clients.edit', compact('client'));
@@ -68,12 +110,12 @@ class ClientController extends Controller
     public function update(Request $request, $id)
     {
         $client = User::where('type', 'C')
-            ->where('organization_id', Auth::user()->organization_id)
+            ->where('organization_id', Auth::id())
             ->findOrFail($id);
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,'.$client->id,
+            'email' => ['required', 'email', Rule::unique('users')->ignore($client->id)],
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
             'photo' => 'nullable|image|max:2048',
@@ -88,7 +130,6 @@ class ClientController extends Controller
         $client->status = $request->status;
 
         if ($request->hasFile('photo')) {
-            // Delete old photo if exists
             if ($client->photo) {
                 Storage::disk('public')->delete($client->photo);
             }
@@ -104,12 +145,25 @@ class ClientController extends Controller
 
         return redirect()->route('clients.index')->with('success', 'Client updated successfully.');
     }
+    
+    public function toggleStatus($id)
+    {
+        $client = User::where('type', 'C')
+            ->where('organization_id', Auth::id())
+            ->findOrFail($id);
 
-    // Optional: delete method if needed
+        $client->status = $client->status === 'A' ? 'I' : 'A';
+        $client->save();
+
+        $message = $client->status === 'A' ? 'Client has been activated.' : 'Client has been suspended.';
+
+        return redirect()->back()->with('success', $message);
+    }
+
     public function destroy($id)
     {
         $client = User::where('type', 'C')
-            ->where('organization_id', Auth::user()->organization_id)
+            ->where('organization_id', Auth::id())
             ->findOrFail($id);
 
         if ($client->photo) {
