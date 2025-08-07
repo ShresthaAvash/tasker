@@ -6,7 +6,6 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header">{{ __('Dashboard') }}</div>
-
                 <div class="card-body">
                     @if (session('status'))
                         <div class="alert alert-success" role="alert">
@@ -14,7 +13,21 @@
                         </div>
                     @endif
 
-                    {{ __('You are logged in!') }}
+                    @if ((auth()->user()->type)=='S')
+                    <p><strong>{{ auth()->user()->name}}! </strong>{{ __('You are logged in as ') }} SuperAdmin</p> 
+                    @endif
+
+                    @if ((auth()->user()->type)=='O')
+                    <p><strong>{{ auth()->user()->name}}! </strong>{{ __('You are logged in as') }}Organization</p> 
+                    @endif
+
+                    @if ((auth()->user()->type)=='C')
+                    <p><strong>{{ auth()->user()->name}}! </strong>{{ __('You are logged in as') }}Client.</p> 
+                    @endif
+
+                    @if ((auth()->user()->type)=='T')
+                    <p><strong>{{ auth()->user()->name}}!</strong>{{ __('You are logged in as ') }} Staff.</p> 
+                    @endif
                 </div>
             </div>
         </div>

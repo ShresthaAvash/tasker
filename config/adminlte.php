@@ -351,7 +351,7 @@ return [
             'icon'    => 'fas fa-fw fa-user-tie',
             'can'     => 'is-organization',
             'submenu' => [
-                 [
+                [
                     'text' => 'List Staff',
                     'url'  => 'organization/staff',
                     'icon' => 'fas fa-fw fa-users-cog',

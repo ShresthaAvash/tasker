@@ -43,5 +43,21 @@
                 {{ __('Log in') }}
             </x-primary-button>
         </div>
-    </form>
+    
+
+    <div class="flex items-center justify-center mt-4">
+        <a href="{{ route('register') }}" class="text-sm text-gray-600 hover:text-gray-900 underline">
+        {{ __("Don't have an account? Register") }}
+    </a>
+    </div>
+
+<!-- @if(auth()->check() && auth()->user()->type === 'S')
+    <div class="flex items-center justify-center mt-4">
+        <a href="{{ route('register') }}" class="text-sm text-gray-600 hover:text-gray-900 underline">
+            {{ __("Don't have an account? Register") }}
+        </a>
+    </div>
+@endif -->
+
+</form>
 </x-guest-layout>

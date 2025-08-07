@@ -31,7 +31,7 @@ Route::get('/', function () {
         return view('home'); 
     }
     return view('auth.login');
-});
+})->name('home');
 
 // Super Admin routes
 Route::middleware(['auth', 'isSuperAdmin'])->prefix('superadmin')->group(function () {
