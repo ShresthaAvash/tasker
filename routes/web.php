@@ -39,10 +39,10 @@ Route::middleware(['auth', 'isSuperAdmin'])->prefix('superadmin')->group(functio
 Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
 
-    // Calendar Routes (Reverted to original state)
+    // Calendar Routes
     Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
     Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
-    
+
     // Client Management
     Route::get('clients/suspended', [ClientController::class, 'suspended'])->name('clients.suspended');
     Route::patch('clients/{client}/status', [ClientController::class, 'toggleStatus'])->name('clients.toggleStatus');
@@ -64,6 +64,9 @@ Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(fun
     // Nested routes for Jobs (within a Service) and Tasks (within a Job)
     Route::resource('services.jobs', JobController::class)->shallow()->only(['store', 'update', 'destroy', 'edit']);
     Route::resource('jobs.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy']);
+    
+    // --- THIS IS THE NEW ROUTE ---
+    Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
 });
 
 require __DIR__.'/auth.php';

@@ -5,73 +5,79 @@ namespace App\Http\Controllers\Organization;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Task;
-use Illuminate\Support\Facades\Log; // Import the Log facade
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth; // <-- IMPORTANT: Import the Auth facade
 
 class CalendarController extends Controller
 {
-    /**
-     * Display the calendar and fetch events for the visible date range.
-     */
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            
-            // --- DEBUGGING: Log the incoming request from FullCalendar ---
-            Log::info('--- Calendar Event Request ---');
-            Log::info('Request Start Param: ' . $request->start);
-            Log::info('Request End Param: ' . $request->end);
+            $viewStart = Carbon::parse($request->start);
+            $viewEnd = Carbon::parse($request->end);
+            $events = [];
+            $userId = Auth::id(); // Get the ID of the currently logged-in user
 
-            try {
-                // The query to find any task that overlaps with the calendar's visible date range.
-                $tasks = Task::whereNotNull('start')
-                            ->where('start', '<=', $request->end)
-                            ->where(function ($query) use ($request) {
-                                $query->whereNull('end')
-                                      ->orWhere('end', '>=', $request->start);
-                            })
-                            ->get(['id', 'name', 'start', 'end']);
-                
-                // --- DEBUGGING: Log how many tasks were found ---
-                Log::info('Found ' . $tasks->count() . ' tasks in the date range.');
+            // 1. Get all normal, non-recurring tasks assigned to the current user
+            $nonRecurring = Task::whereNotNull('start')
+                ->where('is_recurring', false)
+                ->where('staff_id', $userId) // <-- THE FILTER
+                ->where('start', '<', $viewEnd)
+                ->where(function ($query) use ($viewStart) {
+                    $query->whereNull('end')->orWhere('end', '>', $viewStart);
+                })
+                ->get();
 
-                // Format the events into the array structure FullCalendar needs
-                $formattedEvents = [];
-                foreach ($tasks as $task) {
-                    $formattedEvents[] = [
-                        'id'    => $task->id,
-                        'title' => $task->name,
-                        'start' => $task->start->toIso8601String(), // Use a robust, universal date format
-                        'end'   => $task->end ? $task->end->toIso8601String() : null,
-                    ];
-                }
-      
-                // --- DEBUGGING: Log the exact data being sent back to the browser ---
-                Log::info('Returning events JSON: ' . json_encode($formattedEvents));
-                
-                return response()->json($formattedEvents);
-
-            } catch (\Exception $e) {
-                // If anything crashes, log the detailed error.
-                Log::error('Error fetching calendar events: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-                return response()->json(['error' => 'An error occurred on the server.'], 500);
+            foreach ($nonRecurring as $task) {
+                $events[] = [
+                    'title' => $task->name,
+                    'start' => $task->start->toIso8601String(),
+                    'end' => $task->end ? $task->end->toIso8601String() : null,
+                ];
             }
+
+            // 2. Get all recurring tasks assigned to the current user
+            $recurringTasks = Task::whereNotNull('start')
+                ->where('is_recurring', true)
+                ->where('staff_id', $userId) // <-- THE FILTER
+                ->get();
+
+            // 3. Generate instances of recurring tasks that fall within the view
+            foreach ($recurringTasks as $task) {
+                $currentDate = $task->start->copy();
+                while ($currentDate->lte($viewEnd)) {
+                    if ($currentDate->gte($viewStart)) {
+                        $eventEnd = null;
+                        if ($task->end) {
+                            $durationInSeconds = $task->start->diffInSeconds($task->end);
+                            $eventEnd = $currentDate->copy()->addSeconds($durationInSeconds)->toIso8601String();
+                        }
+                        $events[] = [
+                            'title' => $task->name,
+                            'start' => $currentDate->toIso8601String(),
+                            'end' => $eventEnd,
+                        ];
+                    }
+                    if ($task->recurring_frequency === 'daily') { $currentDate->addDay(); }
+                    elseif ($task->recurring_frequency === 'weekly') { $currentDate->addWeek(); }
+                    elseif ($task->recurring_frequency === 'monthly') { $currentDate->addMonth(); }
+                    else { break; }
+                }
+            }
+            return response()->json($events);
         }
-      
         return view('Organization.calendar');
     }
- 
-    /**
-     * Handle creating, updating, and deleting events via AJAX.
-     */
+
     public function ajax(Request $request)
     {
-        // This function is working correctly, so we leave it as is.
         switch ($request->type) {
            case 'add':
               $event = Task::create([
                   'name'  => $request->title,
                   'start' => $request->start,
                   'end'   => $request->end,
+                  'staff_id' => Auth::id(), // <-- AUTO-ASSIGN TO CREATOR
               ]);
  
               return response()->json([
