@@ -13,7 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'isSuperAdmin' => \App\Http\Middleware\IsSuperAdmin::class,
-            'isOrganization' => \App\Http\Middleware\IsOrganization::class, // ✅ Added line
+            'isOrganization' => \App\Http\Middleware\IsOrganization::class, 
+            'isClient' => \App\Http\Middleware\IsClient::class, 
+            'isStaff' => \App\Http\Middleware\IsStaff::class, 
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

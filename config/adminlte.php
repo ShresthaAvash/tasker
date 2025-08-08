@@ -198,7 +198,8 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'menu' => [
+    'menu' => 
+    [
         // SUPER ADMIN MENU
         [
             'text' => 'Dashboard',
@@ -310,6 +311,32 @@ return [
                 ],
             ],
         ],
+
+         // STAFF MENU
+        [
+            'text' => 'Dashboard',
+            'route'  => 'staff.dashboard',
+            'icon' => 'fas fa-fw fa-tachometer-alt',
+            'can'  => 'is-staff',
+        ],
+        [
+            'text'  => 'Calendar',
+            'route' => 'staff.calendar',
+            'icon'  => 'fas fa-fw fa-calendar-alt',
+            'can'   => 'is-staff',
+        ],
+        // [
+        //     'text'    => 'Tasks Assigned',
+        //     'icon'    => 'fas fa-fw fa-tasks',
+        //     'can'     => 'is-staff',
+        //     'submenu' => [
+        //         [
+        //             'text' => 'View Tasks',
+        //             'route'  => 'staff.tasks.index',
+        //             'icon' => 'fas fa-fw fa-list',
+        //         ],
+        //     ],
+        // ],
     ],
 
     /*

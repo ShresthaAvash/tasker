@@ -24,6 +24,7 @@ Route::get('/', function () {
     if (Auth::check()) {
         if (Auth::user()->type === 'S') return redirect()->route('superadmin.dashboard');
         if (Auth::user()->type === 'O') return redirect()->route('organization.dashboard');
+        if (Auth::user()->type === 'T') return redirect()->route('staff.dashboard');
         return view('home'); 
     }
     return view('auth.login');
@@ -69,4 +70,12 @@ Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(fun
     Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
 });
 
+
+Route::middleware(['auth', 'isStaff'])->prefix('staff')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'staffDashboard'])->name('staff.dashboard');
+    Route::get('calendar', [CalendarController::class, 'index'])->name('staff.calendar');
+
+    // Add staff tasks resource
+    Route::resource('tasks', TaskController::class)->names('staff.tasks');
+});
 require __DIR__.'/auth.php';

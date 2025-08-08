@@ -127,7 +127,7 @@
                     center: 'title',
                     right: 'month,agendaWeek,agendaDay'
                 },
-                events: '{{ route("staff.calendar") }}', // Simplified event loading
+                events: '{{ route("organization.calendar") }}', // Simplified event loading
 
                 // REMOVED: The `select` callback is gone, so clicking empty days does nothing.
                 // selectable: false, // This is the default, so no need to declare it.
