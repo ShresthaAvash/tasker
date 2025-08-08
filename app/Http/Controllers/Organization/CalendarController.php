@@ -4,42 +4,59 @@ namespace App\Http\Controllers\Organization;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Task; // We need to import the Task model
+use App\Models\Task;
+use Illuminate\Support\Facades\Log; // Import the Log facade
 
 class CalendarController extends Controller
 {
     /**
-     * Display the calendar view and fetch events for it.
+     * Display the calendar and fetch events for the visible date range.
      */
     public function index(Request $request)
     {
-        // This part handles the AJAX request from the calendar when it loads.
-        if($request->ajax()) {
-       
-             // *** THIS IS THE FINAL FIX ***
-             // The old query was too strict. This new query correctly finds all tasks
-             // that overlap with the calendar's visible date range.
-             $tasks = Task::whereNotNull('start')
-                        ->where('start', '<=', $request->end)
-                        ->where('end', '>=', $request->start)
-                        ->get(['id', 'name', 'start', 'end']);
+        if ($request->ajax()) {
             
-            // Manually format the tasks into an array that FullCalendar will understand.
-            $formattedEvents = [];
-            foreach ($tasks as $task) {
-                $formattedEvents[] = [
-                    'id'    => $task->id,
-                    'title' => $task->name, // Map the 'name' column to 'title'.
-                    'start' => $task->start->format('Y-m-d H:i:s'), // Format dates explicitly.
-                    'end'   => $task->end ? $task->end->format('Y-m-d H:i:s') : null,
-                ];
+            // --- DEBUGGING: Log the incoming request from FullCalendar ---
+            Log::info('--- Calendar Event Request ---');
+            Log::info('Request Start Param: ' . $request->start);
+            Log::info('Request End Param: ' . $request->end);
+
+            try {
+                // The query to find any task that overlaps with the calendar's visible date range.
+                $tasks = Task::whereNotNull('start')
+                            ->where('start', '<=', $request->end)
+                            ->where(function ($query) use ($request) {
+                                $query->whereNull('end')
+                                      ->orWhere('end', '>=', $request->start);
+                            })
+                            ->get(['id', 'name', 'start', 'end']);
+                
+                // --- DEBUGGING: Log how many tasks were found ---
+                Log::info('Found ' . $tasks->count() . ' tasks in the date range.');
+
+                // Format the events into the array structure FullCalendar needs
+                $formattedEvents = [];
+                foreach ($tasks as $task) {
+                    $formattedEvents[] = [
+                        'id'    => $task->id,
+                        'title' => $task->name,
+                        'start' => $task->start->toIso8601String(), // Use a robust, universal date format
+                        'end'   => $task->end ? $task->end->toIso8601String() : null,
+                    ];
+                }
+      
+                // --- DEBUGGING: Log the exact data being sent back to the browser ---
+                Log::info('Returning events JSON: ' . json_encode($formattedEvents));
+                
+                return response()->json($formattedEvents);
+
+            } catch (\Exception $e) {
+                // If anything crashes, log the detailed error.
+                Log::error('Error fetching calendar events: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+                return response()->json(['error' => 'An error occurred on the server.'], 500);
             }
-  
-             // Return the perfectly formatted array as JSON.
-             return response()->json($formattedEvents);
         }
-  
-        // This part just loads the blank calendar page view initially.
+      
         return view('Organization.calendar');
     }
  
@@ -48,6 +65,7 @@ class CalendarController extends Controller
      */
     public function ajax(Request $request)
     {
+        // This function is working correctly, so we leave it as is.
         switch ($request->type) {
            case 'add':
               $event = Task::create([
@@ -77,10 +95,6 @@ class CalendarController extends Controller
               $event = Task::find($request->id)->delete();
   
               return response()->json($event);
-             break;
-             
-           default:
-             # code...
              break;
         }
     }

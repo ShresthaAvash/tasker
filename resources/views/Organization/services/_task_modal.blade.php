@@ -43,6 +43,21 @@
                             @endforeach
                         </select>
                     </div>
+
+                    {{-- --- NEW CALENDAR FIELDS START HERE --- --}}
+                    <hr>
+                    <p class="text-muted">Fill out the dates below to make this task appear on the main calendar.</p>
+                    <div class="form-group">
+                        <label for="task-start">Start Date & Time (for Calendar)</label>
+                        <input type="datetime-local" id="task-start" name="start" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="task-end">End Date & Time (for Calendar)</label>
+                        <input type="datetime-local" id="task-end" name="end" class="form-control">
+                    </div>
+                    {{-- --- NEW CALENDAR FIELDS END HERE --- --}}
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>

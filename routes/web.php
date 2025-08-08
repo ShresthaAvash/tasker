@@ -10,7 +10,7 @@ use App\Http\Controllers\Organization\StaffController;
 use App\Http\Controllers\Organization\ServiceController;
 use App\Http\Controllers\Organization\JobController;
 use App\Http\Controllers\Organization\TaskController;
-use App\Http\Controllers\Organization\CalendarController; // <-- ADD THIS LINE
+use App\Http\Controllers\Organization\CalendarController;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -39,11 +39,10 @@ Route::middleware(['auth', 'isSuperAdmin'])->prefix('superadmin')->group(functio
 Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
 
-    // Calendar Routes - ADDED LINES START HERE
+    // Calendar Routes (Reverted to original state)
     Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
     Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
-    // ADDED LINES END HERE
-
+    
     // Client Management
     Route::get('clients/suspended', [ClientController::class, 'suspended'])->name('clients.suspended');
     Route::patch('clients/{client}/status', [ClientController::class, 'toggleStatus'])->name('clients.toggleStatus');
