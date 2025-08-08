@@ -18,10 +18,88 @@
         </div>
     </div>
 </div>
+
+<!-- NEW: Custom Modal for displaying event details and deletion -->
+<div id="eventDetailModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2 style="margin-bottom: 15px;">Task Details</h2>
+        <p><strong>Title:</strong> <span id="modalTitle"></span></p>
+        <p><strong>Start:</strong> <span id="modalStart"></span></p>
+        <p><strong>End:</strong> <span id="modalEnd"></span></p>
+        <button id="deleteEventButton" class="delete-btn">
+            <i class="fa fa-trash"></i> Delete Task
+        </button>
+    </div>
+</div>
 @stop
 
 @section('css')
+    {{-- FullCalendar Core CSS --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.css" />
+    
+    {{-- NEW: CSS for the custom modal --}}
+    <style>
+        /* Modal background overlay */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1050; /* Sit on top of everything */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0, 0, 0, 0.6); /* Black w/ opacity */
+        }
+
+        /* Modal content box */
+        .modal-content {
+            background-color: #fff;
+            color: #333;
+            margin: 15% auto; /* 15% from the top and centered */
+            padding: 25px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px; /* Responsive width */
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,.5);
+        }
+
+        /* The Close Button in the top right */
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Red Delete Button */
+        .delete-btn {
+            background-color: #dc3545; /* Bootstrap's danger red */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            transition: background-color 0.2s;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333; /* A darker red on hover */
+        }
+    </style>
 @stop
 
 @section('js')
@@ -30,10 +108,18 @@
 
     <script>
         $(document).ready(function () {
+            // Setup CSRF token for all AJAX requests
             $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+            
+            // Get modal elements once
+            var modal = $('#eventDetailModal');
+            var modalTitle = $('#modalTitle');
+            var modalStart = $('#modalStart');
+            var modalEnd = $('#modalEnd');
+            var deleteButton = $('#deleteEventButton');
+            var closeButton = $('.close-button');
 
-            console.log('Calendar script initializing...'); // DEBUG
-
+            // --- Calendar Initialization ---
             $('#calendar').fullCalendar({
                 editable: true,
                 header: {
@@ -41,52 +127,12 @@
                     center: 'title',
                     right: 'month,agendaWeek,agendaDay'
                 },
-                
-                // --- THIS IS THE NEW DEBUGGING-ENABLED EVENT LOADER ---
-                events: function(start, end, timezone, callback) {
-                    console.log('Calendar is requesting events...'); // DEBUG
-                    $.ajax({
-                        url: '{{ route("organization.calendar") }}',
-                        type: 'GET',
-                        data: {
-                            // FullCalendar sends start and end dates automatically.
-                            start: start.format('YYYY-MM-DD'),
-                            end: end.format('YYYY-MM-DD')
-                        },
-                        success: function(data) {
-                            console.log('Successfully fetched calendar events from server.'); // DEBUG
-                            console.log(data); // DEBUG: This shows the raw data in the console.
-                            callback(data); // This passes the events to the calendar to be drawn.
-                        },
-                        error: function(jqXHR, textStatus, errorThrown) {
-                            console.error("--- ERROR FETCHING CALENDAR EVENTS ---"); // DEBUG
-                            console.error("Status: " + textStatus); // DEBUG
-                            console.error("Error: " + errorThrown); // DEBUG
-                            console.error("Response Text: " + jqXHR.responseText); // DEBUG
-                            alert('Failed to load calendar events. Check the browser console (F12) for details.');
-                        }
-                    });
-                },
+                events: '{{ route("organization.calendar") }}', // Simplified event loading
 
-                // The rest of the functions for adding, dragging, deleting...
-                selectable: true,
-                selectHelper: true,
-                select: function (start, end, allDay) {
-                    var title = prompt('Task Name:');
-                    if (title) {
-                        var start = $.fullCalendar.formatDate(start, "Y-MM-DD HH:mm:ss");
-                        var end = $.fullCalendar.formatDate(end, "Y-MM-DD HH:mm:ss");
-                        $.ajax({
-                            url: "{{ route('organization.calendar.ajax') }}",
-                            type: "POST",
-                            data: { title: title, start: start, end: end, type: 'add' },
-                            success: function (data) {
-                                $('#calendar').fullCalendar('refetchEvents');
-                                alert("Event Created Successfully");
-                            }
-                        });
-                    }
-                },
+                // REMOVED: The `select` callback is gone, so clicking empty days does nothing.
+                // selectable: false, // This is the default, so no need to declare it.
+
+                // --- Event Drag-and-Drop ---
                 eventDrop: function (event, delta) {
                     var start = $.fullCalendar.formatDate(event.start, "Y-MM-DD HH:mm:ss");
                     var end = $.fullCalendar.formatDate(event.end, "Y-MM-DD HH:mm:ss");
@@ -94,18 +140,60 @@
                         url: "{{ route('organization.calendar.ajax') }}",
                         type: "POST",
                         data: { title: event.title, start: start, end: end, id: event.id, type: 'update' },
-                        success: function (response) { alert("Event Updated Successfully"); }
+                        success: function (response) { 
+                            // Using a more modern notification can be a future improvement.
+                            // For now, an alert provides simple feedback.
+                            alert("Event Updated Successfully"); 
+                        }
                     });
                 },
+
+                // --- NEW: Event Click opens the custom modal ---
                 eventClick: function (event) {
-                    if (confirm("Are you sure you want to remove it?")) {
-                        $.ajax({
-                            url: "{{ route('organization.calendar.ajax') }}",
-                            type: "POST",
-                            data: { id: event.id, type: 'delete' },
-                            success: function (response) { $('#calendar').fullCalendar('refetchEvents'); }
-                        });
-                    }
+                    // Populate the modal with the event's data
+                    modalTitle.text(event.title);
+                    modalStart.text(moment(event.start).format('MMM D, YYYY h:mm A'));
+                    modalEnd.text(event.end ? moment(event.end).format('MMM D, YYYY h:mm A') : 'N/A');
+
+                    // Store the event ID on the delete button's data attribute
+                    deleteButton.data('eventId', event.id);
+
+                    // Show the modal
+                    modal.show();
+                }
+            });
+
+            // --- Modal Control Logic ---
+
+            // When the user clicks the red delete button
+            deleteButton.on('click', function() {
+                var eventId = $(this).data('eventId');
+                if (eventId) {
+                    $.ajax({
+                        url: "{{ route('organization.calendar.ajax') }}",
+                        type: "POST",
+                        data: { id: eventId, type: 'delete' },
+                        success: function (response) { 
+                            modal.hide(); // Hide the modal on success
+                            $('#calendar').fullCalendar('removeEvents', eventId); // Remove event from view
+                            alert("Event Deleted Successfully");
+                        },
+                        error: function() {
+                            alert("Error: Could not delete the event.");
+                        }
+                    });
+                }
+            });
+
+            // When the user clicks on <span> (x), close the modal
+            closeButton.on('click', function() {
+                modal.hide();
+            });
+
+            // When the user clicks anywhere outside of the modal, close it
+            $(window).on('click', function(event) {
+                if ($(event.target).is(modal)) {
+                    modal.hide();
                 }
             });
         });
