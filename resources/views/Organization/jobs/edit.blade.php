@@ -12,36 +12,30 @@
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
-{{-- Card for Job Details --}}
 <div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Job Details</h3>
-    </div>
-    <div class="card-body">
-        <form action="{{ route('jobs.update', $job->id) }}" method="POST">
-            @csrf
-            @method('PUT')
-
+    {{-- Job Details Form --}}
+    <form action="{{ route('jobs.update', $job->id) }}" method="POST">
+        @csrf
+        @method('PUT')
+        <div class="card-header"><h3 class="card-title">Job Details</h3></div>
+        <div class="card-body">
             <div class="form-group">
                 <label for="name">Job Name</label>
-                <input type="text" id="name" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $job->name) }}" required>
-                @error('name') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                <input type="text" name="name" class="form-control" value="{{ $job->name }}" required>
             </div>
-
             <div class="form-group">
                 <label for="description">Description</label>
-                <textarea id="description" name="description" class="form-control @error('description') is-invalid @enderror" rows="4">{{ old('description', $job->description) }}</textarea>
-                @error('description') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                <textarea name="description" class="form-control">{{ $job->description }}</textarea>
             </div>
-
+        </div>
+        <div class="card-footer">
             <button type="submit" class="btn btn-primary">Save Changes</button>
             <a href="{{ route('services.show', $job->service_id) }}" class="btn btn-secondary">Back to Service Builder</a>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 
-{{-- ✅ ADDED: Card for Managing Tasks --}}
-<div class="card card-outline card-info mt-4">
+<div class="card">
     <div class="card-header">
         <h3 class="card-title">Tasks</h3>
         <div class="card-tools">
@@ -49,21 +43,30 @@
         </div>
     </div>
     <div class="card-body p-0">
-        <table class="table table-sm">
+        <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Task Name</th>
-                    <th>Deadline</th>
                     <th>Assigned To</th>
-                    <th style="width: 120px">Actions</th>
+                    <th style="width: 150px;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($job->tasks as $task)
                     <tr>
                         <td>{{ $task->name }}</td>
-                        <td>{{ $task->deadline_offset }} {{ Str::plural($task->deadline_unit, $task->deadline_offset) }} after job starts</td>
-                        <td>{{ $task->designation->name ?? 'Not Assigned' }}</td>
+                        <td>
+                            {{-- --- NEW ASSIGNMENT DROPDOWN --- --}}
+                            <select class="form-control form-control-sm staff-assign-dropdown" data-task-id="{{ $task->id }}">
+                                <option value="">-- Not Assigned --</option>
+                                @foreach($staffMembers as $staff)
+                                    <option value="{{ $staff->id }}" {{ $task->staff_id == $staff->id ? 'selected' : '' }}>
+                                        {{ $staff->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="assign-status text-success" id="status-{{ $task->id }}" style="display:none;">Saved!</small>
+                        </td>
                         <td>
                             <button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#taskModal" data-action="edit" data-task='{{ $task->toJson() }}'>Edit</button>
                             <form action="{{ route('tasks.destroy', $task->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this task?');">
@@ -73,45 +76,94 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="text-center text-muted">No tasks yet.</td></tr>
+                    <tr><td colspan="3" class="text-center text-muted">No tasks yet.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 </div>
 
-{{-- Include the reusable task modal --}}
-@include('Organization.services._task_modal', ['designations' => $designations])
+@include('Organization.services._task_modal')
 
 @stop
 
 @section('js')
 <script>
 $(document).ready(function() {
-    // Task Modal Logic (copied from services.show)
+
+    // --- LOGIC FOR TASK MODAL (RECURRING + EDIT) ---
     $('#taskModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
         var action = button.data('action');
         var modal = $(this);
+        var form = modal.find('form');
+
+        // Reset form from previous state
+        form[0].reset();
+        $('#recurring-options').hide();
+        $('#is_recurring').prop('checked', false);
+
 
         if (action === 'edit') {
             var task = button.data('task');
             modal.find('.modal-title').text('Edit Task');
-            modal.find('form').attr('action', '/organization/tasks/' + task.id);
-            modal.find('input[name="_method"]').val('PUT');
-            modal.find('#task-name').val(task.name);
-            modal.find('#task-description').val(task.description);
-            modal.find('#deadline_offset').val(task.deadline_offset);
-            modal.find('#deadline_unit').val(task.deadline_unit);
-            modal.find('#staff_designation_id').val(task.staff_designation_id);
-        } else {
+            form.attr('action', '/organization/tasks/' + task.id);
+            form.find('input[name="_method"]').val('PUT');
+
+            // Populate fields
+            $('#task-name').val(task.name);
+            if(task.is_recurring) {
+                $('#is_recurring').prop('checked', true);
+                $('#recurring-options').show();
+                $('#recurring_frequency').val(task.recurring_frequency);
+            }
+            $('#task-start').val(task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
+            $('#task-end').val(task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
+
+        } else { // 'create' action
             var jobId = button.data('jobid');
             modal.find('.modal-title').text('Add New Task');
-            modal.find('form').attr('action', '/organization/jobs/' + jobId + '/tasks');
-            modal.find('input[name="_method"]').val('POST');
-            modal.find('form')[0].reset();
+            form.attr('action', '/organization/jobs/' + jobId + '/tasks');
+            form.find('input[name="_method"]').val('POST');
         }
     });
+
+    // Show/hide recurring options based on checkbox
+    $('#is_recurring').on('change', function() {
+        if ($(this).is(':checked')) {
+            $('#recurring-options').slideDown();
+        } else {
+            $('#recurring-options').slideUp();
+        }
+    });
+
+
+    // --- LOGIC FOR DIRECT STAFF ASSIGNMENT (AJAX) ---
+    $('.staff-assign-dropdown').on('change', function() {
+        var dropdown = $(this);
+        var taskId = dropdown.data('taskId');
+        var staffId = dropdown.val();
+        var statusLabel = $('#status-' + taskId);
+
+        $.ajax({
+            url: '/organization/tasks/' + taskId + '/assign-staff',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                staff_id: staffId
+            },
+            success: function(response) {
+                statusLabel.fadeIn();
+                setTimeout(function() {
+                    statusLabel.fadeOut();
+                }, 2000); // Hide after 2 seconds
+            },
+            error: function() {
+                alert('Failed to assign staff. Please try again.');
+            }
+        });
+    });
+
 });
 </script>
 @stop

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Organization;
 use App\Http\Controllers\Controller;
 use App\Models\Job;
 use App\Models\Task;
+use App\Models\User; // Import the User model
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -19,20 +20,17 @@ class TaskController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'deadline_offset' => 'required|integer|min:0',
-            'deadline_unit' => 'required|in:days,weeks,months,years',
-            'staff_designation_id' => [
-                'nullable', 'integer',
-                Rule::exists('staff_designations', 'id')->where('organization_id', Auth::id()),
-            ],
-            // --- ADDED VALIDATION ---
             'start' => 'nullable|date',
             'end' => 'nullable|date|after_or_equal:start',
-            // ------------------------
+            'is_recurring' => 'sometimes|boolean',
+            'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly',
+            'staff_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('organization_id', Auth::id())],
         ]);
 
-        $job->tasks()->create($request->all());
+        $data = $request->all();
+        $data['is_recurring'] = $request->has('is_recurring');
 
+        $job->tasks()->create($data);
         return redirect()->back()->with('success', 'Task added successfully.');
     }
 
@@ -44,21 +42,36 @@ class TaskController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'deadline_offset' => 'required|integer|min:0',
-            'deadline_unit' => 'required|in:days,weeks,months,years',
-            'staff_designation_id' => [
-                'nullable', 'integer',
-                Rule::exists('staff_designations', 'id')->where('organization_id', Auth::id()),
-            ],
-            // --- ADDED VALIDATION ---
             'start' => 'nullable|date',
             'end' => 'nullable|date|after_or_equal:start',
-            // ------------------------
+            'is_recurring' => 'sometimes|boolean',
+            'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly',
+            'staff_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('organization_id', Auth::id())],
         ]);
 
-        $task->update($request->all());
+        $data = $request->all();
+        $data['is_recurring'] = $request->has('is_recurring');
 
+        $task->update($data);
         return redirect()->back()->with('success', 'Task updated successfully.');
+    }
+    
+    /**
+     * --- NEW METHOD FOR AJAX ASSIGNMENT ---
+     */
+    public function assignStaff(Request $request, Task $task)
+    {
+        if ($task->job->service->organization_id !== Auth::id()) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $request->validate([
+            'staff_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('organization_id', Auth::id())],
+        ]);
+
+        $task->update(['staff_id' => $request->staff_id]);
+
+        return response()->json(['success' => 'Task assigned successfully.']);
     }
 
     public function destroy(Task $task)
@@ -66,9 +79,7 @@ class TaskController extends Controller
         if ($task->job->service->organization_id !== Auth::id()) {
             abort(403);
         }
-
         $task->delete();
-
         return redirect()->back()->with('success', 'Task deleted successfully.');
     }
 }
