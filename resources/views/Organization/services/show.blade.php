@@ -127,6 +127,14 @@ $(document).ready(function() {
             modal.find('#deadline_offset').val(task.deadline_offset);
             modal.find('#deadline_unit').val(task.deadline_unit);
             modal.find('#staff_designation_id').val(task.staff_designation_id);
+
+            // --- JAVASCRIPT UPDATE START ---
+            // Format and set the start/end dates for the datetime-local input fields
+            // The 'T' is required by the datetime-local input format.
+            modal.find('#task-start').val(task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
+            modal.find('#task-end').val(task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
+            // --- JAVASCRIPT UPDATE END ---
+
         } else {
             var jobId = button.data('jobid');
             modal.find('.modal-title').text('Add New Task');

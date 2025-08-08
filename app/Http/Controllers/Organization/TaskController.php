@@ -25,11 +25,14 @@ class TaskController extends Controller
                 'nullable', 'integer',
                 Rule::exists('staff_designations', 'id')->where('organization_id', Auth::id()),
             ],
+            // --- ADDED VALIDATION ---
+            'start' => 'nullable|date',
+            'end' => 'nullable|date|after_or_equal:start',
+            // ------------------------
         ]);
 
         $job->tasks()->create($request->all());
 
-        // ✅ MODIFIED: Redirect back to the previous page
         return redirect()->back()->with('success', 'Task added successfully.');
     }
 
@@ -47,11 +50,14 @@ class TaskController extends Controller
                 'nullable', 'integer',
                 Rule::exists('staff_designations', 'id')->where('organization_id', Auth::id()),
             ],
+            // --- ADDED VALIDATION ---
+            'start' => 'nullable|date',
+            'end' => 'nullable|date|after_or_equal:start',
+            // ------------------------
         ]);
 
         $task->update($request->all());
 
-        // ✅ MODIFIED: Redirect back to the previous page
         return redirect()->back()->with('success', 'Task updated successfully.');
     }
 
@@ -63,7 +69,6 @@ class TaskController extends Controller
 
         $task->delete();
 
-        // ✅ MODIFIED: Redirect back to the previous page
         return redirect()->back()->with('success', 'Task deleted successfully.');
     }
 }
