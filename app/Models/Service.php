@@ -23,4 +23,14 @@ class Service extends Model
     {
         return $this->hasMany(Job::class)->orderBy('created_at');
     }
+
+    /**
+     * The clients that are assigned this service.
+     */
+    public function clients()
+    {
+        return $this->belongsToMany(User::class, 'client_service', 'service_id', 'user_id');
+    }
+
+
 }

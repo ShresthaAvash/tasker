@@ -49,6 +49,18 @@ Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(fun
     Route::patch('clients/{client}/status', [ClientController::class, 'toggleStatus'])->name('clients.toggleStatus');
     Route::resource('clients', ClientController::class);
 
+    // Routes for Client Contacts
+    Route::post('clients/{client}/contacts', [ClientController::class, 'storeContact'])->name('clients.contacts.store');
+    Route::put('client-contacts/{contact}', [ClientController::class, 'updateContact'])->name('clients.contacts.update');
+    Route::delete('client-contacts/{contact}', [ClientController::class, 'destroyContact'])->name('clients.contacts.destroy');
+
+    // Routes for Client Notes
+    Route::post('clients/{client}/notes', [ClientController::class, 'storeNote'])->name('clients.notes.store');
+    Route::put('client-notes/{note}', [ClientController::class, 'updateNote'])->name('clients.notes.update');
+    Route::delete('client-notes/{note}', [ClientController::class, 'destroyNote'])->name('clients.notes.destroy');
+    Route::patch('client-notes/{note}/pin', [ClientController::class, 'pinNote'])->name('clients.notes.pin');
+    Route::patch('client-notes/{note}/unpin', [ClientController::class, 'unpinNote'])->name('clients.notes.unpin');
+
     // Staff Designation Management
     Route::resource('staff-designations', StaffDesignationController::class);
 
@@ -66,8 +78,17 @@ Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(fun
     Route::resource('services.jobs', JobController::class)->shallow()->only(['store', 'update', 'destroy', 'edit']);
     Route::resource('jobs.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy']);
     
-    // --- THIS IS THE NEW ROUTE ---
+    // Route for assigning staff to tasks via AJAX
     Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
+
+        // ✅ ADDED: Routes for Client Documents
+    Route::post('clients/{client}/documents', [ClientController::class, 'storeDocument'])->name('clients.documents.store');
+    Route::delete('client-documents/{document}', [ClientController::class, 'destroyDocument'])->name('clients.documents.destroy');
+    Route::get('client-documents/{document}/download', [ClientController::class, 'downloadDocument'])->name('clients.documents.download');
+
+        // ✅ ADDED: Routes for Service Assignment
+    Route::get('services/get-jobs-for-assignment', [ClientController::class, 'getJobsForServiceAssignment'])->name('clients.services.getJobs');
+    Route::post('clients/{client}/assign-services', [ClientController::class, 'assignServices'])->name('clients.services.assign');
 });
 
 

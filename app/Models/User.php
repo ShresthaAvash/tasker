@@ -25,7 +25,7 @@ class User extends Authenticatable
         'photo',
         'status',
         'organization_id',
-        'staff_designation_id', // ✅ ADDED
+        'staff_designation_id',
     ];
 
     /**
@@ -58,4 +58,53 @@ class User extends Authenticatable
     {
         return $this->belongsTo(StaffDesignation::class, 'staff_designation_id');
     }
+
+    /**
+     * Get the contacts for the client user.
+     */
+    public function contacts()
+    {
+        return $this->hasMany(ClientContact::class, 'client_id');
+    }
+
+    /**
+     * Get all notes for the client, ordered by latest.
+     */
+    public function notes()
+    {
+        return $this->hasMany(ClientNote::class, 'client_id')->latest();
+    }
+
+    /**
+     * Get the single pinned note for the client.
+     */
+    public function pinnedNote()
+    {
+        return $this->hasOne(ClientNote::class, 'client_id')->whereNotNull('pinned_at')->latest('pinned_at');
+    }
+        public function documents()
+    {
+        return $this->hasMany(ClientDocument::class, 'client_id')->latest();
+    }
+       public function uploadedDocuments()
+    {
+        return $this->hasMany(ClientDocument::class, 'uploaded_by_id');
+    }
+
+    /**
+     * The services assigned to the client.
+     */
+    public function assignedServices()
+    {
+        return $this->belongsToMany(Service::class, 'client_service', 'user_id', 'service_id');
+    }
+
+    /**
+     * The tasks instantiated for the client.
+     */
+    public function assignedTasks()
+    {
+        return $this->hasMany(AssignedTask::class, 'client_id');
+    }
+
 }
