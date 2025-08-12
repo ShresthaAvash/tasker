@@ -9,15 +9,23 @@ class Service extends Model
 {
     use HasFactory;
 
-    protected $fillable = [ 'name', 'description', 'status', 'organization_id' ];
+    protected $fillable = [
+        'name',
+        'description',
+        'status',
+        'organization_id'
+    ];
 
+    /**
+     * Get the organization that owns the service.
+     */
     public function organization()
     {
         return $this->belongsTo(User::class, 'organization_id');
     }
 
     /**
-     * A service has many jobs.
+     * A service has many job templates.
      */
     public function jobs()
     {
@@ -31,6 +39,4 @@ class Service extends Model
     {
         return $this->belongsToMany(User::class, 'client_service', 'service_id', 'user_id');
     }
-
-
 }

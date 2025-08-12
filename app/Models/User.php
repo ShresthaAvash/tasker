@@ -37,7 +37,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
-    
+
     /**
      * Get the attributes that should be cast.
      *
@@ -82,11 +82,19 @@ class User extends Authenticatable
     {
         return $this->hasOne(ClientNote::class, 'client_id')->whereNotNull('pinned_at')->latest('pinned_at');
     }
-        public function documents()
+
+    /**
+     * Get all documents for the client.
+     */
+    public function documents()
     {
         return $this->hasMany(ClientDocument::class, 'client_id')->latest();
     }
-       public function uploadedDocuments()
+
+    /**
+     * Get all documents uploaded by this user (staff/org).
+     */
+    public function uploadedDocuments()
     {
         return $this->hasMany(ClientDocument::class, 'uploaded_by_id');
     }
@@ -106,5 +114,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(AssignedTask::class, 'client_id');
     }
-
 }

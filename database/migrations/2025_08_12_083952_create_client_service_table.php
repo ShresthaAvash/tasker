@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('client_service', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id'); // This is the client's ID
+            $table->unsignedBigInteger('user_id'); // Client's ID
             $table->unsignedBigInteger('service_id');
             $table->timestamps();
 

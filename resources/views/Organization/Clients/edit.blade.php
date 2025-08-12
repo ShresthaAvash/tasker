@@ -188,7 +188,9 @@
                     <div id="job-config-step" style="display: none;">
                         <h4>2. Configure Jobs & Tasks</h4>
                         <p>Uncheck any jobs or tasks to exclude them. Assign staff members to each task.</p>
-                        <div id="jobs-accordion-container"></div>
+                        <div id="jobs-accordion-container">
+                            {{-- AJAX content will be loaded here --}}
+                        </div>
                         <hr>
                         <button type="button" id="back-to-services-btn" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</button>
                         <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Save Assignments</button>
@@ -201,10 +203,10 @@
 </div>
 
 <!-- Contact Modal -->
-<div class="modal fade" id="contactModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="contactForm" method="POST" action="">@csrf<input type="hidden" id="contact-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="contactModalLabel">Add Contact</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Name</label><input type="text" id="contact-name" name="name" class="form-control" required></div><div class="form-group"><label>Email</label><input type="email" id="contact-email" name="email" class="form-control" required></div><div class="form-group"><label>Phone (Optional)</label><input type="text" id="contact-phone" name="phone" class="form-control"></div><div class="form-group"><label>Position</label><input type="text" id="contact-position" name="position" class="form-control"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Save</button></div></form></div></div></div>
+<div class="modal fade" id="contactModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="contactForm" method="POST" action="{{ route('clients.contacts.store', $client) }}">@csrf<input type="hidden" id="contact-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="contactModalLabel">Add Contact</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Name</label><input type="text" id="contact-name" name="name" class="form-control" required></div><div class="form-group"><label>Email</label><input type="email" id="contact-email" name="email" class="form-control" required></div><div class="form-group"><label>Phone (Optional)</label><input type="text" id="contact-phone" name="phone" class="form-control"></div><div class="form-group"><label>Position</label><input type="text" id="contact-position" name="position" class="form-control"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Save</button></div></form></div></div></div>
 
 <!-- Note Modal -->
-<div class="modal fade" id="noteModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="noteForm" method="POST" action="">@csrf<input type="hidden" id="note-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="noteModalLabel">Add Note</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Title</label><input type="text" id="note-title" name="title" class="form-control" required></div><div class="form-group"><label>Content</label><textarea id="note-content" name="content" class="form-control" rows="4" required></textarea></div><div class="form-group"><label>Date</label><input type="date" id="note-date" name="note_date" class="form-control" required></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Save</button></div></form></div></div></div>
+<div class="modal fade" id="noteModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="noteForm" method="POST" action="{{ route('clients.notes.store', $client) }}">@csrf<input type="hidden" id="note-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="noteModalLabel">Add Note</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Title</label><input type="text" id="note-title" name="title" class="form-control" required></div><div class="form-group"><label>Content</label><textarea id="note-content" name="content" class="form-control" rows="4" required></textarea></div><div class="form-group"><label>Date</label><input type="date" id="note-date" name="note_date" class="form-control" required></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Save</button></div></form></div></div></div>
 
 <!-- Document Upload Modal -->
 <div class="modal fade" id="documentModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="documentForm" method="POST" action="{{ route('clients.documents.store', $client) }}" enctype="multipart/form-data">@csrf<div class="modal-header"><h5 class="modal-title">Upload Document</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Document Name</label><input type="text" name="name" class="form-control" required placeholder="e.g., Signed Contract"></div><div class="form-group"><label>File</label><input type="file" name="document_file" class="form-control-file" required><small class="form-text text-muted">Allowed types: PDF, DOCX, PNG, JPG. Max size: 10MB.</small></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Upload</button></div></form></div></div></div>
@@ -222,13 +224,19 @@ $(document).ready(function() {
         $('#client-tabs a[href="' + activeTab + '"]').tab('show');
     }
 
-    // Contact Modal Logic for Create and Edit
+    // --- FIXED: Contact Modal Logic for Create and Edit ---
     $('#contactModal').on('show.bs.modal', function (event) {
         const button = $(event.relatedTarget);
         const action = button.data('action');
         const modal = $(this);
         const form = modal.find('form');
+        
+        // Always reset the form to its "create" state first
         form[0].reset();
+        modal.find('.modal-title').text('Add New Contact');
+        form.attr('action', '{{ route('clients.contacts.store', $client) }}');
+        $('#contact-method').val('POST');
+        
         if (action === 'edit') {
             const contact = button.data('contact');
             modal.find('.modal-title').text('Edit Contact');
@@ -238,20 +246,23 @@ $(document).ready(function() {
             $('#contact-email').val(contact.email);
             $('#contact-phone').val(contact.phone);
             $('#contact-position').val(contact.position);
-        } else {
-            modal.find('.modal-title').text('Add New Contact');
-            form.attr('action', '{{ route('clients.contacts.store', $client) }}');
-            $('#contact-method').val('POST');
         }
     });
 
-    // Note Modal Logic for Create and Edit
+    // --- FIXED: Note Modal Logic for Create and Edit ---
     $('#noteModal').on('show.bs.modal', function (event) {
         const button = $(event.relatedTarget);
         const action = button.data('action');
         const modal = $(this);
         const form = modal.find('form');
+        
+        // Always reset the form to its "create" state first
         form[0].reset();
+        modal.find('.modal-title').text('Add New Note');
+        form.attr('action', '{{ route('clients.notes.store', $client) }}');
+        $('#note-method').val('POST');
+        $('#note-date').val(new Date().toISOString().slice(0, 10));
+
         if (action === 'edit') {
             const note = button.data('note');
             modal.find('.modal-title').text('Edit Note');
@@ -260,86 +271,136 @@ $(document).ready(function() {
             $('#note-title').val(note.title);
             $('#note-content').val(note.content);
             $('#note-date').val(note.note_date.split(' ')[0]);
-        } else {
-            modal.find('.modal-title').text('Add New Note');
-            form.attr('action', '{{ route('clients.notes.store', $client) }}');
-            $('#note-method').val('POST');
-            $('#note-date').val(new Date().toISOString().slice(0, 10));
         }
     });
 
     // ====================================================================
-    // SERVICE ASSIGNMENT JS
+    // SERVICE ASSIGNMENT JS (with Job Checkboxes)
     // ====================================================================
     const serviceSelectionStep = $('#service-selection-step');
     const jobConfigStep = $('#job-config-step');
     const jobsContainer = $('#jobs-accordion-container');
-    const allStaffData = [ @foreach($allStaff as $staff) { id: '{{ $staff->id }}', text: '{{ $staff->name }}' }, @endforeach ];
+    const allStaffData = {!! $allStaffJson !!};
+    
+    const previouslyAssignedServiceIds = {!! json_encode($client->assignedServices->pluck('id')->map(fn($id) => (string)$id)) !!};
+    const clientTasks = {!! json_encode($client->assignedTasks->keyBy('task_template_id')) !!};
+
+    function renderJobsAndTasks(jobs) {
+        jobsContainer.empty();
+        if (!jobs || jobs.length === 0) {
+            jobsContainer.html('<p class="text-muted text-center p-3">The selected services do not have any jobs or tasks configured.</p>');
+            return;
+        }
+
+        jobs.forEach(job => {
+            let taskHtml = '';
+            const isNewService = !previouslyAssignedServiceIds.includes(String(job.service_id));
+
+            if (job.tasks && job.tasks.length > 0) {
+                job.tasks.forEach(task => {
+                    const assignedStaffIds = clientTasks[task.id] ? clientTasks[task.id].staff.map(s => s.id) : [];
+                    const isChecked = clientTasks.hasOwnProperty(task.id) || isNewService ? 'checked' : '';
+
+                    taskHtml += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="custom-control custom-checkbox">
+                                     <input type="checkbox" class="custom-control-input task-checkbox" name="tasks[${task.id}]" id="task_${task.id}" ${isChecked} data-job-id="${job.id}">
+                                     <label class="custom-control-label font-weight-normal" for="task_${task.id}">${task.name}</label>
+                                </div>
+                            </div>
+                            <div style="width: 60%;">
+                                <select class="form-control staff-select" name="staff_assignments[${task.id}][]" multiple="multiple" style="width: 100%;" data-task-id="${task.id}" data-assigned-staff='${JSON.stringify(assignedStaffIds)}'></select>
+                            </div>
+                        </li>`;
+                });
+            } else {
+                taskHtml = '<li class="list-group-item text-muted">No tasks in this job.</li>';
+            }
+
+            const jobHtml = `
+                <div class="card mb-2 shadow-sm">
+                    <div class="card-header bg-light" id="heading_job_${job.id}">
+                        <div class="d-flex align-items-center">
+                            <div class="custom-control custom-checkbox mr-3">
+                                <input type="checkbox" class="custom-control-input job-checkbox" id="job_${job.id}" data-job-id="${job.id}">
+                                <label class="custom-control-label" for="job_${job.id}"></label>
+                            </div>
+                            <h5 class="mb-0 flex-grow-1">
+                                <a href="#collapse_job_${job.id}" class="text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" aria-controls="collapse_job_${job.id}">
+                                    ${job.name}
+                                </a>
+                            </h5>
+                        </div>
+                    </div>
+                    <div id="collapse_job_${job.id}" class="collapse show" aria-labelledby="heading_job_${job.id}">
+                        <ul class="list-group list-group-flush" data-job-id="${job.id}">${taskHtml}</ul>
+                    </div>
+                </div>`;
+            jobsContainer.append(jobHtml);
+        });
+
+        // Initialize Select2 dropdowns and set pre-selected values
+        $('.staff-select').each(function() {
+            const assignedStaff = JSON.parse($(this).attr('data-assigned-staff') || '[]');
+            $(this).select2({
+                placeholder: 'Assign Staff Members',
+                data: allStaffData,
+                width: '100%'
+            }).val(assignedStaff).trigger('change');
+        });
+
+        // Set initial state of job checkboxes based on their tasks
+        jobsContainer.find('.job-checkbox').each(function() {
+            const jobId = $(this).data('jobId');
+            const tasksForJob = jobsContainer.find(`.task-checkbox[data-job-id="${jobId}"]`);
+            const checkedTasks = tasksForJob.filter(':checked');
+            $(this).prop('checked', tasksForJob.length > 0 && checkedTasks.length === tasksForJob.length);
+        });
+    }
+
+    // --- EVENT LISTENERS ---
+
+    // When a JOB checkbox is clicked
+    jobsContainer.on('change', '.job-checkbox', function() {
+        const jobId = $(this).data('jobId');
+        const isChecked = $(this).prop('checked');
+        jobsContainer.find(`.task-checkbox[data-job-id="${jobId}"]`).prop('checked', isChecked);
+    });
+
+    // When a TASK checkbox is clicked
+    jobsContainer.on('change', '.task-checkbox', function() {
+        const jobId = $(this).data('jobId');
+        const jobCheckbox = jobsContainer.find(`#job_${jobId}`);
+        const allTasksForJob = jobsContainer.find(`.task-checkbox[data-job-id="${jobId}"]`);
+        const checkedTasks = allTasksForJob.filter(':checked');
+        
+        jobCheckbox.prop('checked', allTasksForJob.length > 0 && checkedTasks.length === allTasksForJob.length);
+    });
 
     $('#next-to-jobs-btn').on('click', function() {
         const selectedServiceIds = $('.service-checkbox:checked').map((_, el) => $(el).val()).get();
-        if (selectedServiceIds.length === 0) {
-            alert('Please select at least one service to continue.');
-            return;
-        }
 
         jobsContainer.html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i><p>Loading jobs and tasks...</p></div>');
         serviceSelectionStep.hide();
         jobConfigStep.show();
+
+        if (selectedServiceIds.length === 0) {
+            renderJobsAndTasks([]);
+            return;
+        }
 
         $.ajax({
             url: '{{ route('clients.services.getJobs') }}',
             method: 'GET',
             data: { service_ids: selectedServiceIds },
             success: function(jobs) {
-                jobsContainer.empty();
-                if (jobs.length === 0) {
-                    jobsContainer.html('<p class="text-muted">The selected services do not have any jobs configured.</p>');
-                    return;
-                }
-                
-                jobs.forEach(job => {
-                    let taskHtml = '';
-                    if (job.tasks.length > 0) {
-                        job.tasks.forEach(task => {
-                            taskHtml += `
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <input type="checkbox" name="tasks[${task.id}]" id="task_${task.id}" checked class="mr-2 task-checkbox">
-                                        <label for="task_${task.id}" class="mb-0 font-weight-normal">${task.name}</label>
-                                    </div>
-                                    <div style="width: 60%;">
-                                        <select class="form-control staff-select" name="staff_assignments[${task.id}][]" multiple="multiple" style="width: 100%;"></select>
-                                    </div>
-                                </li>`;
-                        });
-                    } else {
-                        taskHtml = '<li class="list-group-item text-muted">No tasks in this job.</li>';
-                    }
-
-                    const jobHtml = `
-                        <div class="card mb-2 shadow-sm">
-                            <div class="card-header bg-light">
-                                <h5 class="mb-0">
-                                    <button class="btn btn-link text-dark font-weight-bold" type="button" data-toggle="collapse" data-target="#collapse_job_${job.id}">
-                                        ${job.name}
-                                    </button>
-                                </h5>
-                            </div>
-                            <div id="collapse_job_${job.id}" class="collapse show">
-                                <ul class="list-group list-group-flush">${taskHtml}</ul>
-                            </div>
-                        </div>`;
-                    jobsContainer.append(jobHtml);
-                });
-
-                $('.staff-select').select2({
-                    placeholder: 'Assign Staff Members',
-                    data: allStaffData,
-                    width: '100%'
-                });
+                renderJobsAndTasks(jobs);
             },
-            error: () => jobsContainer.html('<p class="text-danger">Failed to load job data. Please try again.</p>')
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error("AJAX Error:", textStatus, errorThrown, jqXHR.responseText);
+                jobsContainer.html('<p class="text-danger text-center p-3">Failed to load job data. Please check the browser console for errors and try again.</p>');
+            }
         });
     });
 
@@ -347,6 +408,9 @@ $(document).ready(function() {
         jobConfigStep.hide();
         serviceSelectionStep.show();
     });
+
+    // Automatically trigger 'Next' on page load to show current assignments.
+    $('#next-to-jobs-btn').trigger('click');
 });
 </script>
 @stop

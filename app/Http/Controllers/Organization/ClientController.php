@@ -111,13 +111,18 @@ class ClientController extends Controller
     {
         $client = User::where('type', 'C')
             ->where('organization_id', Auth::id())
-            ->with(['contacts', 'notes', 'pinnedNote', 'documents.uploader', 'assignedServices'])
+            ->with(['contacts', 'notes', 'pinnedNote', 'documents.uploader', 'assignedServices', 'assignedTasks.staff'])
             ->findOrFail($id);
         
         $allServices = Service::where('organization_id', Auth::id())->where('status', 'A')->orderBy('name')->get();
         $allStaff = User::where('organization_id', Auth::id())->whereIn('type', ['T', 'A', 'M', 'O'])->orderBy('name')->get();
+        
+        // Safely prepare staff data for JavaScript
+        $allStaffJson = $allStaff->map(function ($staff) {
+            return ['id' => $staff->id, 'text' => $staff->name];
+        })->toJson();
 
-        return view('organization.clients.edit', compact('client', 'allServices', 'allStaff'));
+        return view('organization.clients.edit', compact('client', 'allServices', 'allStaff', 'allStaffJson'));
     }
 
     /**
@@ -365,8 +370,14 @@ class ClientController extends Controller
             return response()->json([]);
         }
 
+        $organizationId = Auth::id();
+
         $jobs = Job::whereIn('service_id', $serviceIds)
-                   ->with('tasks')
+                   // Ensure jobs belong to the organization's services for security
+                   ->whereHas('service', function ($query) use ($organizationId) {
+                       $query->where('organization_id', $organizationId);
+                   })
+                   ->with('tasks') // Eager load tasks for efficiency
                    ->orderBy('name')
                    ->get();
         
@@ -385,24 +396,45 @@ class ClientController extends Controller
         ]);
 
         DB::transaction(function () use ($validated, $client) {
+            // Sync the selected services
             $client->assignedServices()->sync($validated['services'] ?? []);
-            $client->assignedTasks()->delete();
+            
+            // Get currently assigned task templates for comparison
+            $currentTaskIds = $client->assignedTasks()->pluck('task_template_id')->toArray();
+            $newTaskIds = array_keys($validated['tasks'] ?? []);
 
-            $selectedTaskTemplates = Task::with('job.service')->findMany(array_keys($validated['tasks']));
+            // 1. Delete tasks that are no longer selected
+            $tasksToDelete = array_diff($currentTaskIds, $newTaskIds);
+            if (!empty($tasksToDelete)) {
+                $client->assignedTasks()->whereIn('task_template_id', $tasksToDelete)->delete();
+            }
 
-            foreach ($selectedTaskTemplates as $taskTemplate) {
-                $assignedTask = AssignedTask::create([
-                    'client_id' => $client->id,
-                    'service_id' => $taskTemplate->job->service_id,
-                    'job_id' => $taskTemplate->job_id,
-                    'task_template_id' => $taskTemplate->id,
-                    'name' => $taskTemplate->name,
-                    'description' => $taskTemplate->description,
-                ]);
+            // 2. Update existing or create new assigned tasks
+            if (!empty($newTaskIds)) {
+                $selectedTaskTemplates = Task::with('job.service')->findMany($newTaskIds);
 
-                if (isset($validated['staff_assignments'][$taskTemplate->id])) {
-                    $staffIds = $validated['staff_assignments'][$taskTemplate->id];
-                    $assignedTask->staff()->sync($staffIds);
+                foreach ($selectedTaskTemplates as $taskTemplate) {
+                    $assignedTask = AssignedTask::updateOrCreate(
+                        [
+                            'client_id' => $client->id,
+                            'task_template_id' => $taskTemplate->id,
+                        ],
+                        [
+                            'service_id' => $taskTemplate->job->service_id,
+                            'job_id' => $taskTemplate->job_id,
+                            'name' => $taskTemplate->name,
+                            'description' => $taskTemplate->description,
+                            'status' => 'pending', // Default status
+                        ]
+                    );
+
+                    // Sync staff assignments for this task
+                    if (isset($validated['staff_assignments'][$taskTemplate->id])) {
+                        $staffIds = $validated['staff_assignments'][$taskTemplate->id];
+                        $assignedTask->staff()->sync($staffIds);
+                    } else {
+                        $assignedTask->staff()->detach(); // No staff assigned
+                    }
                 }
             }
         });
