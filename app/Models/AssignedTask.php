@@ -7,29 +7,54 @@ use Illuminate\Database\Eloquent\Model;
 
 class AssignedTask extends Model
 {
-use HasFactory;
+    use HasFactory;
 
-protected $fillable = [
-'client_id',
-'task_template_id',
-'name',
-'due_date',
-'status',
-];
+    protected $fillable = [
+        'client_id',
+        'task_template_id',
+        'service_id',
+        'job_id',
+        'name',
+        'description',
+        'due_date',
+        'status',
+        'start',
+        'end',
+        'is_recurring',
+        'recurring_frequency',
+    ];
 
-/**
-* The staff members assigned to this task.
-*/
-public function staff()
-{
-return $this->belongsToMany(User::class, 'assigned_task_staff', 'assigned_task_id', 'user_id');
-}
+    /**
+     * The attributes that should be cast to native types.
+     */
+    protected $casts = [
+        'due_date' => 'date',
+        'start' => 'datetime',
+        'end' => 'datetime',
+        'is_recurring' => 'boolean',
+    ];
 
-/**
-* Get the original task template.
-*/
-public function template()
-{
-return $this->belongsTo(Task::class, 'task_template_id');
-}
+    /**
+     * The staff members assigned to this task.
+     */
+    public function staff()
+    {
+        return $this->belongsToMany(User::class, 'assigned_task_staff', 'assigned_task_id', 'user_id');
+    }
+
+    /**
+     * Get the original task template.
+     */
+    public function template()
+    {
+        return $this->belongsTo(Task::class, 'task_template_id');
+    }
+
+    /**
+     * Get the client for this assigned task.
+     */
+    public function client()
+    {
+        return $this->belongsTo(User::class, 'client_id');
+    }
 }

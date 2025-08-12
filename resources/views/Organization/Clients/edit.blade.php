@@ -2,7 +2,6 @@
 
 @section('title', 'Edit Client')
 
-{{-- ✅ Enabling the Select2 Plugin is required for the staff dropdowns --}}
 @section('plugins.Select2', true)
 
 @section('content_header')
@@ -11,32 +10,26 @@
 
 @section('css')
 <style>
-    /*
-     * Custom Dark Tab Styling
-     * Mimics the dark sidebar for a more integrated and professional look.
-     */
     .card-primary.card-tabs .card-header {
-        background-color: #343a40; /* AdminLTE dark sidebar color */
-        border-bottom: none; /* Remove the default border */
+        background-color: #343a40;
+        border-bottom: none;
     }
     .card-primary.card-tabs .nav-link {
         border: 0;
-        color: rgba(255, 255, 255, 0.7); /* Light, slightly transparent text */
+        color: rgba(255, 255, 255, 0.7);
         transition: all 0.2s ease-in-out;
-        border-top: 3px solid transparent; /* Hidden border for alignment */
-        margin-bottom: -1px; /* Overlap the card body border slightly */
+        border-top: 3px solid transparent;
+        margin-bottom: -1px;
     }
     .card-primary.card-tabs .nav-link.active {
-        background-color: #fff; /* Make active tab background match the card body */
-        color: #343a40; /* Dark text for the active tab */
-        border-top-color: #007bff; /* Blue indicator line, matching theme */
+        background-color: #fff;
+        color: #343a40;
+        border-top-color: #007bff;
     }
     .card-primary.card-tabs .nav-link:not(.active):hover {
-        color: #ffffff; /* Make text fully white on hover */
-        border-top-color: #6c757d; /* A subtle grey indicator on hover */
+        color: #ffffff;
+        border-top-color: #6c757d;
     }
-
-    /* Pinned Note Styling */
     .pinned-note-bar {
         background-color: #fff3cd;
         border: 1px solid #ffeeba;
@@ -50,8 +43,6 @@
         top: 5px;
         right: 10px;
     }
-
-    /* Custom styles for the Select2 dropdown to match the theme */
     .select2-container--default .select2-selection--multiple {
         background-color: #fff;
         border-color: #ced4da;
@@ -76,7 +67,6 @@
 
 @section('content')
 
-{{-- Pinned Note Display Area --}}
 @if($client->pinnedNote)
 <div class="pinned-note-bar">
     <form action="{{ route('clients.notes.unpin', $client->pinnedNote) }}" method="POST" class="unpin-btn">@csrf @method('PATCH')<button type="submit" class="btn btn-xs btn-outline-secondary" title="Unpin Note"><i class="fas fa-thumbtack"></i> Unpin</button></form>
@@ -85,7 +75,6 @@
 </div>
 @endif
 
-{{-- Success and Error Messages --}}
 @if(session('success'))
     <div class="alert alert-success alert-dismissible"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>{{ session('success') }}</div>
 @endif
@@ -168,9 +157,26 @@
 
             <!-- Services Tab -->
             <div class="tab-pane fade" id="services-tab" role="tabpanel">
+                
+                {{-- --- THIS IS THE FIX (Part 1) --- --}}
+                {{-- This script block will ONLY be present if the client already has assigned services. --}}
+                {{-- It will run once the page is ready. --}}
+                @if($client->assignedServices->isNotEmpty())
+                <script>
+                    $(function() {
+                        // Hide the service selection and show the job configuration.
+                        $('#service-selection-step').hide();
+                        $('#job-config-step').show();
+
+                        // Trigger the AJAX call to load the jobs and tasks for the existing services.
+                        $('#next-to-jobs-btn').trigger('click');
+                    });
+                </script>
+                @endif
+                {{-- --- END OF FIX --- --}}
+
                 <form id="service-assignment-form" action="{{ route('clients.services.assign', $client) }}" method="POST">
                     @csrf
-                    <!-- Step 1: Service Selection -->
                     <div id="service-selection-step">
                         <h4>1. Select Services</h4>
                         <p>Choose the services you want to activate for this client.</p>
@@ -184,54 +190,47 @@
                         <button type="button" id="next-to-jobs-btn" class="btn btn-primary">Next <i class="fas fa-arrow-right"></i></button>
                     </div>
 
-                    <!-- Step 2: Job & Task Configuration -->
                     <div id="job-config-step" style="display: none;">
                         <h4>2. Configure Jobs & Tasks</h4>
                         <p>Uncheck any jobs or tasks to exclude them. Assign staff members to each task.</p>
-                        <div id="jobs-accordion-container">
-                            {{-- AJAX content will be loaded here --}}
-                        </div>
+                        <div id="jobs-accordion-container"></div>
                         <hr>
                         <button type="button" id="back-to-services-btn" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</button>
                         <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Save Assignments</button>
                     </div>
                 </form>
             </div>
-
         </div>
     </div>
 </div>
 
-<!-- Contact Modal -->
+<!-- Modals -->
 <div class="modal fade" id="contactModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="contactForm" method="POST" action="{{ route('clients.contacts.store', $client) }}">@csrf<input type="hidden" id="contact-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="contactModalLabel">Add Contact</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Name</label><input type="text" id="contact-name" name="name" class="form-control" required></div><div class="form-group"><label>Email</label><input type="email" id="contact-email" name="email" class="form-control" required></div><div class="form-group"><label>Phone (Optional)</label><input type="text" id="contact-phone" name="phone" class="form-control"></div><div class="form-group"><label>Position</label><input type="text" id="contact-position" name="position" class="form-control"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Save</button></div></form></div></div></div>
-
-<!-- Note Modal -->
 <div class="modal fade" id="noteModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="noteForm" method="POST" action="{{ route('clients.notes.store', $client) }}">@csrf<input type="hidden" id="note-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="noteModalLabel">Add Note</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Title</label><input type="text" id="note-title" name="title" class="form-control" required></div><div class="form-group"><label>Content</label><textarea id="note-content" name="content" class="form-control" rows="4" required></textarea></div><div class="form-group"><label>Date</label><input type="date" id="note-date" name="note_date" class="form-control" required></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Save</button></div></form></div></div></div>
-
-<!-- Document Upload Modal -->
 <div class="modal fade" id="documentModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="documentForm" method="POST" action="{{ route('clients.documents.store', $client) }}" enctype="multipart/form-data">@csrf<div class="modal-header"><h5 class="modal-title">Upload Document</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Document Name</label><input type="text" name="name" class="form-control" required placeholder="e.g., Signed Contract"></div><div class="form-group"><label>File</label><input type="file" name="document_file" class="form-control-file" required><small class="form-text text-muted">Allowed types: PDF, DOCX, PNG, JPG. Max size: 10MB.</small></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Upload</button></div></form></div></div></div>
 @stop
 
 @section('js')
 <script>
 $(document).ready(function() {
-    // Logic to remember the active tab using localStorage
-    $('a[data-toggle="pill"]').on('shown.bs.tab', function (e) {
-        localStorage.setItem('activeClientTab', $(e.target).attr('href'));
-    });
-    let activeTab = localStorage.getItem('activeClientTab');
-    if (activeTab && $('#client-tabs a[href="' + activeTab + '"]').length) {
-        $('#client-tabs a[href="' + activeTab + '"]').tab('show');
-    }
+    
+    // --- THIS IS THE FIX (Part 2) ---
+    // Remove the localStorage logic to ensure the "General" tab is always the default.
+    // $('a[data-toggle="pill"]').on('shown.bs.tab', function (e) {
+    //     localStorage.setItem('activeClientTab', $(e.target).attr('href'));
+    // });
+    // let activeTab = localStorage.getItem('activeClientTab');
+    // if (activeTab && $('#client-tabs a[href="' + activeTab + '"]').length) {
+    //     $('#client-tabs a[href="' + activeTab + '"]').tab('show');
+    // }
+    // --- END OF FIX ---
 
-    // --- FIXED: Contact Modal Logic for Create and Edit ---
     $('#contactModal').on('show.bs.modal', function (event) {
         const button = $(event.relatedTarget);
         const action = button.data('action');
         const modal = $(this);
         const form = modal.find('form');
         
-        // Always reset the form to its "create" state first
         form[0].reset();
         modal.find('.modal-title').text('Add New Contact');
         form.attr('action', '{{ route('clients.contacts.store', $client) }}');
@@ -249,14 +248,12 @@ $(document).ready(function() {
         }
     });
 
-    // --- FIXED: Note Modal Logic for Create and Edit ---
     $('#noteModal').on('show.bs.modal', function (event) {
         const button = $(event.relatedTarget);
         const action = button.data('action');
         const modal = $(this);
         const form = modal.find('form');
         
-        // Always reset the form to its "create" state first
         form[0].reset();
         modal.find('.modal-title').text('Add New Note');
         form.attr('action', '{{ route('clients.notes.store', $client) }}');
@@ -274,9 +271,6 @@ $(document).ready(function() {
         }
     });
 
-    // ====================================================================
-    // SERVICE ASSIGNMENT JS (with Job Checkboxes)
-    // ====================================================================
     const serviceSelectionStep = $('#service-selection-step');
     const jobConfigStep = $('#job-config-step');
     const jobsContainer = $('#jobs-accordion-container');
@@ -340,7 +334,6 @@ $(document).ready(function() {
             jobsContainer.append(jobHtml);
         });
 
-        // Initialize Select2 dropdowns and set pre-selected values
         $('.staff-select').each(function() {
             const assignedStaff = JSON.parse($(this).attr('data-assigned-staff') || '[]');
             $(this).select2({
@@ -350,7 +343,6 @@ $(document).ready(function() {
             }).val(assignedStaff).trigger('change');
         });
 
-        // Set initial state of job checkboxes based on their tasks
         jobsContainer.find('.job-checkbox').each(function() {
             const jobId = $(this).data('jobId');
             const tasksForJob = jobsContainer.find(`.task-checkbox[data-job-id="${jobId}"]`);
@@ -359,16 +351,12 @@ $(document).ready(function() {
         });
     }
 
-    // --- EVENT LISTENERS ---
-
-    // When a JOB checkbox is clicked
     jobsContainer.on('change', '.job-checkbox', function() {
         const jobId = $(this).data('jobId');
         const isChecked = $(this).prop('checked');
         jobsContainer.find(`.task-checkbox[data-job-id="${jobId}"]`).prop('checked', isChecked);
     });
 
-    // When a TASK checkbox is clicked
     jobsContainer.on('change', '.task-checkbox', function() {
         const jobId = $(this).data('jobId');
         const jobCheckbox = jobsContainer.find(`#job_${jobId}`);
@@ -408,9 +396,6 @@ $(document).ready(function() {
         jobConfigStep.hide();
         serviceSelectionStep.show();
     });
-
-    // Automatically trigger 'Next' on page load to show current assignments.
-    $('#next-to-jobs-btn').trigger('click');
 });
 </script>
 @stop
