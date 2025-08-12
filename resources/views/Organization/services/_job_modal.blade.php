@@ -1,15 +1,16 @@
 <div class="modal fade" id="jobModal" tabindex="-1" role="dialog" aria-labelledby="jobModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="jobModalLabel">Add New Job</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
+            {{-- The form action is intentionally left blank; JavaScript will set it. --}}
             <form method="POST" action="">
                 @csrf
                 <input type="hidden" name="_method" value="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="jobModalLabel">Add/Edit Job</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="job-name">Job Name</label>

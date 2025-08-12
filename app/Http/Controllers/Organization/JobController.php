@@ -37,12 +37,8 @@ class JobController extends Controller
 
         $job->load('service', 'tasks.designation', 'tasks.staff');
 
-        // --- THIS IS THE FINAL FIX ---
-        // Instead of looking for type 'M', we will look for all users in the organization
-        // that are NOT the Superadmin ('S') or the Organization account ('O').
-        // This is a more robust way that will include Ram ('A') and Unison ('T').
         $staffMembers = User::where('organization_id', Auth::id())
-                            ->whereNotIn('type', ['S', 'O', 'C', 'i']) // Exclude Superadmin, Organization, and Clients
+                            ->whereNotIn('type', ['S', 'O', 'C'])
                             ->orderBy('name')
                             ->get();
 
@@ -81,5 +77,27 @@ class JobController extends Controller
         $job->delete();
 
         return redirect()->route('services.show', $serviceId)->with('success', 'Job deleted successfully.');
+    }
+
+    /**
+     * Find all tasks for a job that have been assigned to a staff member
+     * and change their status from 'not_started' to 'active'.
+     */
+    public function assignTasks(Job $job)
+    {
+        if ($job->service->organization_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $tasksUpdated = $job->tasks()
+            ->where('status', 'not_started')
+            ->whereNotNull('staff_id')
+            ->update(['status' => 'active']);
+
+        if ($tasksUpdated > 0) {
+            return redirect()->back()->with('success', "$tasksUpdated tasks have been activated and are now visible on the calendar.");
+        }
+
+        return redirect()->back()->with('info', 'No new tasks were ready to be assigned (or they were already active).');
     }
 }

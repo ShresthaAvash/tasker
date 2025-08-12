@@ -9,31 +9,50 @@ class Task extends Model
 {
     use HasFactory;
 
+    /**
+     * The attributes that are mass assignable.
+     */
     protected $fillable = [
-        'job_id', 'name', 'description', 'deadline_offset', 'deadline_unit', 
-        'staff_designation_id', 'start', 'end',
-        // --- ADDED FIELDS ---
-        'is_recurring', 'recurring_frequency', 'staff_id'
+        'job_id',
+        'name',
+        'description',
+        'deadline_offset',
+        'deadline_unit',
+        'staff_designation_id',
+        'start',
+        'end',
+        'is_recurring',
+        'recurring_frequency',
+        'staff_id',
+        'status' // <-- This is the new field
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     */
     protected $casts = [
         'start' => 'datetime',
         'end' => 'datetime',
-        'is_recurring' => 'boolean', // Automatically handle true/false
+        'is_recurring' => 'boolean',
     ];
 
+    /**
+     * A task belongs to a job.
+     */
     public function job()
     {
         return $this->belongsTo(Job::class);
     }
 
+    /**
+     * A task can be assigned to a staff designation (role).
+     */
     public function designation()
     {
         return $this->belongsTo(StaffDesignation::class, 'staff_designation_id');
     }
 
     /**
-     * --- ADDED RELATIONSHIP ---
      * A task can be assigned to a specific staff member (user).
      */
     public function staff()

@@ -8,9 +8,8 @@
 
 @section('content')
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
+@if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
+@if(session('info')) <div class="alert alert-info">{{ session('info') }}</div> @endif
 
 {{-- Main Service Card --}}
 <div class="card">
@@ -39,27 +38,38 @@
                 <div class="card-header">
                     <h3 class="card-title">{{ $job->name }}</h3>
                     <div class="card-tools">
-                        <button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#jobModal" data-action="edit" data-job='{{ $job->toJson() }}'>Edit</button>
-                        <form action="{{ route('jobs.destroy', $job->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this job and all its tasks?');">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-xs btn-danger">Delete</button>
+                        <form action="{{ route('jobs.assignTasks', $job) }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-xs btn-success">Activate Assigned Tasks</button>
                         </form>
+                        <a href="{{ route('jobs.edit', $job->id) }}" class="btn btn-xs btn-warning">Edit Job & Assign</a>
                     </div>
                 </div>
-                <div class="card-body">
-                    {{-- Tasks List --}}
-                    <table class="table table-sm">
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover">
                         <thead>
-                            <tr><th>Task Name</th><th>Deadline</th><th>Assigned To</th><th>Actions</th></tr>
+                            <tr>
+                                <th>Task Name</th>
+                                <th>Status</th>
+                                <th>Assigned To</th>
+                                <th>Actions</th>
+                            </tr>
                         </thead>
                         <tbody>
                             @forelse($job->tasks as $task)
                                 <tr>
                                     <td>{{ $task->name }}</td>
-                                    <td>{{ $task->deadline_offset }} {{ Str::plural($task->deadline_unit, $task->deadline_offset) }} after job starts</td>
-                                    <td>{{ $task->designation->name ?? 'Not Assigned' }}</td>
                                     <td>
-                                        <button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#taskModal" data-action="edit" data-task='{{ $task->toJson() }}'>Edit</button>
+                                        @if($task->status == 'not_started')
+                                            <span class="badge badge-secondary">Not Started</span>
+                                        @elseif($task->status == 'active')
+                                            <span class="badge badge-primary">Active</span>
+                                        @elseif($task->status == 'inactive')
+                                            <span class="badge badge-danger">Inactive</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $task->staff->name ?? 'Not Assigned' }}</td>
+                                    <td>
                                         <form action="{{ route('tasks.destroy', $task->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this task?');">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-xs btn-danger">Delete</button>
@@ -72,9 +82,6 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="card-footer">
-                    <button class="btn btn-xs btn-success" data-toggle="modal" data-target="#taskModal" data-action="create" data-jobid="{{ $job->id }}">Add Task</button>
-                </div>
             </div>
         @empty
             <p class="text-center text-muted">No jobs yet. Click "Add Job" to get started.</p>
@@ -83,65 +90,27 @@
 </div>
 
 @include('Organization.services._job_modal')
-@include('Organization.services._task_modal', ['designations' => $designations])
 
 @stop
 
 @section('js')
 <script>
 $(document).ready(function() {
-    // Job Modal Logic
+    // --- THIS IS THE FIX ---
+    // This JavaScript correctly sets the form's URL when the modal opens.
     $('#jobModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
         var action = button.data('action');
         var modal = $(this);
+        var form = modal.find('form');
 
-        if (action === 'edit') {
-            var job = button.data('job');
-            modal.find('.modal-title').text('Edit Job');
-            modal.find('form').attr('action', '/organization/jobs/' + job.id);
-            modal.find('input[name="_method"]').val('PUT');
-            modal.find('#job-name').val(job.name);
-            modal.find('#job-description').val(job.description);
-        } else {
-            modal.find('.modal-title').text('Add New Job');
-            modal.find('form').attr('action', '{{ route('services.jobs.store', $service) }}');
-            modal.find('input[name="_method"]').val('POST');
-            modal.find('form')[0].reset();
-        }
-    });
-
-    // Task Modal Logic
-    $('#taskModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget);
-        var action = button.data('action');
-        var modal = $(this);
-
-        if (action === 'edit') {
-            var task = button.data('task');
-            modal.find('.modal-title').text('Edit Task');
-            modal.find('form').attr('action', '/organization/tasks/' + task.id);
-            modal.find('input[name="_method"]').val('PUT');
-            modal.find('#task-name').val(task.name);
-            modal.find('#task-description').val(task.description);
-            modal.find('#deadline_offset').val(task.deadline_offset);
-            modal.find('#deadline_unit').val(task.deadline_unit);
-            modal.find('#staff_designation_id').val(task.staff_designation_id);
-
-            // --- JAVASCRIPT UPDATE START ---
-            // Format and set the start/end dates for the datetime-local input fields
-            // The 'T' is required by the datetime-local input format.
-            modal.find('#task-start').val(task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
-            modal.find('#task-end').val(task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
-            // --- JAVASCRIPT UPDATE END ---
-
-        } else {
-            var jobId = button.data('jobid');
-            modal.find('.modal-title').text('Add New Task');
-            modal.find('form').attr('action', '/organization/jobs/' + jobId + '/tasks');
-            modal.find('input[name="_method"]').val('POST');
-            modal.find('form')[0].reset();
-        }
+        // Reset the form for the 'create' case
+        form[0].reset();
+        modal.find('input[name="_method"]').val('POST');
+        
+        // --- The 'create' action sets the correct URL for storing a new job ---
+        modal.find('.modal-title').text('Add New Job');
+        form.attr('action', '{{ route('services.jobs.store', $service) }}');
     });
 });
 </script>

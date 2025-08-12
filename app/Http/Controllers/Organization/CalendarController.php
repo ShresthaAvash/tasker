@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Task;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth; // <-- IMPORTANT: Import the Auth facade
+use Illuminate\Support\Facades\Auth;
 
 class CalendarController extends Controller
 {
@@ -16,12 +16,13 @@ class CalendarController extends Controller
             $viewStart = Carbon::parse($request->start);
             $viewEnd = Carbon::parse($request->end);
             $events = [];
-            $userId = Auth::id(); // Get the ID of the currently logged-in user
+            $userId = Auth::id();
 
-            // 1. Get all normal, non-recurring tasks assigned to the current user
+            // 1. Get all normal, non-recurring tasks assigned to the user that are 'active'
             $nonRecurring = Task::whereNotNull('start')
                 ->where('is_recurring', false)
-                ->where('staff_id', $userId) // <-- THE FILTER
+                ->where('status', 'active') // <-- THIS IS THE FILTER
+                ->where('staff_id', $userId)
                 ->where('start', '<', $viewEnd)
                 ->where(function ($query) use ($viewStart) {
                     $query->whereNull('end')->orWhere('end', '>', $viewStart);
@@ -36,10 +37,11 @@ class CalendarController extends Controller
                 ];
             }
 
-            // 2. Get all recurring tasks assigned to the current user
+            // 2. Get all recurring task templates assigned to the user that are 'active'
             $recurringTasks = Task::whereNotNull('start')
                 ->where('is_recurring', true)
-                ->where('staff_id', $userId) // <-- THE FILTER
+                ->where('status', 'active') // <-- THIS IS THE FILTER
+                ->where('staff_id', $userId)
                 ->get();
 
             // 3. Generate instances of recurring tasks that fall within the view
@@ -77,7 +79,8 @@ class CalendarController extends Controller
                   'name'  => $request->title,
                   'start' => $request->start,
                   'end'   => $request->end,
-                  'staff_id' => Auth::id(), // <-- AUTO-ASSIGN TO CREATOR
+                  'staff_id' => Auth::id(),
+                  'status' => 'active', // Tasks created directly on calendar are instantly active
               ]);
  
               return response()->json([

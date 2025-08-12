@@ -56,7 +56,6 @@
                     <tr>
                         <td>{{ $task->name }}</td>
                         <td>
-                            {{-- --- NEW ASSIGNMENT DROPDOWN --- --}}
                             <select class="form-control form-control-sm staff-assign-dropdown" data-task-id="{{ $task->id }}">
                                 <option value="">-- Not Assigned --</option>
                                 @foreach($staffMembers as $staff)
@@ -68,7 +67,16 @@
                             <small class="assign-status text-success" id="status-{{ $task->id }}" style="display:none;">Saved!</small>
                         </td>
                         <td>
+                            {{-- --- "STOP TASK" BUTTON LOGIC --- --}}
+                            @if($task->status == 'active')
+                                <form action="{{ route('tasks.stop', $task) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-xs btn-info">Stop</button>
+                                </form>
+                            @endif
+                            
                             <button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#taskModal" data-action="edit" data-task='{{ $task->toJson() }}'>Edit</button>
+                            
                             <form action="{{ route('tasks.destroy', $task->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this task?');">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-xs btn-danger">Delete</button>
@@ -83,6 +91,7 @@
     </div>
 </div>
 
+{{-- This file path might need adjustment if your modal is in a different location --}}
 @include('Organization.services._task_modal')
 
 @stop
@@ -98,11 +107,9 @@ $(document).ready(function() {
         var modal = $(this);
         var form = modal.find('form');
 
-        // Reset form from previous state
         form[0].reset();
         $('#recurring-options').hide();
         $('#is_recurring').prop('checked', false);
-
 
         if (action === 'edit') {
             var task = button.data('task');
@@ -110,7 +117,6 @@ $(document).ready(function() {
             form.attr('action', '/organization/tasks/' + task.id);
             form.find('input[name="_method"]').val('PUT');
 
-            // Populate fields
             $('#task-name').val(task.name);
             if(task.is_recurring) {
                 $('#is_recurring').prop('checked', true);
@@ -120,7 +126,7 @@ $(document).ready(function() {
             $('#task-start').val(task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
             $('#task-end').val(task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
 
-        } else { // 'create' action
+        } else {
             var jobId = button.data('jobid');
             modal.find('.modal-title').text('Add New Task');
             form.attr('action', '/organization/jobs/' + jobId + '/tasks');
@@ -128,7 +134,6 @@ $(document).ready(function() {
         }
     });
 
-    // Show/hide recurring options based on checkbox
     $('#is_recurring').on('change', function() {
         if ($(this).is(':checked')) {
             $('#recurring-options').slideDown();
@@ -137,8 +142,6 @@ $(document).ready(function() {
         }
     });
 
-
-    // --- LOGIC FOR DIRECT STAFF ASSIGNMENT (AJAX) ---
     $('.staff-assign-dropdown').on('change', function() {
         var dropdown = $(this);
         var taskId = dropdown.data('taskId');
@@ -154,9 +157,7 @@ $(document).ready(function() {
             },
             success: function(response) {
                 statusLabel.fadeIn();
-                setTimeout(function() {
-                    statusLabel.fadeOut();
-                }, 2000); // Hide after 2 seconds
+                setTimeout(function() { statusLabel.fadeOut(); }, 2000);
             },
             error: function() {
                 alert('Failed to assign staff. Please try again.');

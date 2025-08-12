@@ -228,18 +228,16 @@ return [
         // ORGANIZATION MENU
         [
             'text' => 'Dashboard',
-            'route'  => 'organization.dashboard', // Using route is better
+            'route'  => 'organization.dashboard',
             'icon' => 'fas fa-fw fa-tachometer-alt',
             'can'  => 'is-organization',
         ],
-        // --- THIS IS THE NEW CALENDAR LINK ---
         [
             'text'  => 'Calendar',
             'route' => 'organization.calendar',
             'icon'  => 'fas fa-fw fa-calendar-alt',
             'can'   => 'is-organization',
         ],
-        // --- END OF NEW LINK ---
         [
             'text'    => 'Clients',
             'icon'    => 'fas fa-fw fa-users',
@@ -312,31 +310,19 @@ return [
             ],
         ],
 
-         // STAFF MENU
+         // --- STAFF MENU ---
         [
             'text' => 'Dashboard',
-            'route'  => 'staff.dashboard',
+            'route'  => 'staff.dashboard', // <-- THIS IS THE FIX
             'icon' => 'fas fa-fw fa-tachometer-alt',
             'can'  => 'is-staff',
         ],
         [
             'text'  => 'Calendar',
-            'route' => 'staff.calendar',
+            'route' => 'organization.calendar', // This remains correct, as it's a shared calendar
             'icon'  => 'fas fa-fw fa-calendar-alt',
             'can'   => 'is-staff',
         ],
-        // [
-        //     'text'    => 'Tasks Assigned',
-        //     'icon'    => 'fas fa-fw fa-tasks',
-        //     'can'     => 'is-staff',
-        //     'submenu' => [
-        //         [
-        //             'text' => 'View Tasks',
-        //             'route'  => 'staff.tasks.index',
-        //             'icon' => 'fas fa-fw fa-list',
-        //         ],
-        //     ],
-        // ],
     ],
 
     /*

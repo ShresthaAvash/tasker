@@ -16,7 +16,6 @@
                         <input type="text" id="task-name" name="name" class="form-control" required>
                     </div>
                     
-                    {{-- RECURRING FIELDS --}}
                     <div class="form-group">
                         <div class="custom-control custom-switch">
                             <input type="checkbox" class="custom-control-input" id="is_recurring" name="is_recurring" value="1">
@@ -30,10 +29,11 @@
                             <option value="daily">Day</option>
                             <option value="weekly">Week</option>
                             <option value="monthly">Month</option>
+                            {{-- --- THIS IS THE NEW OPTION --- --}}
+                            <option value="yearly">Year</option>
                         </select>
                     </div>
 
-                    {{-- CALENDAR FIELDS --}}
                     <hr>
                     <p class="text-muted">Fill out dates to make this task appear on the calendar.</p>
                     <div class="form-group">
