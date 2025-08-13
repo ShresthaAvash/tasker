@@ -1,29 +1,57 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
+@extends('layouts.app')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
+@section('title', 'My Profile')
+
+@section('content_header')
+    <h1>My Profile</h1>
+@stop
+
+@section('content')
+    <div class="row">
+
+        {{-- START: Left Column --}}
+        <div class="col-md-6">
+
+            {{-- Card 1: Profile Information --}}
+            <div class="card card-info card-outline">
+                <div class="card-header">
+                    <h3 class="card-title">Profile Information</h3>
+                </div>
+                <div class="card-body">
                     @include('profile.partials.update-profile-information-form')
                 </div>
             </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
+            {{-- Card 2: Delete Account (Stays on the left) --}}
+            <div class="card card-danger card-outline">
+                <div class="card-header">
+                    <h3 class="card-title">Delete Account</h3>
+                </div>
+                <div class="card-body">
+                    @include('profile.partials.delete-user-form')
+                </div>
+            </div>
+
+        </div>
+        {{-- END: Left Column --}}
+
+        {{-- START: Right Column --}}
+        <div class="col-md-6">
+
+            {{-- Card 3: Update Password --}}
+            {{-- --- THIS IS THE FIX --- --}}
+            {{-- The 'h-100' class has been removed to restore the natural height --}}
+            <div class="card card-info card-outline">
+                <div class="card-header">
+                    <h3 class="card-title">Update Password</h3>
+                </div>
+                <div class="card-body">
                     @include('profile.partials.update-password-form')
                 </div>
             </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </div>
         </div>
+        {{-- END: Right Column --}}
+
     </div>
-</x-app-layout>
+@stop

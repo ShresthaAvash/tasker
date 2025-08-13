@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\DB; // <-- This line is added
 
 class ProfileController extends Controller
 {
@@ -56,5 +57,22 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    /**
+     * --- THIS IS THE NEW METHOD ---
+     * Display the user's activity log.
+     */
+    public function showActivityLog(Request $request): View
+    {
+        $activities = DB::table('activity_logs')
+            ->where('user_id', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->paginate(15); // Paginate for long histories
+
+        return view('profile.activity_log', [
+            'user' => $request->user(),
+            'activities' => $activities,
+        ]);
     }
 }

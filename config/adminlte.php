@@ -86,7 +86,12 @@ return [
     */
 
     'usermenu_enabled' => true,
-    'usermenu_header' => false,
+    
+    // --- THIS IS THE FIX ---
+    // We REMOVE the custom button line that was causing the error.
+    // 'usermenu_custom_button' => 'partials.user-menu', 
+    
+    'usermenu_header' => true,
     'usermenu_header_class' => 'bg-primary',
     'usermenu_image' => false,
     'usermenu_desc' => false,
@@ -200,6 +205,22 @@ return [
 
     'menu' => 
     [
+        // --- THIS IS THE FIX ---
+        // This is the official, correct way to add items to the user dropdown.
+        [
+            'text'        => 'Profile',
+            'route'       => 'profile.edit',
+            'icon'        => 'fas fa-fw fa-user',
+            'topnav_user' => true,
+        ],
+        [
+            'text'         => 'Activity Log',
+            'route'        => 'profile.activity_log',
+            'icon'         => 'fas fa-fw fa-list',
+            'topnav_user'  => true,
+        ],
+
+        // --- Your sidebar menu items start here ---
         // SUPER ADMIN MENU
         [
             'text' => 'Dashboard',
@@ -212,16 +233,8 @@ return [
             'icon'    => 'fas fa-fw fa-building',
             'can'     => 'is-superadmin',
             'submenu' => [
-                [
-                    'text' => 'List Organizations',
-                    'url'  => 'superadmin/organizations',
-                    'icon' => 'fas fa-fw fa-list',
-                ],
-                [
-                    'text' => 'Add Organization',
-                    'url'  => 'superadmin/organizations/create',
-                    'icon' => 'fas fa-fw fa-plus',
-                ],
+                [ 'text' => 'List Organizations', 'url'  => 'superadmin/organizations', 'icon' => 'fas fa-fw fa-list', ],
+                [ 'text' => 'Add Organization', 'url'  => 'superadmin/organizations/create', 'icon' => 'fas fa-fw fa-plus', ],
             ],
         ],
 
@@ -243,21 +256,9 @@ return [
             'icon'    => 'fas fa-fw fa-users',
             'can'     => 'is-organization',
             'submenu' => [
-                [
-                    'text' => 'List Clients',
-                    'route'  => 'clients.index',
-                    'icon' => 'fas fa-fw fa-list',
-                ],
-                [
-                    'text' => 'Add Client',
-                    'route'  => 'clients.create',
-                    'icon' => 'fas fa-fw fa-plus',
-                ],
-                [
-                    'text' => 'Suspended Clients',
-                    'route'  => 'clients.suspended',
-                    'icon' => 'fas fa-fw fa-user-lock',
-                ],
+                [ 'text' => 'List Clients', 'route'  => 'clients.index', 'icon' => 'fas fa-fw fa-list', ],
+                [ 'text' => 'Add Client', 'route'  => 'clients.create', 'icon' => 'fas fa-fw fa-plus', ],
+                [ 'text' => 'Suspended Clients', 'route'  => 'clients.suspended', 'icon' => 'fas fa-fw fa-user-lock', ],
             ],
         ],
         [
@@ -265,26 +266,10 @@ return [
             'icon'    => 'fas fa-fw fa-user-tie',
             'can'     => 'is-organization',
             'submenu' => [
-                [
-                    'text' => 'List Staff',
-                    'route'  => 'staff.index',
-                    'icon' => 'fas fa-fw fa-users-cog',
-                ],
-                [
-                    'text' => 'Add Staff',
-                    'route'  => 'staff.create',
-                    'icon' => 'fas fa-fw fa-plus',
-                ],
-                [
-                    'text' => 'Suspended Staff',
-                    'route'  => 'staff.suspended',
-                    'icon' => 'fas fa-fw fa-user-slash',
-                ],
-                [
-                    'text' => 'Staff Designations',
-                    'route'  => 'staff-designations.index',
-                    'icon' => 'fas fa-fw fa-id-badge',
-                ],
+                [ 'text' => 'List Staff', 'route'  => 'staff.index', 'icon' => 'fas fa-fw fa-users-cog', ],
+                [ 'text' => 'Add Staff', 'route'  => 'staff.create', 'icon' => 'fas fa-fw fa-plus', ],
+                [ 'text' => 'Suspended Staff', 'route'  => 'staff.suspended', 'icon' => 'fas fa-fw fa-user-slash', ],
+                [ 'text' => 'Staff Designations', 'route'  => 'staff-designations.index', 'icon' => 'fas fa-fw fa-id-badge', ],
             ],
         ],
         [
@@ -292,34 +277,22 @@ return [
             'icon'    => 'fas fa-fw fa-concierge-bell',
             'can'     => 'is-organization',
             'submenu' => [
-                [
-                    'text' => 'List Services',
-                    'route'  => 'services.index',
-                    'icon' => 'fas fa-fw fa-list',
-                ],
-                [
-                    'text' => 'Add Service',
-                    'route'  => 'services.create',
-                    'icon' => 'fas fa-fw fa-plus',
-                ],
-                [
-                    'text' => 'Suspended Services',
-                    'route'  => 'services.suspended',
-                    'icon' => 'fas fa-fw fa-bell-slash',
-                ],
+                [ 'text' => 'List Services', 'route'  => 'services.index', 'icon' => 'fas fa-fw fa-list', ],
+                [ 'text' => 'Add Service', 'route'  => 'services.create', 'icon' => 'fas fa-fw fa-plus', ],
+                [ 'text' => 'Suspended Services', 'route'  => 'services.suspended', 'icon' => 'fas fa-fw fa-bell-slash', ],
             ],
         ],
 
-         // --- STAFF MENU ---
+         // STAFF MENU
         [
             'text' => 'Dashboard',
-            'route'  => 'staff.dashboard', // <-- THIS IS THE FIX
+            'route'  => 'staff.dashboard',
             'icon' => 'fas fa-fw fa-tachometer-alt',
             'can'  => 'is-staff',
         ],
         [
             'text'  => 'Calendar',
-            'route' => 'organization.calendar', // This remains correct, as it's a shared calendar
+            'route' => 'organization.calendar',
             'icon'  => 'fas fa-fw fa-calendar-alt',
             'can'   => 'is-staff',
         ],
@@ -373,5 +346,5 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'livewire' => false,
+    'livewire' => false
 ];
