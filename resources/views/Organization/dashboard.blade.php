@@ -10,59 +10,15 @@
 
 {{-- Top Row Info Boxes --}}
 <div class="row">
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-info">
-            <div class="inner">
-                <h3>{{ $clientCount }}</h3>
-                <p>Active Clients</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-users"></i>
-            </div>
-            <a href="{{ route('clients.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
-        </div>
-    </div>
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-success">
-            <div class="inner">
-                <h3>{{ $staffCount }}</h3>
-                <p>Staff Members</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-user-tie"></i>
-            </div>
-            <a href="{{ route('staff.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
-        </div>
-    </div>
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-warning">
-            <div class="inner">
-                <h3>{{ $activeTaskCount }}</h3>
-                <p>Active Tasks</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-tasks"></i>
-            </div>
-            <a href="{{ route('organization.calendar') }}" class="small-box-footer">View Calendar <i class="fas fa-arrow-circle-right"></i></a>
-        </div>
-    </div>
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-danger">
-            <div class="inner">
-                <h3>{{ $serviceCount }}</h3>
-                <p>Services Offered</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-concierge-bell"></i>
-            </div>
-            <a href="{{ route('services.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
-        </div>
-    </div>
+    {{-- Info Box Widgets --}}
+    <div class="col-lg-3 col-6"><div class="small-box bg-info"><div class="inner"><h3>{{ $clientCount }}</h3><p>Active Clients</p></div><div class="icon"><i class="fas fa-users"></i></div><a href="{{ route('clients.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a></div></div>
+    <div class="col-lg-3 col-6"><div class="small-box bg-success"><div class="inner"><h3>{{ $staffCount }}</h3><p>Staff Members</p></div><div class="icon"><i class="fas fa-user-tie"></i></div><a href="{{ route('staff.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a></div></div>
+    <div class="col-lg-3 col-6"><div class="small-box bg-warning"><div class="inner"><h3>{{ $activeTaskCount }}</h3><p>Active Tasks</p></div><div class="icon"><i class="fas fa-tasks"></i></div><a href="{{ route('organization.calendar') }}" class="small-box-footer">View Calendar <i class="fas fa-arrow-circle-right"></i></a></div></div>
+    <div class="col-lg-3 col-6"><div class="small-box bg-danger"><div class="inner"><h3>{{ $serviceCount }}</h3><p>Services Offered</p></div><div class="icon"><i class="fas fa-concierge-bell"></i></div><a href="{{ route('services.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a></div></div>
 </div>
 
 {{-- Main Content Row --}}
 <div class="row">
-    {{-- --- THIS IS THE FIX --- --}}
     {{-- Left Column: Upcoming Team Tasks --}}
     <div class="col-md-7">
         <div class="card card-primary card-outline">
@@ -73,10 +29,15 @@
                 <ul class="list-group list-group-flush">
                     @forelse($upcomingTasks as $task)
                         <li class="list-group-item">
-                            {{-- Display Task and Staff Name --}}
+                            {{-- --- THIS IS THE FIX --- --}}
+                            {{-- Display Task, Job, and Service Name --}}
                             <strong>{{ $task->name }}</strong>
                             <br>
-                            <small class="text-muted">Assigned to: {{ $task->staff->name ?? 'N/A' }}</small>
+                            <small class="text-muted">
+                                In Job: {{ $task->job->name ?? 'N/A' }} | 
+                                Service: {{ $task->job->service->name ?? 'N/A' }} |
+                                Assigned to: {{ $task->staff->name ?? 'N/A' }}
+                            </small>
                             <span class="float-right text-muted">{{ $task->start->diffForHumans() }}</span>
                         </li>
                     @empty
@@ -116,7 +77,6 @@
 @stop
 
 @section('js')
-    {{-- Chart.js for the pie chart --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(function () {
@@ -127,25 +87,15 @@
                     labels: @json($chartLabels),
                     datasets: [{
                         data: @json($chartData),
-                        backgroundColor: [
-                            'rgba(108, 117, 125, 0.7)', // Secondary (Not Started)
-                            'rgba(0, 123, 255, 0.7)',  // Primary (Active)
-                            'rgba(220, 53, 69, 0.7)'    // Danger (Inactive)
-                        ],
-                        borderColor: [
-                            'rgba(108, 117, 125, 1)',
-                            'rgba(0, 123, 255, 1)',
-                            'rgba(220, 53, 69, 1)'
-                        ],
+                        backgroundColor: [ 'rgba(108, 117, 125, 0.7)', 'rgba(0, 123, 255, 0.7)', 'rgba(220, 53, 69, 0.7)' ],
+                        borderColor: [ 'rgba(108, 117, 125, 1)', 'rgba(0, 123, 255, 1)', 'rgba(220, 53, 69, 1)' ],
                         borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    legend: {
-                        position: 'top',
-                    },
+                    legend: { position: 'top' },
                 }
             });
         });

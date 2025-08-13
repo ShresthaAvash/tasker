@@ -27,14 +27,14 @@ class DashboardController extends Controller
             ->where('status', 'active')->count();
 
         // --- THIS IS THE FIX ---
-        // Get the next 5 upcoming tasks for the ENTIRE TEAM, not just the owner.
+        // Get upcoming tasks and eager load the relationships we need to display.
         $upcomingTasks = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
             ->where('status', 'active')
-            ->whereNotNull('staff_id') // Only show tasks that are actually assigned
+            ->whereNotNull('staff_id')
             ->whereNotNull('start')
             ->where('start', '>=', now())
             ->orderBy('start', 'asc')
-            ->with('staff') // Eager load the staff member's name for efficiency
+            ->with(['staff', 'job', 'job.service']) // Eager load staff, job, and the job's service
             ->limit(5)
             ->get();
             
