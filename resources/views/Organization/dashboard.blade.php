@@ -10,7 +10,6 @@
 
 {{-- Top Row Info Boxes --}}
 <div class="row">
-    {{-- Info Box Widgets --}}
     <div class="col-lg-3 col-6"><div class="small-box bg-info"><div class="inner"><h3>{{ $clientCount }}</h3><p>Active Clients</p></div><div class="icon"><i class="fas fa-users"></i></div><a href="{{ route('clients.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a></div></div>
     <div class="col-lg-3 col-6"><div class="small-box bg-success"><div class="inner"><h3>{{ $staffCount }}</h3><p>Staff Members</p></div><div class="icon"><i class="fas fa-user-tie"></i></div><a href="{{ route('staff.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a></div></div>
     <div class="col-lg-3 col-6"><div class="small-box bg-warning"><div class="inner"><h3>{{ $activeTaskCount }}</h3><p>Active Tasks</p></div><div class="icon"><i class="fas fa-tasks"></i></div><a href="{{ route('organization.calendar') }}" class="small-box-footer">View Calendar <i class="fas fa-arrow-circle-right"></i></a></div></div>
@@ -29,13 +28,13 @@
                 <ul class="list-group list-group-flush">
                     @forelse($upcomingTasks as $task)
                         <li class="list-group-item">
-                            {{-- --- THIS IS THE FIX --- --}}
-                            {{-- Display Task, Job, and Service Name --}}
                             <strong>{{ $task->name }}</strong>
                             <br>
+                            {{-- --- THIS IS THE FIX --- --}}
+                            {{-- The order of the items has been changed --}}
                             <small class="text-muted">
-                                In Job: {{ $task->job->name ?? 'N/A' }} | 
                                 Service: {{ $task->job->service->name ?? 'N/A' }} |
+                                Job: {{ $task->job->name ?? 'N/A' }} | 
                                 Assigned to: {{ $task->staff->name ?? 'N/A' }}
                             </small>
                             <span class="float-right text-muted">{{ $task->start->diffForHumans() }}</span>

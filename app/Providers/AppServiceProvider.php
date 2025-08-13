@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Pagination\Paginator; // <-- ADD THIS LINE
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,7 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-            Schema::defaultStringLength(191);
-
+        // --- THIS IS THE FIX ---
+        // This line tells Laravel to use the Bootstrap 4 styling
+        // for all pagination links throughout your entire application.
+        Paginator::useBootstrapFour();
     }
 }
