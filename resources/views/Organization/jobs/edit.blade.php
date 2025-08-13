@@ -12,12 +12,15 @@
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
-<div class="card">
-    {{-- Job Details Form --}}
+{{-- --- THIS IS THE FIX --- --}}
+{{-- We wrap the form in a styled card --}}
+<div class="card card-info card-outline">
+    <div class="card-header">
+        <h3 class="card-title">Job Details</h3>
+    </div>
     <form action="{{ route('jobs.update', $job->id) }}" method="POST">
         @csrf
         @method('PUT')
-        <div class="card-header"><h3 class="card-title">Job Details</h3></div>
         <div class="card-body">
             <div class="form-group">
                 <label for="name">Job Name</label>
@@ -29,21 +32,21 @@
             </div>
         </div>
         <div class="card-footer">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-            <a href="{{ route('services.show', $job->service_id) }}" class="btn btn-secondary">Back to Service Builder</a>
+            <button type="submit" class="btn btn-info">Save Changes</button>
+            <a href="{{ route('services.show', $job->service_id) }}" class="btn btn-default">Back to Service Builder</a>
         </div>
     </form>
 </div>
 
-<div class="card">
+<div class="card card-info card-outline">
     <div class="card-header">
         <h3 class="card-title">Tasks</h3>
         <div class="card-tools">
-            <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#taskModal" data-action="create" data-jobid="{{ $job->id }}">Add Task</button>
+            <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#taskModal" data-action="create" data-jobid="{{ $job->id }}">Add Task</button>
         </div>
     </div>
     <div class="card-body p-0">
-        <table class="table table-hover">
+        <table class="table table-hover table-striped">
             <thead>
                 <tr>
                     <th>Task Name</th>
@@ -67,7 +70,6 @@
                             <small class="assign-status text-success" id="status-{{ $task->id }}" style="display:none;">Saved!</small>
                         </td>
                         <td>
-                            {{-- --- "STOP TASK" BUTTON LOGIC --- --}}
                             @if($task->status == 'active')
                                 <form action="{{ route('tasks.stop', $task) }}" method="POST" class="d-inline">
                                     @csrf
@@ -84,14 +86,13 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="3" class="text-center text-muted">No tasks yet.</td></tr>
+                    <tr><td colspan="3" class="text-center">No tasks yet.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 </div>
 
-{{-- This file path might need adjustment if your modal is in a different location --}}
 @include('Organization.services._task_modal')
 
 @stop
@@ -100,7 +101,7 @@
 <script>
 $(document).ready(function() {
 
-    // --- LOGIC FOR TASK MODAL (RECURRING + EDIT) ---
+    // LOGIC FOR TASK MODAL (RECURRING + EDIT)
     $('#taskModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
         var action = button.data('action');
@@ -116,7 +117,6 @@ $(document).ready(function() {
             modal.find('.modal-title').text('Edit Task');
             form.attr('action', '/organization/tasks/' + task.id);
             form.find('input[name="_method"]').val('PUT');
-
             $('#task-name').val(task.name);
             if(task.is_recurring) {
                 $('#is_recurring').prop('checked', true);
@@ -125,7 +125,6 @@ $(document).ready(function() {
             }
             $('#task-start').val(task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
             $('#task-end').val(task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
-
         } else {
             var jobId = button.data('jobid');
             modal.find('.modal-title').text('Add New Task');
@@ -142,6 +141,7 @@ $(document).ready(function() {
         }
     });
 
+    // LOGIC FOR DIRECT STAFF ASSIGNMENT (AJAX)
     $('.staff-assign-dropdown').on('change', function() {
         var dropdown = $(this);
         var taskId = dropdown.data('taskId');

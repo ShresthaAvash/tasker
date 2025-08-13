@@ -1,8 +1,10 @@
-<!-- Hidden inputs to store current sort state for AJAX calls -->
+<!-- Hidden inputs to store current sort state -->
 <input type="hidden" id="sort_by" value="{{ $sort_by }}">
 <input type="hidden" id="sort_order" value="{{ $sort_order }}">
 
-<table class="table table-bordered table-striped">
+{{-- --- THIS IS THE FIX --- --}}
+{{-- We remove 'table-bordered' for a cleaner look inside the card --}}
+<table class="table table-hover table-striped">
     <thead>
         <tr>
             <th>
@@ -43,7 +45,6 @@
             <td>
                 <a href="{{ route('staff.edit', $member->id) }}" class="btn btn-xs btn-warning">Edit</a>
                 
-                {{-- ✅ ADDED: Suspend/Activate Toggle Button --}}
                 <form action="{{ route('staff.toggleStatus', $member->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to {{ $member->status === 'A' ? 'suspend' : 'activate' }} this staff member?');">
                     @csrf
                     @method('PATCH')
@@ -64,6 +65,6 @@
         @endforelse
     </tbody>
 </table>
-<div class="mt-3">
+<div class="mt-3 d-flex justify-content-center">
     {{ $staff->appends(request()->query())->links() }}
 </div>

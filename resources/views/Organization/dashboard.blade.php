@@ -62,22 +62,26 @@
 
 {{-- Main Content Row --}}
 <div class="row">
-    {{-- Left Column: Upcoming Tasks --}}
+    {{-- --- THIS IS THE FIX --- --}}
+    {{-- Left Column: Upcoming Team Tasks --}}
     <div class="col-md-7">
         <div class="card card-primary card-outline">
             <div class="card-header">
-                <h3 class="card-title">My Upcoming Tasks</h3>
+                <h3 class="card-title">Upcoming Team Tasks</h3>
             </div>
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
                     @forelse($upcomingTasks as $task)
                         <li class="list-group-item">
+                            {{-- Display Task and Staff Name --}}
                             <strong>{{ $task->name }}</strong>
+                            <br>
+                            <small class="text-muted">Assigned to: {{ $task->staff->name ?? 'N/A' }}</small>
                             <span class="float-right text-muted">{{ $task->start->diffForHumans() }}</span>
                         </li>
                     @empty
                         <li class="list-group-item text-muted text-center">
-                            You have no upcoming tasks.
+                            No upcoming tasks assigned to the team.
                         </li>
                     @endforelse
                 </ul>

@@ -32,16 +32,12 @@ Route::get('/', function () {
             return redirect()->route('superadmin.dashboard');
         }
 
-        // --- THIS IS THE FIX ---
-        // If it's an Organization owner, send to the main dashboard
         if ($user->type === 'O') { 
             return redirect()->route('organization.dashboard');
         }
-        // If it's a Staff member, send to the new staff dashboard
         if (in_array($user->type, ['A', 'T'])) {
             return redirect()->route('staff.dashboard');
         }
-        // --- END OF FIX ---
         
         return view('home'); 
     }
@@ -56,13 +52,10 @@ Route::middleware(['auth', 'isSuperAdmin'])->prefix('superadmin')->group(functio
 
 // Organization routes
 Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(function () {
-    // Main Dashboard for Org Owners
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
-
-    // --- THIS IS THE NEW ROUTE for Staff ---
     Route::get('/staff/dashboard', [DashboardController::class, 'staffDashboard'])->name('staff.dashboard');
 
-    // Calendar Routes (shared by both)
+    // Calendar Routes
     Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
     Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
 
@@ -70,6 +63,21 @@ Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(fun
     Route::get('clients/suspended', [ClientController::class, 'suspended'])->name('clients.suspended');
     Route::patch('clients/{client}/status', [ClientController::class, 'toggleStatus'])->name('clients.toggleStatus');
     Route::resource('clients', ClientController::class);
+
+    // Routes for Client Contacts, Notes, and Documents (from Piyush's changes)
+    Route::post('clients/{client}/contacts', [ClientController::class, 'storeContact'])->name('clients.contacts.store');
+    Route::put('client-contacts/{contact}', [ClientController::class, 'updateContact'])->name('clients.contacts.update');
+    Route::delete('client-contacts/{contact}', [ClientController::class, 'destroyContact'])->name('clients.contacts.destroy');
+    Route::post('clients/{client}/notes', [ClientController::class, 'storeNote'])->name('clients.notes.store');
+    Route::put('client-notes/{note}', [ClientController::class, 'updateNote'])->name('clients.notes.update');
+    Route::delete('client-notes/{note}', [ClientController::class, 'destroyNote'])->name('clients.notes.destroy');
+    Route::patch('client-notes/{note}/pin', [ClientController::class, 'pinNote'])->name('clients.notes.pin');
+    Route::patch('client-notes/{note}/unpin', [ClientController::class, 'unpinNote'])->name('clients.notes.unpin');
+    Route::post('clients/{client}/documents', [ClientController::class, 'storeDocument'])->name('clients.documents.store');
+    Route::delete('client-documents/{document}', [ClientController::class, 'destroyDocument'])->name('clients.documents.destroy');
+    Route::get('client-documents/{document}/download', [ClientController::class, 'downloadDocument'])->name('clients.documents.download');
+    Route::get('services/get-jobs-for-assignment', [ClientController::class, 'getJobsForServiceAssignment'])->name('clients.services.getJobs');
+    Route::post('clients/{client}/assign-services', [ClientController::class, 'assignServices'])->name('clients.services.assign');
 
     // Staff Designation Management
     Route::resource('staff-designations', StaffDesignationController::class);
@@ -84,15 +92,13 @@ Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(fun
     Route::patch('services/{service}/status', [ServiceController::class, 'toggleStatus'])->name('services.toggleStatus');
     Route::resource('services', ServiceController::class);
 
-    // Nested routes for Jobs (within a Service) and Tasks (within a Job)
+    // Nested routes for Jobs and Tasks
     Route::resource('services.jobs', JobController::class)->shallow()->only(['store', 'update', 'destroy', 'edit']);
     Route::resource('jobs.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy']);
     
-    // Task-specific action routes
+    // Task and Job Action Routes
     Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
     Route::post('tasks/{task}/stop', [TaskController::class, 'stopTask'])->name('tasks.stop');
-
-    // Job-specific action routes
     Route::post('jobs/{job}/assign-tasks', [JobController::class, 'assignTasks'])->name('jobs.assignTasks');
 });
 

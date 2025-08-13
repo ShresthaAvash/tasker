@@ -2,7 +2,9 @@
 <input type="hidden" id="sort_by" value="{{ $sort_by }}">
 <input type="hidden" id="sort_order" value="{{ $sort_order }}">
 
-<table class="table table-bordered table-striped">
+{{-- --- THIS IS THE FIX --- --}}
+{{-- We remove 'table-bordered' for a cleaner look inside the card --}}
+<table class="table table-hover table-striped">
     <thead>
         <tr>
             <th>
@@ -24,7 +26,6 @@
                     @if($sort_by == 'status') <i class="fas fa-sort-{{ $sort_order == 'asc' ? 'up' : 'down' }}"></i> @endif
                 </a>
             </th>
-            {{-- ✅ ADDED: Date Added column for sorting by recents --}}
             <th>
                 <a href="#" class="sort-link" data-sortby="created_at" data-sortorder="{{ $sort_by == 'created_at' && $sort_order == 'asc' ? 'desc' : 'asc' }}">
                     Date Added
@@ -37,7 +38,9 @@
     <tbody>
         @forelse($clients as $client)
         <tr>
-            <td>{{ $client->name }}</td>
+            <td>
+                <a href="{{ route('clients.show', $client->id) }}">{{ $client->name }}</a>
+            </td>
             <td>{{ $client->email }}</td>
             <td>{{ $client->phone ?? 'N/A' }}</td>
             <td>
@@ -47,7 +50,6 @@
                     <span class="badge badge-danger">Suspended</span>
                 @endif
             </td>
-            {{-- ✅ ADDED: Date Added data cell --}}
             <td>{{ $client->created_at->format('d M Y') }}</td>
             <td>
                 <a href="{{ route('clients.edit', $client->id) }}" class="btn btn-xs btn-warning">Edit</a>
@@ -68,12 +70,11 @@
             </td>
         </tr>
         @empty
-        {{-- ✅ MODIFIED: Colspan updated to 6 --}}
         <tr><td colspan="6" class="text-center">No clients found.</td></tr>
         @endforelse
     </tbody>
 </table>
-<div class="mt-3">
+<div class="mt-3 d-flex justify-content-center">
     {{-- This renders the pagination links, which are handled by the JS --}}
     {{ $clients->appends(request()->query())->links() }}
 </div>

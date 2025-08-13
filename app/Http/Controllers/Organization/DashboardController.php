@@ -26,10 +26,17 @@ class DashboardController extends Controller
         $activeTaskCount = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
             ->where('status', 'active')->count();
 
-        // Upcoming tasks for the owner
-        $upcomingTasks = Task::where('staff_id', Auth::id())
-            ->where('status', 'active')->whereNotNull('start')->where('start', '>=', now())
-            ->orderBy('start', 'asc')->limit(5)->get();
+        // --- THIS IS THE FIX ---
+        // Get the next 5 upcoming tasks for the ENTIRE TEAM, not just the owner.
+        $upcomingTasks = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
+            ->where('status', 'active')
+            ->whereNotNull('staff_id') // Only show tasks that are actually assigned
+            ->whereNotNull('start')
+            ->where('start', '>=', now())
+            ->orderBy('start', 'asc')
+            ->with('staff') // Eager load the staff member's name for efficiency
+            ->limit(5)
+            ->get();
             
         // Data for the pie chart
         $taskStatusCounts = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
@@ -44,20 +51,15 @@ class DashboardController extends Controller
     }
 
     /**
-     * --- NEW METHOD ---
      * Display a simpler dashboard for Staff Members.
      */
     public function staffDashboard()
     {
         $staffId = Auth::id();
-
-        // Get stats for the staff member
         $activeTaskCount = Task::where('staff_id', $staffId)->where('status', 'active')->count();
-
-        // Get upcoming tasks for the staff member
         $upcomingTasks = Task::where('staff_id', $staffId)
             ->where('status', 'active')->whereNotNull('start')->where('start', '>=', now())
-            ->orderBy('start', 'asc')->limit(10)->get(); // Show more tasks for staff
+            ->orderBy('start', 'asc')->limit(10)->get();
 
         return view('Organization.staff.dashboard', compact('activeTaskCount', 'upcomingTasks'));
     }

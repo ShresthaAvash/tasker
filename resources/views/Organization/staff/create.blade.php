@@ -7,7 +7,10 @@
 @stop
 
 @section('content')
-<div class="card">
+<div class="card card-info">
+    <div class="card-header">
+        <h3 class="card-title">Staff Details</h3>
+    </div>
     <div class="card-body">
         <form action="{{ route('staff.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
@@ -35,7 +38,7 @@
                 @error('staff_designation_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
             </div>
             
-            <div class="form-row">
+            <div class="row">
                 <div class="form-group col-md-6">
                     <label for="phone">Phone</label>
                     <input type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}">
@@ -59,13 +62,16 @@
             
             <div class="form-group">
                 <label for="photo">Photo</label>
-                <input type="file" name="photo" id="photo" class="form-control-file @error('photo') is-invalid @enderror">
-                @error('photo') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="photo" name="photo" accept="image/*">
+                    <label class="custom-file-label" for="photo">Choose file</label>
+                </div>
+                @error('photo') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
             </div>
 
             <hr>
             
-            <div class="form-row">
+            <div class="row">
                  <div class="form-group col-md-6">
                     <label for="password">Password</label>
                     <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" required>
@@ -77,9 +83,18 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary">Add Staff Member</button>
-            <a href="{{ route('staff.index') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-info">Add Staff Member</button>
+            <a href="{{ route('staff.index') }}" class="btn btn-default">Cancel</a>
         </form>
     </div>
 </div>
+@stop
+
+@section('js')
+<script>
+    // This script makes the file input show the selected file name
+    $(function () {
+        bsCustomFileInput.init();
+    });
+</script>
 @stop

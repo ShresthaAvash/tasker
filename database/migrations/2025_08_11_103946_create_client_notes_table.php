@@ -13,15 +13,17 @@ return new class extends Migration
     {
         Schema::create('client_notes', function (Blueprint $table) {
             $table->id();
-            $table->integer('client_id')->nullable();
-            $table->string('client_note_title')->nullable();
-            $table->string('client_note_content')->nullable();
-            $table->date('client_note_date')->nullable();
-            $table->string('client_note_status')->nullable('inactive');
+            $table->unsignedBigInteger('client_id');
+            $table->string('title');
+            $table->text('content');
+            $table->date('note_date');
+            $table->timestamp('pinned_at')->nullable(); // To mark a note as pinned
             $table->timestamps();
 
-            $table->foreign('client_id')->references('id')->on('users');
-
+            $table->foreign('client_id')
+                  ->references('id')
+                  ->on('users')
+                  ->onDelete('cascade');
         });
     }
 

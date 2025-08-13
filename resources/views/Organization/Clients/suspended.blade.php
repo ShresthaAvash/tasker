@@ -7,7 +7,9 @@
 @stop
 
 @section('content')
-<div class="card">
+{{-- --- THIS IS THE FIX --- --}}
+{{-- We add 'card-info' and 'card-outline' to style the card --}}
+<div class="card card-info card-outline">
     <div class="card-header">
         <h3 class="card-title">All Suspended Clients</h3>
     </div>
@@ -16,7 +18,9 @@
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
-        <table class="table table-bordered table-striped">
+        {{-- --- THIS IS THE FIX --- --}}
+        {{-- We remove 'table-bordered' for a cleaner look --}}
+        <table class="table table-hover table-striped">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -48,7 +52,7 @@
                 @endforelse
             </tbody>
         </table>
-        <div class="mt-3">
+        <div class="mt-3 d-flex justify-content-center">
             {{ $clients->links() }}
         </div>
     </div>

@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('tasks', function (Blueprint $table) {
-            //
+        Schema::table('assigned_tasks', function (Blueprint $table) {
+            $table->dateTime('start')->nullable()->after('status');
+            $table->dateTime('end')->nullable()->after('start');
         });
     }
 
@@ -21,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('tasks', function (Blueprint $table) {
-            //
+        Schema::table('assigned_tasks', function (Blueprint $table) {
+            $table->dropColumn(['start', 'end']);
         });
     }
 };
