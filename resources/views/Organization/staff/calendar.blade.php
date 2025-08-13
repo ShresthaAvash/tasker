@@ -1,201 +1,134 @@
 @extends('adminlte::page')
 
-@section('title', 'Task Calendar')
+@section('title', 'My Calendar')
 
 @section('content_header')
-    <h1>Task Calendar</h1>
+    <h1>My Calendar</h1>
 @stop
 
 @section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card card-primary">
-                <div class="card-body p-0">
-                    <div id="calendar"></div>
-                </div>
-            </div>
-        </div>
+<div class="card card-primary">
+    <div class="card-body p-3">
+        <div id="calendar"></div>
     </div>
 </div>
 
-<!-- NEW: Custom Modal for displaying event details and deletion -->
+{{-- Modal for showing event details, color picker, and delete button --}}
 <div id="eventDetailModal" class="modal">
     <div class="modal-content">
         <span class="close-button">&times;</span>
-        <h2 style="margin-bottom: 15px;">Task Details</h2>
+        <h4 style="margin-bottom: 15px;">Task Details</h4>
         <p><strong>Title:</strong> <span id="modalTitle"></span></p>
         <p><strong>Start:</strong> <span id="modalStart"></span></p>
         <p><strong>End:</strong> <span id="modalEnd"></span></p>
-        <button id="deleteEventButton" class="delete-btn">
-            <i class="fa fa-trash"></i> Delete Task
-        </button>
+        <hr>
+        <div class="form-group">
+            <label for="eventColor">Title Color</label>
+            <div class="input-group">
+                <input type="color" id="eventColor" class="form-control form-control-color">
+                <div class="input-group-append">
+                    <button id="saveColorButton" class="btn btn-outline-secondary">Save Color</button>
+                </div>
+            </div>
+            <small id="color-save-status" class="form-text text-success" style="display: none;">Saved!</small>
+        </div>
+        <hr>
+        <button id="deleteEventButton" class="delete-btn"><i class="fa fa-trash"></i> Delete Task</button>
     </div>
 </div>
 @stop
 
 @section('css')
-    {{-- FullCalendar Core CSS --}}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.css" />
-    
-    {{-- NEW: CSS for the custom modal --}}
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
     <style>
-        /* Modal background overlay */
-        .modal {
-            display: none; /* Hidden by default */
-            position: fixed; /* Stay in place */
-            z-index: 1050; /* Sit on top of everything */
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto; /* Enable scroll if needed */
-            background-color: rgba(0, 0, 0, 0.6); /* Black w/ opacity */
-        }
-
-        /* Modal content box */
-        .modal-content {
-            background-color: #fff;
-            color: #333;
-            margin: 15% auto; /* 15% from the top and centered */
-            padding: 25px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px; /* Responsive width */
-            border-radius: 8px;
-            position: relative;
-            box-shadow: 0 5px 15px rgba(0,0,0,.5);
-        }
-
-        /* The Close Button in the top right */
-        .close-button {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            line-height: 1;
-        }
-
-        .close-button:hover,
-        .close-button:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        /* Red Delete Button */
-        .delete-btn {
-            background-color: #dc3545; /* Bootstrap's danger red */
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 15px;
-            transition: background-color 0.2s;
-        }
-
-        .delete-btn:hover {
-            background-color: #c82333; /* A darker red on hover */
-        }
+        .fc .fc-daygrid-day.fc-day-today { background-color: rgba(255, 229, 100, 0.2); }
+        .fc-event { cursor: pointer; }
+        .modal { display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: #fff; margin: 15% auto; padding: 25px; border-radius: 8px; width: 90%; max-width: 500px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,.5); }
+        .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; line-height: 1; }
+        .close-button:hover, .close-button:focus { color: black; text-decoration: none; cursor: pointer; }
+        .delete-btn { background-color: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 15px; width: 100%; }
+        .form-control-color { height: calc(2.25rem + 2px); }
     </style>
 @stop
 
 @section('js')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
     <script>
-        $(document).ready(function () {
-            // Setup CSRF token for all AJAX requests
-            $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
-            
-            // Get modal elements once
-            var modal = $('#eventDetailModal');
-            var modalTitle = $('#modalTitle');
-            var modalStart = $('#modalStart');
-            var modalEnd = $('#modalEnd');
-            var deleteButton = $('#deleteEventButton');
-            var closeButton = $('.close-button');
+    document.addEventListener('DOMContentLoaded', function() {
+        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
 
-            // --- Calendar Initialization ---
-            $('#calendar').fullCalendar({
-                editable: true,
-                header: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'month,agendaWeek,agendaDay'
-                },
-                events: '{{ route("organization.calendar") }}', // Simplified event loading
+        const calendarEl = document.getElementById('calendar');
+        const modal = document.getElementById('eventDetailModal');
+        const colorPicker = document.getElementById('eventColor');
+        const saveColorButton = document.getElementById('saveColorButton');
+        const colorSaveStatus = document.getElementById('color-save-status');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalStart = document.getElementById('modalStart');
+        const modalEnd = document.getElementById('modalEnd');
+        const deleteButton = document.getElementById('deleteEventButton');
+        const closeButton = document.querySelector('.close-button');
+        let currentEvent = null;
 
-                // REMOVED: The `select` callback is gone, so clicking empty days does nothing.
-                // selectable: false, // This is the default, so no need to declare it.
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: '{{ route("staff.calendar.events") }}',
 
-                // --- Event Drag-and-Drop ---
-                eventDrop: function (event, delta) {
-                    var start = $.fullCalendar.formatDate(event.start, "Y-MM-DD HH:mm:ss");
-                    var end = $.fullCalendar.formatDate(event.end, "Y-MM-DD HH:mm:ss");
-                    $.ajax({
-                        url: "{{ route('organization.calendar.ajax') }}",
-                        type: "POST",
-                        data: { title: event.title, start: start, end: end, id: event.id, type: 'update' },
-                        success: function (response) { 
-                            // Using a more modern notification can be a future improvement.
-                            // For now, an alert provides simple feedback.
-                            alert("Event Updated Successfully"); 
-                        }
-                    });
-                },
+            eventClick: function(info) {
+                currentEvent = info.event;
+                modalTitle.textContent = currentEvent.title;
+                modalStart.textContent = currentEvent.start.toLocaleString();
+                
+                // --- DEFINITIVE FIX ---
+                // Use the 'actualEnd' property from the backend for accurate display
+                const actualEnd = currentEvent.extendedProps.actualEnd;
+                modalEnd.textContent = actualEnd ? new Date(actualEnd).toLocaleString() : 'Not set';
 
-                // --- NEW: Event Click opens the custom modal ---
-                eventClick: function (event) {
-                    // Populate the modal with the event's data
-                    modalTitle.text(event.title);
-                    modalStart.text(moment(event.start).format('MMM D, YYYY h:mm A'));
-                    modalEnd.text(event.end ? moment(event.end).format('MMM D, YYYY h:mm A') : 'N/A');
-
-                    // Store the event ID on the delete button's data attribute
-                    deleteButton.data('eventId', event.id);
-
-                    // Show the modal
-                    modal.show();
-                }
-            });
-
-            // --- Modal Control Logic ---
-
-            // When the user clicks the red delete button
-            deleteButton.on('click', function() {
-                var eventId = $(this).data('eventId');
-                if (eventId) {
-                    $.ajax({
-                        url: "{{ route('organization.calendar.ajax') }}",
-                        type: "POST",
-                        data: { id: eventId, type: 'delete' },
-                        success: function (response) { 
-                            modal.hide(); // Hide the modal on success
-                            $('#calendar').fullCalendar('removeEvents', eventId); // Remove event from view
-                            alert("Event Deleted Successfully");
-                        },
-                        error: function() {
-                            alert("Error: Could not delete the event.");
-                        }
-                    });
-                }
-            });
-
-            // When the user clicks on <span> (x), close the modal
-            closeButton.on('click', function() {
-                modal.hide();
-            });
-
-            // When the user clicks anywhere outside of the modal, close it
-            $(window).on('click', function(event) {
-                if ($(event.target).is(modal)) {
-                    modal.hide();
-                }
-            });
+                colorPicker.value = currentEvent.textColor || '#FFFFFF';
+                modal.style.display = 'block';
+            },
         });
+
+        calendar.render();
+
+        saveColorButton.onclick = function() {
+            if (!currentEvent) return;
+            const newColor = colorPicker.value;
+
+            $.ajax({
+                url: "{{ route('staff.calendar.ajax') }}",
+                type: "POST",
+                data: { id: currentEvent.id, type: 'updateColor', color: newColor },
+                success: function() {
+                    currentEvent.setProp('textColor', newColor);
+                    $(colorSaveStatus).fadeIn().delay(1500).fadeOut();
+                },
+                error: () => alert('Failed to update color.')
+            });
+        };
+        
+        deleteButton.onclick = function() {
+            if (currentEvent && confirm('Are you sure you want to delete this task?')) {
+                $.ajax({
+                    url: "{{ route('staff.calendar.ajax') }}",
+                    type: "POST",
+                    data: { id: currentEvent.id, type: 'delete' },
+                    success: function() {
+                        currentEvent.remove();
+                        modal.style.display = 'none';
+                    },
+                    error: () => alert("Error: Could not delete the task.")
+                });
+            }
+        };
+        
+        closeButton.onclick = () => { modal.style.display = 'none'; };
+        window.onclick = (event) => { if (event.target == modal) { modal.style.display = 'none'; }};
+    });
     </script>
 @stop

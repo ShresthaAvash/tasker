@@ -198,7 +198,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'menu' => 
+    'menu' =>
     [
         // SUPER ADMIN MENU
         [
@@ -228,18 +228,16 @@ return [
         // ORGANIZATION MENU
         [
             'text' => 'Dashboard',
-            'route'  => 'organization.dashboard', // Using route is better
+            'route'  => 'organization.dashboard',
             'icon' => 'fas fa-fw fa-tachometer-alt',
             'can'  => 'is-organization',
         ],
-        // --- THIS IS THE NEW CALENDAR LINK ---
         [
             'text'  => 'Calendar',
             'route' => 'organization.calendar',
             'icon'  => 'fas fa-fw fa-calendar-alt',
             'can'   => 'is-organization',
         ],
-        // --- END OF NEW LINK ---
         [
             'text'    => 'Clients',
             'icon'    => 'fas fa-fw fa-users',
@@ -318,25 +316,28 @@ return [
             'route'  => 'staff.dashboard',
             'icon' => 'fas fa-fw fa-tachometer-alt',
             'can'  => 'is-staff',
+            'active' => ['staff/dashboard*']
         ],
         [
             'text'  => 'Calendar',
             'route' => 'staff.calendar',
             'icon'  => 'fas fa-fw fa-calendar-alt',
             'can'   => 'is-staff',
+            'active' => ['staff/calendar*']
         ],
-        // [
-        //     'text'    => 'Tasks Assigned',
-        //     'icon'    => 'fas fa-fw fa-tasks',
-        //     'can'     => 'is-staff',
-        //     'submenu' => [
-        //         [
-        //             'text' => 'View Tasks',
-        //             'route'  => 'staff.tasks.index',
-        //             'icon' => 'fas fa-fw fa-list',
-        //         ],
-        //     ],
-        // ],
+        [
+            'text'    => 'Tasks',
+            'icon'    => 'fas fa-fw fa-tasks',
+            'can'     => 'is-staff',
+            'submenu' => [
+                [
+                    'text'   => 'Task List',
+                    'route'  => 'staff.tasks.index',
+                    'icon'   => 'fas fa-fw fa-list-alt',
+                ],
+            ],
+            'active' => ['staff/tasks*']
+        ],
     ],
 
     /*

@@ -23,11 +23,12 @@ class TaskController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'start' => 'nullable|date',
-            'end' => 'nullable|date|after_or_equal:start',
+            'description' => 'nullable|string',
+            'start' => 'required|date',
+            'end' => 'required_if:is_recurring,true|nullable|date|after_or_equal:start',
             'is_recurring' => 'sometimes|boolean',
             'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
-            'staff_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('organization_id', Auth::id())],
+            'staff_designation_id' => ['nullable', 'integer', Rule::exists('staff_designations', 'id')->where('organization_id', Auth::id())],
         ]);
 
         $data = $request->all();
@@ -49,11 +50,12 @@ class TaskController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'start' => 'nullable|date',
-            'end' => 'nullable|date|after_or_equal:start',
+            'description' => 'nullable|string',
+            'start' => 'required|date',
+            'end' => 'required_if:is_recurring,true|nullable|date|after_or_equal:start',
             'is_recurring' => 'sometimes|boolean',
             'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
-            'staff_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('organization_id', Auth::id())],
+            'staff_designation_id' => ['nullable', 'integer', Rule::exists('staff_designations', 'id')->where('organization_id', Auth::id())],
         ]);
 
         $data = $request->all();

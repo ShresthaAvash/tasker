@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\Service;
 use App\Models\Task;
+use App\Models\AssignedTask; // Import AssignedTask
 
 class DashboardController extends Controller
 {
@@ -44,21 +45,35 @@ class DashboardController extends Controller
     }
 
     /**
-     * --- NEW METHOD ---
+     * --- METHOD UPDATED ---
      * Display a simpler dashboard for Staff Members.
      */
     public function staffDashboard()
     {
         $staffId = Auth::id();
 
-        // Get stats for the staff member
-        $activeTaskCount = Task::where('staff_id', $staffId)->where('status', 'active')->count();
-
-        // Get upcoming tasks for the staff member
-        $upcomingTasks = Task::where('staff_id', $staffId)
+        // Get personal tasks
+        $personalTasks = Task::where('staff_id', $staffId)
             ->where('status', 'active')->whereNotNull('start')->where('start', '>=', now())
-            ->orderBy('start', 'asc')->limit(10)->get(); // Show more tasks for staff
+            ->get()->map(function ($task) {
+                $task->display_name = $task->name;
+                return $task;
+            });
+            
+        // Get assigned client tasks
+        $assignedTasks = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
+            ->where('status', 'pending')->whereNotNull('start')->where('start', '>=', now())
+            ->with('client')
+            ->get()->map(function ($task) {
+                $task->display_name = $task->client->name . ': ' . $task->name;
+                return $task;
+            });
 
+        // Combine and sort all tasks
+        $allTasks = $personalTasks->concat($assignedTasks);
+        $upcomingTasks = $allTasks->sortBy('start')->take(10);
+        $activeTaskCount = $allTasks->count();
+        
         return view('Organization.staff.dashboard', compact('activeTaskCount', 'upcomingTasks'));
     }
 }
