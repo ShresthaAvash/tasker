@@ -39,9 +39,8 @@ class AuthenticatedSessionController extends Controller
             // Redirect to route for Organization dashboard
             return redirect()->route('organization.dashboard');
         }
+    return redirect()->intended(route('dashboard', absolute: false));
 
-        // Optional: redirect for clients, staff, or fallback
-        return redirect('/');
     }
 
     /**

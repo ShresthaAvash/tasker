@@ -39,13 +39,15 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'type' => 'S',
+            'type' => 'O',
+            'status' => 'R', // <-- ADD THIS: Set status to 'Requested'
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user);
+        // Auth::login($user); // We don't want to log them in automatically
 
-        return redirect(route('home', absolute: false));
+        // Redirect to a new pending page
+        return redirect()->route('subscription.pending');
     }
 }

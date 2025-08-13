@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'isOrganization' => \App\Http\Middleware\IsOrganization::class, 
             'isClient' => \App\Http\Middleware\IsClient::class, 
             'isStaff' => \App\Http\Middleware\IsStaff::class, 
+            'checkUserStatus' => \App\Http\Middleware\CheckUserStatus::class, // <-- ADD THIS LINE
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

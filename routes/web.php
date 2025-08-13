@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\Organization\DashboardController;
@@ -11,7 +12,7 @@ use App\Http\Controllers\Organization\ServiceController;
 use App\Http\Controllers\Organization\JobController;
 use App\Http\Controllers\Organization\TaskController;
 use App\Http\Controllers\Organization\CalendarController;
-
+use App\Http\Controllers\SubscriptionPendingController;
 use Illuminate\Support\Facades\Auth;
 
 /*
@@ -20,24 +21,50 @@ use Illuminate\Support\Facades\Auth;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', function () {
+// Public Routes
+Route::get('/', [LandingPageController::class, 'index'])->name('landing');
+Route::get('/pricing', [LandingPageController::class, 'pricing'])->name('pricing');
+
+// ADD THIS NEW ROUTE FOR THE PENDING PAGE
+Route::get('/subscription/pending', [SubscriptionPendingController::class, 'index'])->name('subscription.pending');
+
+// ADD THIS NEW ROUTE FOR THE PENDING PAGE
+Route::get('/subscription/pending', [SubscriptionPendingController::class, 'index'])->name('subscription.pending');
+
+Route::get('/dashboard', function () {
     if (Auth::check()) {
-        if (Auth::user()->type === 'S') return redirect()->route('superadmin.dashboard');
-        if (Auth::user()->type === 'O') return redirect()->route('organization.dashboard');
-        if (Auth::user()->type === 'T') return redirect()->route('staff.dashboard');
-        return view('home'); 
+        $userType = Auth::user()->type;
+        if ($userType === 'S') return redirect()->route('superadmin.dashboard');
+        if ($userType === 'O') return redirect()->route('organization.dashboard');
+        if ($userType === 'T') return redirect()->route('staff.dashboard');
     }
-    return view('auth.login');
-})->name('home');
+    return redirect()->route('login');
+})->middleware(['auth', 'checkUserStatus'])->name('dashboard'); // <-- ADD 'checkUserStatus' MIDDLEWARE
+
+// Route::get('/', function () {
+//     if (Auth::check()) {
+//         if (Auth::user()->type === 'S') return redirect()->route('superadmin.dashboard');
+//         if (Auth::user()->type === 'O') return redirect()->route('organization.dashboard');
+//         if (Auth::user()->type === 'T') return redirect()->route('staff.dashboard');
+//         return view('home'); 
+//     }
+//     return view('auth.login');
+// })->name('home');
 
 // Super Admin routes
 Route::middleware(['auth', 'isSuperAdmin'])->prefix('superadmin')->group(function () {
     Route::get('/dashboard', [SuperAdminController::class, 'index'])->name('superadmin.dashboard');
+    
+    // ADD THESE TWO NEW ROUTES
+    Route::get('/subscription-requests', [SuperAdminController::class, 'subscriptionRequests'])->name('superadmin.subscriptions.requests');
+    Route::patch('/subscription-requests/{user}/approve', [SuperAdminController::class, 'approveSubscription'])->name('superadmin.subscriptions.approve');
+    
     Route::resource('organizations', SuperAdminController::class)->names('superadmin.organizations');
+    Route::resource('subscriptions', \App\Http\Controllers\SuperAdmin\SubscriptionController::class)->names('superadmin.subscriptions');
 });
 
 // Organization routes
-Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(function () {
+Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organization')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
 
     // Calendar Routes
@@ -91,8 +118,7 @@ Route::middleware(['auth', 'isOrganization'])->prefix('organization')->group(fun
     Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
 });
 
-
-Route::middleware(['auth', 'isStaff'])->prefix('staff')->group(function () {
+Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'staffDashboard'])->name('staff.dashboard');
     Route::get('calendar', [CalendarController::class, 'index'])->name('staff.calendar');
 

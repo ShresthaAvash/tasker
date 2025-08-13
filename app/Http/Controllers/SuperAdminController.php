@@ -110,4 +110,28 @@ class SuperAdminController extends Controller
 
         return redirect()->route('superadmin.organizations.index')->with('success', 'Organization status updated.');
     }
+
+    public function subscriptionRequests()
+    {
+        $requestedOrganizations = User::where('type', 'O')
+            ->where('status', 'R')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('SuperAdmin.subscriptions.requests', compact('requestedOrganizations'));
+    }
+
+    /**
+     * Approve a subscription request.
+     */
+    public function approveSubscription(User $user)
+    {
+        if ($user->type === 'O' && $user->status === 'R') {
+            $user->status = 'A'; // Set status to Active
+            $user->save();
+            return redirect()->route('superadmin.subscriptions.requests')->with('success', 'Organization has been activated successfully.');
+        }
+
+        return redirect()->route('superadmin.subscriptions.requests')->with('error', 'Invalid request.');
+    }
 };

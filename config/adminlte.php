@@ -224,6 +224,28 @@ return [
                 ],
             ],
         ],
+        [
+            'text'    => 'Subscriptions',
+            'icon'    => 'fas fa-fw fa-tags',
+            'can'     => 'is-superadmin',
+            'submenu' => [
+                [
+                    'text' => 'Activation Requests',
+                    'route'  => 'superadmin.subscriptions.requests',
+                    'icon' => 'fas fa-fw fa-hourglass-start',
+                ],
+                [
+                    'text' => 'List Subscriptions',
+                    'route'  => 'superadmin.subscriptions.index',
+                    'icon' => 'fas fa-fw fa-list',
+                ],
+                [
+                    'text' => 'Add Subscription',
+                    'route'  => 'superadmin.subscriptions.create',
+                    'icon' => 'fas fa-fw fa-plus',
+                ],
+            ],
+        ],
 
         // ORGANIZATION MENU
         [

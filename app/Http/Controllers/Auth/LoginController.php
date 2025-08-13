@@ -24,7 +24,7 @@ class LoginController extends Controller
     } elseif (auth()->user()->type === 'O') {
         return route('organization.dashboard');
     }
-    return '/'; // fallback if type is not defined
+    return route('dashboard'); // fallback if type is not defined
 }
 
 
