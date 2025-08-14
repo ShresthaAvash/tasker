@@ -10,16 +10,30 @@ class Task extends Model
     use HasFactory;
 
     protected $fillable = [
-        'job_id', 'name', 'description', 'deadline_offset', 'deadline_unit', 
-        'staff_designation_id', 'start', 'end',
-        // --- ADDED FIELDS ---
-        'is_recurring', 'recurring_frequency', 'staff_id'
+        'job_id', 
+        'name', 
+        'description', 
+        'deadline_offset', 
+        'deadline_unit', 
+        'staff_designation_id', 
+        'start', 
+        'end',
+        'is_recurring', 
+        'recurring_frequency', 
+        'staff_id',
+        'status', // Assuming you added this from a previous step
+        'color',
+        // --- ADD THESE TWO LINES ---
+        'duration_in_seconds',
+        'timer_started_at',
     ];
 
     protected $casts = [
         'start' => 'datetime',
         'end' => 'datetime',
-        'is_recurring' => 'boolean', // Automatically handle true/false
+        'is_recurring' => 'boolean',
+        // --- ADD THIS LINE ---
+        'timer_started_at' => 'datetime',
     ];
 
     public function job()
@@ -32,10 +46,6 @@ class Task extends Model
         return $this->belongsTo(StaffDesignation::class, 'staff_designation_id');
     }
 
-    /**
-     * --- ADDED RELATIONSHIP ---
-     * A task can be assigned to a specific staff member (user).
-     */
     public function staff()
     {
         return $this->belongsTo(User::class, 'staff_id');

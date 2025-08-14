@@ -8,159 +8,144 @@ use App\Models\Task;
 use App\Models\AssignedTask;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class CalendarController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        if ($request->ajax()) {
-            $viewStart = Carbon::parse($request->start);
-            $viewEnd = Carbon::parse($request->end);
-            $events = [];
-            $userId = Auth::id();
-
-            // === 1. GET ASSIGNED CLIENT TASKS ===
-
-            // Non-Recurring Assigned Tasks
-            $nonRecurringAssigned = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $userId))
-                ->where('is_recurring', false)
-                ->whereNotNull('start')
-                ->where('start', '<', $viewEnd)
-                ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>', $viewStart))
-                ->with('client')
-                ->get();
-
-            foreach ($nonRecurringAssigned as $task) {
-                $events[] = $this->formatEvent($task, 'assigned');
-            }
-            
-            // Recurring Assigned Tasks (Templates)
-            $recurringAssigned = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $userId))
-                ->where('is_recurring', true)
-                ->whereNotNull('start')
-                ->with('client')
-                ->get();
-            
-            foreach ($recurringAssigned as $taskTemplate) {
-                $events = array_merge($events, $this->generateRecurringEvents($taskTemplate, $viewStart, $viewEnd, 'assigned'));
-            }
-
-            // === 2. GET PERSONAL STAFF TASKS ===
-
-            // Non-Recurring Personal Tasks
-            $nonRecurringPersonal = Task::where('staff_id', $userId)->whereNull('job_id')
-                ->where('is_recurring', false)
-                ->whereNotNull('start')
-                ->where('start', '<', $viewEnd)
-                ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>', $viewStart))
-                ->get();
-
-            foreach ($nonRecurringPersonal as $task) {
-                $events[] = $this->formatEvent($task, 'personal');
-            }
-
-            // Recurring Personal Tasks
-            $recurringPersonal = Task::where('staff_id', $userId)->whereNull('job_id')
-                ->where('is_recurring', true)
-                ->whereNotNull('start')
-                ->get();
-
-            foreach ($recurringPersonal as $taskTemplate) {
-                $events = array_merge($events, $this->generateRecurringEvents($taskTemplate, $viewStart, $viewEnd, 'personal'));
-            }
-
-            return response()->json($events);
+        if (Auth::user()->type === 'T') {
+            return view('Organization.staff.calendar');
         }
         return view('Organization.calendar');
     }
 
-    private function formatEvent($task, $typePrefix)
+    public function fetchEvents(Request $request)
     {
-        $title = ($typePrefix === 'assigned')
-            ? $task->client->name . ': ' . $task->name
-            : $task->name;
+        $viewStart = Carbon::parse($request->start);
+        $viewEnd = Carbon::parse($request->end);
+        $user = Auth::user();
+        $events = [];
 
-        $color = ($typePrefix === 'assigned') ? '#28a745' : null; // Green for client tasks
+        // --- MODIFIED: Added where('status', '!=', 'completed') ---
+        $personalTasks = Task::where('staff_id', $user->id)
+            ->whereNull('job_id')->whereNotNull('start')
+            ->where('status', '!=', 'completed') // This line is new
+            ->where('start', '<=', $viewEnd)
+            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $viewStart))
+            ->get();
 
-        return [
-            'id'      => $typePrefix . '_' . $task->id,
-            'title'   => $title,
-            'start'   => $task->start->toIso8601String(),
-            'end'     => $task->end ? $task->end->toIso8601String() : null,
-            'color'   => $color,
-        ];
-    }
+        $assignedTaskQuery = AssignedTask::query();
+        if ($user->type === 'O') {
+            $assignedTaskQuery->whereHas('client', fn($q) => $q->where('organization_id', $user->id));
+        } else {
+            $assignedTaskQuery->whereHas('staff', fn($q) => $q->where('users.id', $user->id));
+        }
 
-    private function generateRecurringEvents($taskTemplate, Carbon $viewStart, Carbon $viewEnd, $typePrefix)
-    {
-        $generatedEvents = [];
-        $currentDate = $taskTemplate->start->copy();
-        $durationInSeconds = $taskTemplate->end ? $taskTemplate->start->diffInSeconds($taskTemplate->end) : null;
+        // --- MODIFIED: Added where('status', '!=', 'completed') ---
+        $assignedTasks = $assignedTaskQuery->whereNotNull('start')
+            ->where('status', '!=', 'completed') // This line is new
+            ->where('start', '<=', $viewEnd)
+            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $viewStart))
+            ->with('client')->get();
 
-        while ($currentDate->lte($viewEnd)) {
-            if ($currentDate->gte($viewStart)) {
-                $eventData = $this->formatEvent($taskTemplate, $typePrefix);
-                $eventData['start'] = $currentDate->toIso8601String();
-                $eventData['end'] = $durationInSeconds !== null ? $currentDate->copy()->addSeconds($durationInSeconds)->toIso8601String() : null;
-                $generatedEvents[] = $eventData;
-            }
-            
-            // Move to the next occurrence
-            switch ($taskTemplate->recurring_frequency) {
-                case 'daily': $currentDate->addDay(); break;
-                case 'weekly': $currentDate->addWeek(); break;
-                case 'monthly': $currentDate->addMonth(); break;
-                case 'yearly': $currentDate->addYear(); break;
-                default: break 2; // Exit both loops if frequency is invalid
-            }
+        $allTasks = $personalTasks->concat($assignedTasks);
 
-            // Safety break for tasks without a start date to prevent infinite loops
-            if ($taskTemplate->start > $currentDate) {
-                break;
+        foreach ($allTasks as $task) {
+            $typePrefix = $task instanceof AssignedTask ? 'assigned' : 'personal';
+
+            if ($task->is_recurring && $task->end && $task->recurring_frequency) {
+                $cursor = $task->start->copy();
+                $seriesEndDate = $task->end;
+
+                while ($cursor->lte($seriesEndDate)) {
+                    if ($cursor->between($viewStart, $viewEnd)) {
+                        $singleEvent = clone $task;
+                        $singleEvent->start = $cursor->copy();
+                        $singleEvent->end = $cursor->copy()->endOfDay();
+                        $events[] = $this->formatEvent($singleEvent, $typePrefix);
+                    }
+                    if ($cursor > $viewEnd) break;
+                    switch ($task->recurring_frequency) {
+                        case 'daily': $cursor->addDay(); break;
+                        case 'weekly': $cursor->addWeek(); break;
+                        case 'monthly': $cursor->addMonthWithNoOverflow(); break;
+                        case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                        default: break 2;
+                    }
+                }
+            } else {
+                $events[] = $this->formatEvent($task, $typePrefix);
             }
         }
-        return $generatedEvents;
+
+        return response()->json($events);
     }
 
+    private function formatEvent($task, $typePrefix)
+    {
+        $isRecurring = (bool) $task->is_recurring;
+        $backgroundColor = $isRecurring ? '#17a2b8' : '#3788d8';
+        $textColor = $task->color ?? '#FFFFFF';
+        $title = ($typePrefix === 'assigned' && $task->client) ? $task->client->name . ': ' . $task->name : $task->name;
+
+        return [
+            'id'              => $typePrefix . '_' . $task->id,
+            'title'           => $title,
+            'start'           => $task->start->toIso8601String(),
+            'end'             => $task->end ? $task->end->toIso8601String() : null,
+            'backgroundColor' => $backgroundColor,
+            'borderColor'     => $backgroundColor,
+            'textColor'       => $textColor,
+            'allDay'          => $isRecurring,
+            'display'         => $isRecurring ? 'auto' : 'block',
+            'extendedProps'   => [
+                'actualStart' => $task->start->toIso8601String(),
+                'actualEnd' => $task->end ? $task->end->toIso8601String() : null
+            ]
+        ];
+    }
+    
     public function ajax(Request $request)
     {
-        // Parsing ID now also handles recurring events which don't have unique DB IDs
+        $user = Auth::user();
         $idParts = explode('_', $request->id);
         $modelType = $idParts[0] ?? null;
         $id = $idParts[1] ?? null;
 
+        if (!$id) return response()->json(['error' => 'Invalid ID.'], 400);
+        
+        $event = ($modelType === 'assigned') ? AssignedTask::find($id) : Task::find($id);
+        if (!$event) abort(404);
+
+        $this->authorizeCalendarAction($user, $event);
+
         switch ($request->type) {
-           case 'add':
-              $event = Task::create([
-                  'name'      => $request->title,
-                  'start'     => $request->start,
-                  'end'       => $request->end,
-                  'staff_id'  => Auth::id(),
-                  'status'    => 'active',
-              ]);
-              return response()->json($event);
-  
-           case 'update':
-              if ($modelType === 'assigned' && $id) {
-                  $event = AssignedTask::find($id)->update(['start' => $request->start, 'end' => $request->end]);
-              } elseif ($modelType === 'personal' && $id) {
-                  $event = Task::find($id)->update(['start' => $request->start, 'end' => $request->end]);
-              } else {
-                  return response()->json(['error' => 'Invalid task type for update.'], 400);
-              }
-              return response()->json($event);
-             break;
-  
+           case 'updateColor':
+              $validator = Validator::make($request->all(), ['color' => 'required|string|regex:/^#[a-fA-F0-9]{6}$/']);
+              if ($validator->fails()) return response()->json(['error' => 'Invalid color format.'], 400);
+              $event->update(['color' => $request->color]);
+              return response()->json(['status' => 'success']);
+
            case 'delete':
-              if ($modelType === 'assigned' && $id) {
-                  $event = AssignedTask::find($id)->delete();
-              } elseif ($modelType === 'personal' && $id) {
-                  $event = Task::find($id)->delete();
-              } else {
-                 return response()->json(['error' => 'Invalid task type for deletion.'], 400);
-              }
-              return response()->json($event);
-             break;
+              $event->delete();
+              return response()->json(['status' => 'success']);
+        }
+
+        return response()->json(['error' => 'Invalid action.'], 400);
+    }
+    
+    private function authorizeCalendarAction($user, $event) {
+        $isAuthorized = false;
+        if ($user->type === 'O') {
+            $isAuthorized = ($event instanceof Task && optional(optional($event->job)->service)->organization_id === $user->id) || 
+                            ($event instanceof AssignedTask && optional($event->client)->organization_id === $user->id);
+        } elseif ($user->type === 'T') {
+            $isAuthorized = ($event instanceof Task && $event->staff_id === $user->id) || 
+                            ($event instanceof AssignedTask && $event->staff()->where('user_id', $user->id)->exists());
+        }
+        if (!$isAuthorized) {
+            abort(403, 'Unauthorized action.');
         }
     }
 }

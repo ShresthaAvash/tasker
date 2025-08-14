@@ -116,32 +116,54 @@ $(document).ready(function() {
         var button = $(event.relatedTarget);
         var action = button.data('action');
         var modal = $(this);
+        var form = modal.find('form');
+
+        // Reset the form to its default state
+        form[0].reset();
+        $('#is_recurring').prop('checked', false);
+        $('#recurring-options').hide();
+        $('#task-end').prop('required', false);
 
         if (action === 'edit') {
             var task = button.data('task');
             modal.find('.modal-title').text('Edit Task');
-            modal.find('form').attr('action', '/organization/tasks/' + task.id);
-            modal.find('input[name="_method"]').val('PUT');
-            modal.find('#task-name').val(task.name);
-            modal.find('#task-description').val(task.description);
-            modal.find('#deadline_offset').val(task.deadline_offset);
-            modal.find('#deadline_unit').val(task.deadline_unit);
-            modal.find('#staff_designation_id').val(task.staff_designation_id);
+            form.attr('action', '/organization/tasks/' + task.id);
+            form.find('input[name="_method"]').val('PUT');
+            
+            // Populate fields
+            $('#task-name').val(task.name);
+            $('#task-description').val(task.description);
+            $('#staff_designation_id').val(task.staff_designation_id);
+            $('#task-start').val(task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
+            $('#task-end').val(task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
 
-            // --- JAVASCRIPT UPDATE START ---
-            // Format and set the start/end dates for the datetime-local input fields
-            // The 'T' is required by the datetime-local input format.
-            modal.find('#task-start').val(task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
-            modal.find('#task-end').val(task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
-            // --- JAVASCRIPT UPDATE END ---
+            if(task.is_recurring) {
+                $('#is_recurring').prop('checked', true);
+                $('#recurring_frequency').val(task.recurring_frequency);
+            }
 
-        } else {
+        } else { // create action
             var jobId = button.data('jobid');
             modal.find('.modal-title').text('Add New Task');
-            modal.find('form').attr('action', '/organization/jobs/' + jobId + '/tasks');
-            modal.find('input[name="_method"]').val('POST');
-            modal.find('form')[0].reset();
+            form.attr('action', '/organization/jobs/' + jobId + '/tasks');
+            form.find('input[name="_method"]').val('POST');
         }
+
+        // --- NEW LOGIC FOR CONDITIONAL FIELDS ---
+        function toggleRecurringFields() {
+            if ($('#is_recurring').is(':checked')) {
+                $('#recurring-options').slideDown();
+                $('#task-end').prop('required', true);
+                $('#end-date-help').text("The date the recurrence will end.");
+            } else {
+                $('#recurring-options').slideUp();
+                $('#task-end').prop('required', false);
+                $('#end-date-help').text("For a non-recurring task, this is the task's duration (optional).");
+            }
+        }
+        
+        toggleRecurringFields();
+        $('#is_recurring').off('change').on('change', toggleRecurringFields);
     });
 });
 </script>

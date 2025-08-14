@@ -9,6 +9,11 @@ class AssignedTask extends Model
 {
     use HasFactory;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'client_id',
         'task_template_id',
@@ -22,39 +27,56 @@ class AssignedTask extends Model
         'end',
         'is_recurring',
         'recurring_frequency',
+        'color',
+        // --- ADD THESE TWO LINES ---
+        'duration_in_seconds',
+        'timer_started_at',
     ];
 
     /**
-     * The attributes that should be cast to native types.
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
      */
     protected $casts = [
         'due_date' => 'date',
         'start' => 'datetime',
         'end' => 'datetime',
         'is_recurring' => 'boolean',
+        // --- ADD THIS LINE ---
+        'timer_started_at' => 'datetime',
     ];
 
-    /**
-     * The staff members assigned to this task.
-     */
     public function staff()
     {
         return $this->belongsToMany(User::class, 'assigned_task_staff', 'assigned_task_id', 'user_id');
     }
 
-    /**
-     * Get the original task template.
-     */
     public function template()
     {
         return $this->belongsTo(Task::class, 'task_template_id');
     }
 
-    /**
-     * Get the client for this assigned task.
-     */
     public function client()
     {
         return $this->belongsTo(User::class, 'client_id');
+    }
+
+    /**
+     * --- THIS IS THE FIX ---
+     * Define the relationship to the Job model.
+     */
+    public function job()
+    {
+        return $this->belongsTo(Job::class, 'job_id');
+    }
+
+    /**
+     * --- THIS IS THE OTHER FIX ---
+     * Define the relationship to the Service model.
+     */
+    public function service()
+    {
+        return $this->belongsTo(Service::class, 'service_id');
     }
 }

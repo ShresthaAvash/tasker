@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Models\Job;
 use App\Models\User;
+use App\Models\StaffDesignation; // Added this line
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -37,16 +38,16 @@ class JobController extends Controller
 
         $job->load('service', 'tasks.designation', 'tasks.staff');
 
-        // --- THIS IS THE FINAL FIX ---
-        // Instead of looking for type 'M', we will look for all users in the organization
-        // that are NOT the Superadmin ('S') or the Organization account ('O').
-        // This is a more robust way that will include Ram ('A') and Unison ('T').
         $staffMembers = User::where('organization_id', Auth::id())
-                            ->whereNotIn('type', ['S', 'O', 'C', 'i']) // Exclude Superadmin, Organization, and Clients
+                            ->whereNotIn('type', ['S', 'O', 'C', 'i'])
                             ->orderBy('name')
                             ->get();
+                            
+        // --- THIS IS THE FIX ---
+        // We now fetch the designations so the task modal can use them.
+        $designations = StaffDesignation::where('organization_id', Auth::id())->orderBy('name')->get();
 
-        return view('Organization.jobs.edit', compact('job', 'staffMembers'));
+        return view('Organization.jobs.edit', compact('job', 'staffMembers', 'designations'));
     }
 
     /**

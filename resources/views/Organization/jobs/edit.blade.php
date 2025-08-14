@@ -91,18 +91,16 @@
 <script>
 $(document).ready(function() {
 
-    // --- LOGIC FOR TASK MODAL (RECURRING + EDIT) ---
     $('#taskModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
         var action = button.data('action');
         var modal = $(this);
         var form = modal.find('form');
 
-        // Reset form from previous state
         form[0].reset();
-        $('#recurring-options').hide();
         $('#is_recurring').prop('checked', false);
-
+        $('#recurring-options').hide();
+        $('#task-end').prop('required', false);
 
         if (action === 'edit') {
             var task = button.data('task');
@@ -110,35 +108,40 @@ $(document).ready(function() {
             form.attr('action', '/organization/tasks/' + task.id);
             form.find('input[name="_method"]').val('PUT');
 
-            // Populate fields
             $('#task-name').val(task.name);
-            if(task.is_recurring) {
-                $('#is_recurring').prop('checked', true);
-                $('#recurring-options').show();
-                $('#recurring_frequency').val(task.recurring_frequency);
-            }
+            $('#task-description').val(task.description);
+            $('#staff_designation_id').val(task.staff_designation_id);
             $('#task-start').val(task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
             $('#task-end').val(task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
 
-        } else { // 'create' action
+            if(task.is_recurring) {
+                $('#is_recurring').prop('checked', true);
+                $('#recurring_frequency').val(task.recurring_frequency);
+            }
+
+        } else {
             var jobId = button.data('jobid');
             modal.find('.modal-title').text('Add New Task');
             form.attr('action', '/organization/jobs/' + jobId + '/tasks');
             form.find('input[name="_method"]').val('POST');
         }
-    });
 
-    // Show/hide recurring options based on checkbox
-    $('#is_recurring').on('change', function() {
-        if ($(this).is(':checked')) {
-            $('#recurring-options').slideDown();
-        } else {
-            $('#recurring-options').slideUp();
+        function toggleRecurringFields() {
+            if ($('#is_recurring').is(':checked')) {
+                $('#recurring-options').slideDown();
+                $('#task-end').prop('required', true);
+                $('#end-date-help').text("The date the recurrence will end.");
+            } else {
+                $('#recurring-options').slideUp();
+                $('#task-end').prop('required', false);
+                $('#end-date-help').text("For a non-recurring task, this is the task's duration (optional).");
+            }
         }
+
+        toggleRecurringFields();
+        $('#is_recurring').off('change').on('change', toggleRecurringFields);
     });
 
-
-    // --- LOGIC FOR DIRECT STAFF ASSIGNMENT (AJAX) ---
     $('.staff-assign-dropdown').on('change', function() {
         var dropdown = $(this);
         var taskId = dropdown.data('taskId');
@@ -156,7 +159,7 @@ $(document).ready(function() {
                 statusLabel.fadeIn();
                 setTimeout(function() {
                     statusLabel.fadeOut();
-                }, 2000); // Hide after 2 seconds
+                }, 2000);
             },
             error: function() {
                 alert('Failed to assign staff. Please try again.');
