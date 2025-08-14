@@ -1,7 +1,10 @@
+<!-- Hidden inputs to store current sort state for AJAX calls -->
 <input type="hidden" id="sort_by" value="{{ $sort_by }}">
 <input type="hidden" id="sort_order" value="{{ $sort_order }}">
 
-<table class="table table-bordered table-striped">
+{{-- --- THIS IS THE FIX --- --}}
+{{-- We remove 'table-bordered' for a cleaner look inside the card --}}
+<table class="table table-hover table-striped">
     <thead>
         <tr>
             <th>
@@ -28,7 +31,6 @@
                 <p class="text-muted small">{{ Str::limit($service->description, 60) }}</p>
             </td>
             
-            {{-- ✅ MODIFIED: Jobs column is now a dropdown --}}
             <td>
                 <div class="dropdown">
                     <button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -60,7 +62,6 @@
                 @endif
             </td>
             <td>
-                {{-- ✅ MODIFIED: Button is "Edit" again --}}
                 <a href="{{ route('services.show', $service->id) }}" class="btn btn-xs btn-warning">Edit</a>
                 
                 <form action="{{ route('services.toggleStatus', $service->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure?');">
@@ -80,6 +81,6 @@
     </tbody>
 </table>
 
-<div class="mt-3">
+<div class="mt-3 d-flex justify-content-center">
     {{ $services->appends(request()->query())->links() }}
 </div>

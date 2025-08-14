@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('title', 'Services')
@@ -8,11 +7,15 @@
 @stop
 
 @section('content')
-<div class="card">
+{{-- --- THIS IS THE FIX --- --}}
+{{-- We add 'card-info' and 'card-outline' to style the card --}}
+<div class="card card-info card-outline">
     <div class="card-header">
         <h3 class="card-title">All Services</h3>
         <div class="card-tools">
-            <a href="{{ route('services.create') }}" class="btn btn-primary btn-sm">Add New Service</a>
+            {{-- --- THIS IS THE FIX --- --}}
+            {{-- We change the button to 'btn-info' to match the theme --}}
+            <a href="{{ route('services.create') }}" class="btn btn-info btn-sm">Add New Service</a>
         </div>
     </div>
     <div class="card-body">
@@ -32,7 +35,6 @@
     </div>
 </div>
 
-{{-- ✅ ADDED: Include the job modal so it can be triggered from the list --}}
 @include('Organization.services._job_modal')
 
 @stop
@@ -61,7 +63,6 @@ $(document).ready(function() {
         }, 300);
     });
 
-    // Delegated events for elements inside the dynamic container
     const container = '#services-table-container';
 
     $(document).on('click', `${container} .sort-link`, function(e) {
@@ -75,7 +76,6 @@ $(document).ready(function() {
         fetch_services_data(page, $('#sort_by').val(), $('#sort_order').val(), $('#search-input').val());
     });
 
-    // ✅ ADDED: Live search for jobs within each dropdown
     $(document).on('keyup', '.job-search-input', function() {
         var searchTerm = $(this).val().toLowerCase();
         $(this).closest('.dropdown-menu').find('.job-link').each(function() {
@@ -84,19 +84,16 @@ $(document).ready(function() {
         });
     });
     
-    // ✅ ADDED: Prevent dropdown from closing when clicking inside search
     $(document).on('click', '.job-search-input', function(e) {
         e.stopPropagation();
     });
 
-    // ✅ ADDED: Logic to open the "Add Job" modal from the list view
     $('#jobModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
         var serviceId = button.data('service-id');
         var modal = $(this);
 
         modal.find('.modal-title').text('Add New Job');
-        // Set the form action dynamically
         var actionUrl = '/organization/services/' + serviceId + '/jobs';
         modal.find('form').attr('action', actionUrl);
         modal.find('input[name="_method"]').val('POST');

@@ -44,6 +44,8 @@
                             <option value="daily">Day</option>
                             <option value="weekly">Week</option>
                             <option value="monthly">Month</option>
+                            {{-- --- THIS IS THE NEW OPTION --- --}}
+                            <option value="yearly">Year</option>
                             <option value="yearly">Year</option>
                         </select>
                     </div>

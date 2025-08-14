@@ -67,9 +67,13 @@ Route::middleware(['auth', 'isSuperAdmin'])->prefix('superadmin')->group(functio
 // Organization routes
 Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organization')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
+    Route::get('/staff/dashboard', [DashboardController::class, 'staffDashboard'])->name('staff.dashboard');
+    
+    // ... (All your other organization routes remain the same) ...
     Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
     Route::get('calendar/events', [CalendarController::class, 'fetchEvents'])->name('organization.calendar.events');
     Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
+    Route::resource('clients', ClientController::class);
     Route::get('clients/suspended', [ClientController::class, 'suspended'])->name('clients.suspended');
     Route::patch('clients/{client}/status', [ClientController::class, 'toggleStatus'])->name('clients.toggleStatus');
     Route::resource('clients', ClientController::class);
@@ -87,12 +91,18 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::get('services/get-jobs-for-assignment', [ClientController::class, 'getJobsForServiceAssignment'])->name('clients.services.getJobs');
     Route::post('clients/{client}/assign-services', [ClientController::class, 'assignServices'])->name('clients.services.assign');
     Route::resource('staff-designations', StaffDesignationController::class);
+
+    // Staff Member Management
     Route::get('staff/suspended', [StaffController::class, 'suspended'])->name('staff.suspended');
     Route::patch('staff/{staff}/status', [StaffController::class, 'toggleStatus'])->name('staff.toggleStatus');
     Route::resource('staff', StaffController::class);
+    
+    // Service, Job, and Task Management
     Route::get('services/suspended', [ServiceController::class, 'suspended'])->name('services.suspended');
     Route::patch('services/{service}/status', [ServiceController::class, 'toggleStatus'])->name('services.toggleStatus');
     Route::resource('services', ServiceController::class);
+
+    // Nested routes for Jobs (within a Service) and Tasks (within a Job)
     Route::resource('services.jobs', JobController::class)->shallow()->only(['store', 'update', 'destroy', 'edit']);
     Route::resource('jobs.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy']);
     Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
@@ -111,6 +121,8 @@ Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->grou
     Route::patch('tasks/{task}/timer/start', [StaffTaskController::class, 'startTimer'])->name('staff.tasks.timer.start')->where('task', '.*');
     Route::patch('tasks/{task}/timer/stop', [StaffTaskController::class, 'stopTimer'])->name('staff.tasks.timer.stop')->where('task', '.*');
     Route::post('tasks/{task}/timer/manual', [StaffTaskController::class, 'addManualTime'])->name('staff.tasks.timer.manual')->where('task', '.*');
+    Route::post('tasks/{task}/stop', [TaskController::class, 'stopTask'])->name('tasks.stop');
+    Route::post('jobs/{job}/assign-tasks', [JobController::class, 'assignTasks'])->name('jobs.assignTasks');
 });
 
 require __DIR__.'/auth.php';

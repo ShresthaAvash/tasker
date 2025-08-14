@@ -7,19 +7,25 @@
 @stop
 
 @section('content')
-<div class="card">
+{{-- --- THIS IS THE FIX --- --}}
+{{-- We add 'card-info' and 'card-outline' to style the card --}}
+<div class="card card-info card-outline">
     <div class="card-header">
         <h3 class="card-title">All Designations</h3>
         <div class="card-tools">
-            <a href="{{ route('staff-designations.create') }}" class="btn btn-primary btn-sm">Add New Designation</a>
+            {{-- --- THIS IS THE FIX --- --}}
+            {{-- We change the button to 'btn-info' to match the theme --}}
+            <a href="{{ route('staff-designations.create') }}" class="btn btn-info btn-sm">Add New Designation</a>
         </div>
     </div>
-    <div class="card-body">
+    <div class="card-body p-0"> {{-- We use p-0 to make the table fit nicely --}}
         @if(session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
+            <div class="alert alert-success m-3">{{ session('success') }}</div>
         @endif
 
-        <table class="table table-bordered table-striped">
+        {{-- --- THIS IS THE FIX --- --}}
+        {{-- We remove 'table-bordered' for a cleaner look --}}
+        <table class="table table-hover table-striped">
             <thead>
                 <tr>
                     <th style="width: 10px">#</th>
@@ -47,9 +53,13 @@
                 @endforelse
             </tbody>
         </table>
-         <div class="mt-3">
+    </div>
+    @if($designations->hasPages())
+    <div class="card-footer">
+        <div class="d-flex justify-content-center">
             {{ $designations->links() }}
         </div>
     </div>
+    @endif
 </div>
 @stop

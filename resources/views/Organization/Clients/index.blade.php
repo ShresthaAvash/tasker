@@ -7,11 +7,15 @@
 @stop
 
 @section('content')
-<div class="card">
+{{-- --- THIS IS THE FIX --- --}}
+{{-- We add 'card-info' and 'card-outline' to style the card --}}
+<div class="card card-info card-outline">
     <div class="card-header">
         <h3 class="card-title">All Clients</h3>
         <div class="card-tools">
-            <a href="{{ route('clients.create') }}" class="btn btn-primary btn-sm">Add New Client</a>
+            {{-- --- THIS IS THE FIX --- --}}
+            {{-- We change the button to 'btn-info' to match the theme --}}
+            <a href="{{ route('clients.create') }}" class="btn btn-info btn-sm">Add New Client</a>
         </div>
     </div>
     <div class="card-body">
@@ -80,8 +84,7 @@ $(document).ready(function() {
         fetch_clients_data(1, sort_by, sort_order, search);
     });
 
-    // ✅ THIS IS THE PAGINATION HANDLER
-    // It intercepts clicks on pagination links and makes an AJAX request instead.
+    // Pagination handler
     $(document).on('click', '#clients-table-container .pagination a', function(e) {
         e.preventDefault();
         const page = $(this).attr('href').split('page=')[1];

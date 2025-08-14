@@ -7,7 +7,10 @@
 @stop
 
 @section('content')
-<div class="card">
+<div class="card card-info">
+    <div class="card-header">
+        <h3 class="card-title">Service Details</h3>
+    </div>
     <div class="card-body">
         <form action="{{ route('services.store') }}" method="POST">
             @csrf
@@ -28,8 +31,8 @@
                     <option value="I">Inactive</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary">Save Service</button>
-            <a href="{{ route('services.index') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-info">Save Service</button>
+            <a href="{{ route('services.index') }}" class="btn btn-default">Cancel</a>
         </form>
     </div>
 </div>

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth; // <-- Add this line
 use App\Models\Task;                  // <-- Add this line
 use App\Models\AssignedTask;          // <-- Add this line
 use Carbon\Carbon;                    // <-- Add this line
+use Illuminate\Pagination\Paginator; // <-- ADD THIS LINE
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,8 +26,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-            Schema::defaultStringLength(191);
-
+        // --- THIS IS THE FIX ---
+        // This line tells Laravel to use the Bootstrap 4 styling
+        // for all pagination links throughout your entire application.
+        Paginator::useBootstrapFour();
             // --- ADD THIS ENTIRE BLOCK ---
         // This shares the active timer data with all views when a staff member is logged in.
         View::composer('*', function ($view) {

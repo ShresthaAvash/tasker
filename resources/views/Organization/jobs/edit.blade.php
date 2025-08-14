@@ -12,12 +12,15 @@
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
-<div class="card">
-    {{-- Job Details Form --}}
+{{-- --- THIS IS THE FIX --- --}}
+{{-- We wrap the form in a styled card --}}
+<div class="card card-info card-outline">
+    <div class="card-header">
+        <h3 class="card-title">Job Details</h3>
+    </div>
     <form action="{{ route('jobs.update', $job->id) }}" method="POST">
         @csrf
         @method('PUT')
-        <div class="card-header"><h3 class="card-title">Job Details</h3></div>
         <div class="card-body">
             <div class="form-group">
                 <label for="name">Job Name</label>
@@ -29,21 +32,21 @@
             </div>
         </div>
         <div class="card-footer">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-            <a href="{{ route('services.show', $job->service_id) }}" class="btn btn-secondary">Back to Service Builder</a>
+            <button type="submit" class="btn btn-info">Save Changes</button>
+            <a href="{{ route('services.show', $job->service_id) }}" class="btn btn-default">Back to Service Builder</a>
         </div>
     </form>
 </div>
 
-<div class="card">
+<div class="card card-info card-outline">
     <div class="card-header">
         <h3 class="card-title">Tasks</h3>
         <div class="card-tools">
-            <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#taskModal" data-action="create" data-jobid="{{ $job->id }}">Add Task</button>
+            <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#taskModal" data-action="create" data-jobid="{{ $job->id }}">Add Task</button>
         </div>
     </div>
     <div class="card-body p-0">
-        <table class="table table-hover">
+        <table class="table table-hover table-striped">
             <thead>
                 <tr>
                     <th>Task Name</th>
@@ -56,7 +59,6 @@
                     <tr>
                         <td>{{ $task->name }}</td>
                         <td>
-                            {{-- --- NEW ASSIGNMENT DROPDOWN --- --}}
                             <select class="form-control form-control-sm staff-assign-dropdown" data-task-id="{{ $task->id }}">
                                 <option value="">-- Not Assigned --</option>
                                 @foreach($staffMembers as $staff)
@@ -68,7 +70,15 @@
                             <small class="assign-status text-success" id="status-{{ $task->id }}" style="display:none;">Saved!</small>
                         </td>
                         <td>
+                            @if($task->status == 'active')
+                                <form action="{{ route('tasks.stop', $task) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-xs btn-info">Stop</button>
+                                </form>
+                            @endif
+                            
                             <button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#taskModal" data-action="edit" data-task='{{ $task->toJson() }}'>Edit</button>
+                            
                             <form action="{{ route('tasks.destroy', $task->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this task?');">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-xs btn-danger">Delete</button>
@@ -76,7 +86,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="3" class="text-center text-muted">No tasks yet.</td></tr>
+                    <tr><td colspan="3" class="text-center">No tasks yet.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -91,6 +101,7 @@
 <script>
 $(document).ready(function() {
 
+    // LOGIC FOR TASK MODAL (RECURRING + EDIT)
     $('#taskModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
         var action = button.data('action');
@@ -107,7 +118,6 @@ $(document).ready(function() {
             modal.find('.modal-title').text('Edit Task');
             form.attr('action', '/organization/tasks/' + task.id);
             form.find('input[name="_method"]').val('PUT');
-
             $('#task-name').val(task.name);
             $('#task-description').val(task.description);
             $('#staff_designation_id').val(task.staff_designation_id);
@@ -118,7 +128,8 @@ $(document).ready(function() {
                 $('#is_recurring').prop('checked', true);
                 $('#recurring_frequency').val(task.recurring_frequency);
             }
-
+            $('#task-start').val(task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
+            $('#task-end').val(task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
         } else {
             var jobId = button.data('jobid');
             modal.find('.modal-title').text('Add New Task');
@@ -142,6 +153,7 @@ $(document).ready(function() {
         $('#is_recurring').off('change').on('change', toggleRecurringFields);
     });
 
+    // LOGIC FOR DIRECT STAFF ASSIGNMENT (AJAX)
     $('.staff-assign-dropdown').on('change', function() {
         var dropdown = $(this);
         var taskId = dropdown.data('taskId');

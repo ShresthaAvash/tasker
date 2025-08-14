@@ -1,24 +1,49 @@
 @extends('layouts.app')
 
-@section('page-content')
+@section('title', 'Staff Dashboard')
 
+<<<<<<< HEAD
 <div class="row">
     <div class="col-lg-4 col-12">
         <div class="small-box bg-info">
             <div class="inner">
                 <h3>{{ $activeTaskCount }}</h3>
                 <p>Upcoming Tasks</p>
+=======
+@section('content_header')
+    <h1>Dashboard</h1>
+@stop
+
+@section('content')
+
+<div class="row">
+    {{-- Active Tasks Info Box --}}
+    <div class="col-lg-4 col-md-6">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3>{{ $activeTaskCount }}</h3>
+                <p>My Active Tasks</p>
+>>>>>>> origin/unison
             </div>
             <div class="icon">
                 <i class="fas fa-tasks"></i>
             </div>
+<<<<<<< HEAD
             <a href="{{ route('staff.calendar') }}" class="small-box-footer">View Calendar <i class="fas fa-arrow-circle-right"></i></a>
+=======
+            <a href="{{ route('organization.calendar') }}" class="small-box-footer">View My Calendar <i class="fas fa-arrow-circle-right"></i></a>
+>>>>>>> origin/unison
         </div>
     </div>
 </div>
 
 <div class="row">
+<<<<<<< HEAD
     <div class="col-md-8">
+=======
+    {{-- Upcoming Tasks List --}}
+    <div class="col-12">
+>>>>>>> origin/unison
         <div class="card card-primary card-outline">
             <div class="card-header">
                 <h3 class="card-title">My Upcoming Tasks</h3>
@@ -27,7 +52,11 @@
                 <ul class="list-group list-group-flush">
                     @forelse($upcomingTasks as $task)
                         <li class="list-group-item">
+<<<<<<< HEAD
                             <strong>{{ $task->display_name }}</strong>
+=======
+                            <strong>{{ $task->name }}</strong>
+>>>>>>> origin/unison
                             <span class="float-right text-muted">{{ $task->start->diffForHumans() }}</span>
                         </li>
                     @empty
@@ -41,4 +70,8 @@
     </div>
 </div>
 
+<<<<<<< HEAD
 @endsection
+=======
+@stop
+>>>>>>> origin/unison

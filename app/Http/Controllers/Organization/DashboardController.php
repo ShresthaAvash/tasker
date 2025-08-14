@@ -27,10 +27,17 @@ class DashboardController extends Controller
         $activeTaskCount = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
             ->where('status', 'active')->count();
 
-        // Upcoming tasks for the owner
-        $upcomingTasks = Task::where('staff_id', Auth::id())
-            ->where('status', 'active')->whereNotNull('start')->where('start', '>=', now())
-            ->orderBy('start', 'asc')->limit(5)->get();
+        // --- THIS IS THE FIX ---
+        // Get upcoming tasks and eager load the relationships we need to display.
+        $upcomingTasks = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
+            ->where('status', 'active')
+            ->whereNotNull('staff_id')
+            ->whereNotNull('start')
+            ->where('start', '>=', now())
+            ->orderBy('start', 'asc')
+            ->with(['staff', 'job', 'job.service']) // Eager load staff, job, and the job's service
+            ->limit(5)
+            ->get();
             
         // Data for the pie chart
         $taskStatusCounts = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
@@ -45,16 +52,20 @@ class DashboardController extends Controller
     }
 
     /**
-     * --- METHOD UPDATED ---
+     * --- NEW METHOD ---
      * Display a simpler dashboard for Staff Members.
      */
     public function staffDashboard()
     {
         $staffId = Auth::id();
+        $activeTaskCount = Task::where('staff_id', $staffId)->where('status', 'active')->count();
+        $upcomingTasks = Task::where('staff_id', $staffId)
 
         // Get personal tasks
         $personalTasks = Task::where('staff_id', $staffId)
             ->where('status', 'active')->whereNotNull('start')->where('start', '>=', now())
+            ->orderBy('start', 'asc')->limit(10)->get();
+
             ->get()->map(function ($task) {
                 $task->display_name = $task->name;
                 return $task;
