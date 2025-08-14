@@ -42,6 +42,14 @@ Route::get('/dashboard', function () {
     return redirect()->route('login');
 })->middleware(['auth', 'checkUserStatus'])->name('dashboard'); // <-- ADD 'checkUserStatus' MIDDLEWARE
 
+// This block makes the profile routes available to the whole app.
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile/activity-log', [ProfileController::class, 'showActivityLog'])->name('profile.activity_log');
+});
+
 // Route::get('/', function () {
 //     if (Auth::check()) {
 //         if (Auth::user()->type === 'S') return redirect()->route('superadmin.dashboard');
@@ -53,7 +61,7 @@ Route::get('/dashboard', function () {
 // })->name('home');
 
 // Super Admin routes
-Route::middleware(['auth', 'isSuperAdmin'])->prefix('superadmin')->group(function () {
+Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmin')->group(function () {
     Route::get('/dashboard', [SuperAdminController::class, 'index'])->name('superadmin.dashboard');
     
     // ADD THESE TWO NEW ROUTES
