@@ -26,6 +26,12 @@ class ClientController extends Controller
         $query = User::where('type', 'C')
             ->where('organization_id', Auth::id());
 
+        // MODIFIED: Filter by status, default to Active
+        $status = $request->get('status', 'A');
+        if (in_array($status, ['A', 'I'])) {
+            $query->where('status', $status);
+        }
+
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
@@ -47,17 +53,6 @@ class ClientController extends Controller
         }
 
         return view('Organization.clients.index', compact('clients', 'sort_by', 'sort_order'));
-    }
-
-    public function suspended()
-    {
-        $clients = User::where('type', 'C')
-            ->where('organization_id', Auth::id())
-            ->where('status', 'I')
-            ->orderBy('name')
-            ->paginate(10);
-
-        return view('organization.clients.suspended', compact('clients'));
     }
 
     public function create()

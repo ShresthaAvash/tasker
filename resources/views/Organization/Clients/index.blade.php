@@ -7,14 +7,20 @@
 @stop
 
 @section('content')
-{{-- --- THIS IS THE FIX --- --}}
-{{-- We add 'card-info' and 'card-outline' to style the card --}}
-<div class="card card-info card-outline">
+<div class="card card-info card-outline card-tabs">
+    <div class="card-header p-0 pt-1 border-bottom-0">
+        <ul class="nav nav-tabs" id="client-status-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="active-clients-tab" data-status="A" data-toggle="pill" href="#clients-content" role="tab">Active Clients</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="suspended-clients-tab" data-status="I" data-toggle="pill" href="#clients-content" role="tab">Suspended Clients</a>
+            </li>
+        </ul>
+    </div>
     <div class="card-header">
-        <h3 class="card-title">All Clients</h3>
+        <h3 class="card-title" id="card-title">All Active Clients</h3>
         <div class="card-tools">
-            {{-- --- THIS IS THE FIX --- --}}
-            {{-- We change the button to 'btn-info' to match the theme --}}
             <a href="{{ route('clients.create') }}" class="btn btn-info btn-sm">Add New Client</a>
         </div>
     </div>
@@ -43,7 +49,7 @@
 $(document).ready(function() {
     let debounceTimer;
 
-    function fetch_clients_data(page, sort_by, sort_order, search) {
+    function fetch_clients_data(page, sort_by, sort_order, search, status) {
         $('#clients-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
 
         $.ajax({
@@ -52,7 +58,8 @@ $(document).ready(function() {
                 page: page,
                 sort_by: sort_by,
                 sort_order: sort_order,
-                search: search
+                search: search,
+                status: status
             },
             success: function(data) {
                 $('#clients-table-container').html(data);
@@ -64,37 +71,47 @@ $(document).ready(function() {
         });
     }
 
+    function getCurrentStatus() {
+        return $('#client-status-tabs .nav-link.active').data('status') || 'A';
+    }
+
+    // Tab switching
+    $('#client-status-tabs a[data-toggle="pill"]').on('shown.bs.tab', function (e) {
+        const status = $(e.target).data('status');
+        const title = status === 'A' ? 'All Active Clients' : 'All Suspended Clients';
+        $('#card-title').text(title);
+        fetch_clients_data(1, 'created_at', 'desc', $('#search-input').val(), status);
+    });
+
     // Real-time search with debouncing
     $('#search-input').on('keyup', function() {
         clearTimeout(debounceTimer);
         const search = $(this).val();
         debounceTimer = setTimeout(function() {
-            const sort_by = $('#sort_by').val();
-            const sort_order = $('#sort_order').val();
-            fetch_clients_data(1, sort_by, sort_order, search);
+            fetch_clients_data(1, $('#sort_by').val(), $('#sort_order').val(), search, getCurrentStatus());
         }, 300);
     });
 
-    // Sorting functionality
+    // Sorting functionality (delegated event)
     $(document).on('click', '#clients-table-container .sort-link', function(e) {
         e.preventDefault();
         const sort_by = $(this).data('sortby');
         const sort_order = $(this).data('sortorder');
         const search = $('#search-input').val();
-        fetch_clients_data(1, sort_by, sort_order, search);
+        fetch_clients_data(1, sort_by, sort_order, search, getCurrentStatus());
     });
 
-    // Pagination handler
+    // Pagination handler (delegated event)
     $(document).on('click', '#clients-table-container .pagination a', function(e) {
         e.preventDefault();
         const page = $(this).attr('href').split('page=')[1];
         const sort_by = $('#sort_by').val();
         const sort_order = $('#sort_order').val();
         const search = $('#search-input').val();
-        fetch_clients_data(page, sort_by, sort_order, search);
+        fetch_clients_data(page, sort_by, sort_order, search, getCurrentStatus());
     });
 
-    // Hide success alert
+    // Hide success alert after 5 seconds
     setTimeout(function() {
         $('#success-alert').fadeOut('slow');
     }, 5000);

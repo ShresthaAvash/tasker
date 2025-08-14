@@ -23,6 +23,7 @@ class Task extends Model
         'end',
         'is_recurring', 
         'recurring_frequency', 
+        'color_overrides', 
         'staff_id',
         'status', // Assuming you added this from a previous step
         'color',
@@ -35,6 +36,7 @@ class Task extends Model
         'start' => 'datetime',
         'end' => 'datetime',
         'is_recurring' => 'boolean',
+         'color_overrides' => 'array',
         // --- ADD THIS LINE ---
         'timer_started_at' => 'datetime',
     ];

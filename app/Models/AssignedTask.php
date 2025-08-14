@@ -28,7 +28,7 @@ class AssignedTask extends Model
         'is_recurring',
         'recurring_frequency',
         'color',
-        // --- ADD THESE TWO LINES ---
+        'color_overrides',
         'duration_in_seconds',
         'timer_started_at',
     ];
@@ -43,7 +43,7 @@ class AssignedTask extends Model
         'start' => 'datetime',
         'end' => 'datetime',
         'is_recurring' => 'boolean',
-        // --- ADD THIS LINE ---
+        'color_overrides' => 'array',
         'timer_started_at' => 'datetime',
     ];
 

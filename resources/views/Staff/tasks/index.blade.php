@@ -74,6 +74,10 @@
 @section('js')
 <script>
 $(document).ready(function() {
+    // --- THIS IS THE FIX ---
+    // Add the CSRF token to all subsequent AJAX requests.
+    $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+
     let debounceTimer;
     const taskManager = $('#task-manager-card');
     let globalTimerInterval;
@@ -94,7 +98,7 @@ $(document).ready(function() {
         if (!timerBar.length) {
             const timerHtml = `
                 <li class="nav-item">
-                    <div id="global-timer-bar" class="d-flex align-items-center bg-warning p-2 rounded" style="display:none;">
+                    <div id="global-timer-bar" class="d-flex align-items-center bg-warning p-2 rounded">
                         <i class="fas fa-clock fa-spin mr-2"></i>
                         <span id="global-timer-task-name" class="font-weight-bold mr-3"></span>
                         <span id="global-timer-display" class="mr-3"></span>
@@ -104,12 +108,13 @@ $(document).ready(function() {
             $('nav.main-header .navbar-nav.ml-auto').prepend(timerHtml);
             timerBar = $('#global-timer-bar');
         }
+        
+        timerBar.data('task-id', taskId);
+        timerBar.find('#global-timer-task-name').text(taskName);
 
         const secondsSinceStart = Math.floor((new Date() - new Date(startTime)) / 1000);
         let currentTotalSeconds = parseInt(initialSeconds, 10) + secondsSinceStart;
 
-        timerBar.data('task-id', taskId);
-        timerBar.find('#global-timer-task-name').text(taskName);
         timerBar.find('#global-timer-display').text(formatTime(currentTotalSeconds));
         timerBar.show();
 
@@ -117,6 +122,18 @@ $(document).ready(function() {
             currentTotalSeconds++;
             timerBar.find('#global-timer-display').text(formatTime(currentTotalSeconds));
         }, 1000);
+
+        // Update the table buttons
+        $('.timer-button-group').each(function() {
+            const row = $(this).closest('tr');
+            if (row.data('task-id') === taskId) {
+                row.find('.start-timer-btn').hide();
+                row.find('.stop-timer-btn').show();
+            } else {
+                row.find('.start-timer-btn').show();
+                row.find('.stop-timer-btn').hide();
+            }
+        });
     }
 
     function stopGlobalTimer() {
@@ -132,7 +149,6 @@ $(document).ready(function() {
         const viewType = taskManager.find('input[name="view_type"]:checked').val();
         
         let data = {
-            _token: '{{ csrf_token() }}',
             search: search,
             view_type: viewType,
             page: page
@@ -165,22 +181,24 @@ $(document).ready(function() {
     }
 
     // --- INITIALIZE GLOBAL TIMER ON PAGE LOAD ---
-    const activeTimerBar = $('#global-timer-bar');
-    if (activeTimerBar.length && activeTimerBar.data('task-id')) {
-        startGlobalTimer(
-            activeTimerBar.data('task-id'),
-            activeTimerBar.data('task-name'),
-            activeTimerBar.data('initial-seconds'),
-            activeTimerBar.data('start-time')
-        );
-    }
+    $(function() {
+        const activeTimerBar = $('#global-timer-bar');
+        if (activeTimerBar.length && activeTimerBar.data('task-id')) {
+            startGlobalTimer(
+                activeTimerBar.data('task-id'),
+                activeTimerBar.data('task-name'),
+                activeTimerBar.data('initial-seconds'),
+                activeTimerBar.data('start-time')
+            );
+        }
+    });
 
-    // --- EVENT HANDLERS ---
+    // --- EVENT HANDLERS (using event delegation) ---
     taskManager.on('click', '#client-view-btn, #time-view-btn', function() {
         setTimeout(fetchTasks, 50);
     });
     
-    $('#custom-search-switch').on('change', function() {
+    taskManager.on('change', '#custom-search-switch', function() {
         if ($(this).is(':checked')) {
             $('#dropdown-filters').hide();
             $('#custom-range-filters').show();
@@ -209,24 +227,17 @@ $(document).ready(function() {
         const select = $(this);
         const taskId = select.data('task-id');
         const newStatus = select.val();
-        const row = select.closest('tr');
-
+        
         $.ajax({
             type: 'PATCH',
             url: `/staff/tasks/${taskId}/status`,
-            data: { _token: '{{ csrf_token() }}', status: newStatus },
+            data: { status: newStatus },
             success: function(response) {
-                if (newStatus === 'ongoing') {
-                    row.find('.timer-button-group').show();
-                } else {
-                    row.find('.timer-button-group').hide();
-                    if ($('#global-timer-bar').data('task-id') === taskId) {
-                        stopGlobalTimer();
-                    }
-                }
                 const feedback = $('#status-update-feedback').removeClass('alert-danger').addClass('alert-success');
                 feedback.text(response.success).fadeIn();
                 setTimeout(() => feedback.fadeOut(), 3000);
+                // Refresh the list to show/hide the timer buttons correctly
+                fetchTasks($('.pagination .active a').text() || 1);
             },
             error: function(xhr) {
                 const errorMsg = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'An error occurred.';
@@ -240,59 +251,40 @@ $(document).ready(function() {
     taskManager.on('click', '.start-timer-btn', function() {
         const button = $(this);
         const taskId = button.data('task-id');
-        if (!confirm('This will stop any other active timer. Start timer for this task?')) { return; }
+        if (!confirm('The timer will now start. This will stop any other running timer.')) { return; }
+        
         $.ajax({
             type: 'PATCH',
             url: `/staff/tasks/${taskId}/timer/start`,
-            data: { _token: '{{ csrf_token() }}' },
             success: function(response) {
-                $('.start-timer-btn').show();
-                $('.stop-timer-btn').hide();
-                button.hide();
-                button.siblings('.stop-timer-btn').show();
                 startGlobalTimer(response.task_id, response.task_name, response.duration_in_seconds, response.timer_started_at);
             },
             error: function(xhr) {
                 const errorMsg = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Could not start timer.';
                 alert(errorMsg);
-                console.error(xhr);
             }
         });
     });
 
-    taskManager.on('click', '.stop-timer-btn', function() {
-        const taskId = $(this).data('task-id');
-        $.ajax({
-            type: 'PATCH',
-            url: `/staff/tasks/${taskId}/timer/stop`,
-            data: { _token: '{{ csrf_token() }}' },
-            success: function(response) { stopGlobalTimer(); },
-            error: function(xhr) {
-                const errorMsg = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Could not stop timer.';
-                alert(errorMsg);
-                console.error(xhr);
-            }
-        });
-    });
+    // Combined handler for stop buttons in the table and the global bar
+    $(document).on('click', '.stop-timer-btn, #global-timer-stop-btn', function() {
+        const taskId = $(this).data('task-id') || $('#global-timer-bar').data('task-id');
+        if (!taskId) return;
 
-    $(document).on('click', '#global-timer-stop-btn', function() {
-        const taskId = $('#global-timer-bar').data('task-id');
         $.ajax({
             type: 'PATCH',
             url: `/staff/tasks/${taskId}/timer/stop`,
-            data: { _token: '{{ csrf_token() }}' },
             success: function(response) { stopGlobalTimer(); },
             error: function(xhr) {
                 const errorMsg = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Could not stop timer.';
                 alert(errorMsg);
-                console.error(xhr);
             }
         });
     });
 
     taskManager.on('click', '.manual-time-btn', function() {
         const taskId = $(this).data('task-id');
-        const taskName = $(this).closest('tr').find('td:first').text();
+        const taskName = $(this).closest('tr').find('td:first').text().trim();
         const form = $('#manualTimeForm');
         form.attr('action', `/staff/tasks/${taskId}/timer/manual`);
         $('#manual-time-task-name').text(taskName);

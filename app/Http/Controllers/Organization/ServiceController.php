@@ -15,8 +15,13 @@ class ServiceController extends Controller
      */
     public function index(Request $request)
     {
-        // ✅ MODIFIED: Added with('jobs') to eager load the relationship
         $query = Service::where('organization_id', Auth::id())->with('jobs');
+
+        // MODIFIED: Filter by status, default to Active ('A')
+        $status = $request->get('status', 'A');
+        if (in_array($status, ['A', 'I'])) {
+            $query->where('status', $status);
+        }
 
         // Search
         if ($request->filled('search')) {
@@ -39,21 +44,8 @@ class ServiceController extends Controller
         return view('Organization.services.index', compact('services', 'sort_by', 'sort_order'));
     }
 
-    // ... The rest of the controller remains exactly the same ...
+    // REMOVED: The suspended() method is no longer needed.
     
-    /**
-     * Display a list of suspended services.
-     */
-    public function suspended()
-    {
-        $services = Service::where('organization_id', Auth::id())
-            ->where('status', 'I') // Only Inactive/Suspended
-            ->orderBy('name')
-            ->paginate(10);
-
-        return view('organization.services.suspended', compact('services'));
-    }
-
     /**
      * Show the form for creating a new resource.
      */

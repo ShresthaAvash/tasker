@@ -24,6 +24,12 @@ class StaffController extends Controller
             ->where('organization_id', Auth::id())
             ->with('designation');
 
+        // MODIFIED: Filter by status, default to Active ('A')
+        $status = $request->get('status', 'A');
+        if (in_array($status, ['A', 'I'])) {
+            $query->where('status', $status);
+        }
+
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
@@ -50,25 +56,10 @@ class StaffController extends Controller
         return view('Organization.staff.index', compact('staff', 'sort_by', 'sort_order', 'designations'));
     }
 
-    /**
-     * ✅ ADDED: Display a list of suspended staff members.
-     */
-    public function suspended()
-    {
-        $staff = User::where('type', 'T')
-            ->where('organization_id', Auth::id())
-            ->where('status', 'I') // Only Inactive/Suspended
-            ->with('designation')
-            ->orderBy('name')
-            ->paginate(10);
-
-        return view('organization.staff.suspended', compact('staff'));
-    }
-    
-    // ... create, store, edit, update methods ...
+    // REMOVED: The suspended() method is no longer needed as its functionality is merged into index().
     
     /**
-     * ✅ ADDED: Toggle the status of a staff member between Active and Inactive.
+     * Toggle the status of a staff member between Active and Inactive.
      */
     public function toggleStatus(User $staff)
     {
@@ -83,8 +74,6 @@ class StaffController extends Controller
 
         return redirect()->back()->with('success', $message);
     }
-    
-    // ... (The rest of the controller methods remain unchanged)
     
     /**
      * Show the form for creating a new staff member.

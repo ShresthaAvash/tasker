@@ -11,7 +11,7 @@
     @yield('page-content')
 @endsection
 
-
+{{-- MODIFIED: Improved Global Timer Bar GUI --}}
 @section('content_top_nav_right')
     @if(isset($activeTimer) && $activeTimer)
         <li class="nav-item">

@@ -86,11 +86,6 @@ return [
     */
 
     'usermenu_enabled' => true,
-    
-    // --- THIS IS THE FIX ---
-    // We REMOVE the custom button line that was causing the error.
-    // 'usermenu_custom_button' => 'partials.user-menu', 
-    
     'usermenu_header' => true,
     'usermenu_header_class' => 'bg-primary',
     'usermenu_image' => false,
@@ -205,8 +200,7 @@ return [
 
     'menu' =>
     [
-        // --- THIS IS THE FIX ---
-        // This is the official, correct way to add items to the user dropdown.
+        // User menu items located in the top-right navbar.
         [
             'text'        => 'Profile',
             'route'       => 'profile.edit',
@@ -220,7 +214,6 @@ return [
             'topnav_user'  => true,
         ],
 
-        // --- Your sidebar menu items start here ---
         // SUPER ADMIN MENU
         [
             'text' => 'Dashboard',
@@ -280,7 +273,6 @@ return [
             'submenu' => [
                 [ 'text' => 'List Clients', 'route'  => 'clients.index', 'icon' => 'fas fa-fw fa-list', ],
                 [ 'text' => 'Add Client', 'route'  => 'clients.create', 'icon' => 'fas fa-fw fa-plus', ],
-                [ 'text' => 'Suspended Clients', 'route'  => 'clients.suspended', 'icon' => 'fas fa-fw fa-user-lock', ],
             ],
         ],
         [
@@ -290,7 +282,6 @@ return [
             'submenu' => [
                 [ 'text' => 'List Staff', 'route'  => 'staff.index', 'icon' => 'fas fa-fw fa-users-cog', ],
                 [ 'text' => 'Add Staff', 'route'  => 'staff.create', 'icon' => 'fas fa-fw fa-plus', ],
-                [ 'text' => 'Suspended Staff', 'route'  => 'staff.suspended', 'icon' => 'fas fa-fw fa-user-slash', ],
                 [ 'text' => 'Staff Designations', 'route'  => 'staff-designations.index', 'icon' => 'fas fa-fw fa-id-badge', ],
             ],
         ],
@@ -301,7 +292,6 @@ return [
             'submenu' => [
                 [ 'text' => 'List Services', 'route'  => 'services.index', 'icon' => 'fas fa-fw fa-list', ],
                 [ 'text' => 'Add Service', 'route'  => 'services.create', 'icon' => 'fas fa-fw fa-plus', ],
-                [ 'text' => 'Suspended Services', 'route'  => 'services.suspended', 'icon' => 'fas fa-fw fa-bell-slash', ],
             ],
         ],
 
