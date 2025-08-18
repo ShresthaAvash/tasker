@@ -86,13 +86,8 @@ return [
     */
 
     'usermenu_enabled' => true,
-    
-    // --- THIS IS THE FIX ---
-    // We REMOVE the custom button line that was causing the error.
-    // 'usermenu_custom_button' => 'partials.user-menu', 
-    
     'usermenu_header' => true,
-    'usermenu_header_class' => 'bg-primary',
+    'usermenu_header_class' => 'bg-primary', // This will now use your custom light blue
     'usermenu_image' => false,
     'usermenu_desc' => false,
     'usermenu_profile_url' => false,
@@ -129,13 +124,13 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'classes_body' => '',
-    'classes_brand' => '',
+    'classes_body' => 'bg-white',
+    'classes_brand' => 'navbar-light',
     'classes_brand_text' => '',
-    'classes_content_wrapper' => '',
+    'classes_content_wrapper' => 'bg-white',
     'classes_content_header' => '',
-    'classes_content' => '',
-    'classes_sidebar' => 'sidebar-dark-primary elevation-4',
+    'classes_content' => 'bg-white',
+    'classes_sidebar' => 'sidebar-light-primary elevation-4', // This uses your new white bg and blue accent
     'classes_sidebar_nav' => '',
     'classes_topnav' => 'navbar-white navbar-light',
     'classes_topnav_nav' => 'navbar-expand',
@@ -147,7 +142,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'sidebar_mini' => 'lg',
+    'sidebar_mini' => '',
     'sidebar_collapse' => false,
     'sidebar_collapse_auto_size' => false,
     'sidebar_collapse_remember' => false,
@@ -177,8 +172,8 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'use_route_url' => false,
-    'dashboard_url' => 'home',
+    'use_route_url' => true,
+    'dashboard_url' => 'landing',
     'logout_url' => 'logout',
     'login_url' => 'login',
     'register_url' => 'register',
@@ -198,15 +193,13 @@ return [
     'laravel_js_path' => 'js/app.js',
 
     /*
-    |--------------------------------------------------------------------------
+    |-------------------lg-------------------------------------------------------
     | Menu Items
     |--------------------------------------------------------------------------
     */
 
-    'menu' =>
-    [
-        // --- THIS IS THE FIX ---
-        // This is the official, correct way to add items to the user dropdown.
+    'menu' => [
+        // User Dropdown Menu Items
         [
             'text'        => 'Profile',
             'route'       => 'profile.edit',
@@ -220,11 +213,13 @@ return [
             'topnav_user'  => true,
         ],
 
-        // --- Your sidebar menu items start here ---
+        // --- Sidebar Menu Items ---
+        ['header' => 'MAIN NAVIGATION'],
+
         // SUPER ADMIN MENU
         [
             'text' => 'Dashboard',
-            'url'  => 'superadmin/dashboard',
+            'route'  => 'superadmin.dashboard',
             'icon' => 'fas fa-fw fa-tachometer-alt',
             'can'  => 'is-superadmin',
         ],
@@ -233,8 +228,8 @@ return [
             'icon'    => 'fas fa-fw fa-building',
             'can'     => 'is-superadmin',
             'submenu' => [
-                [ 'text' => 'List Organizations', 'url'  => 'superadmin/organizations', 'icon' => 'fas fa-fw fa-list', ],
-                [ 'text' => 'Add Organization', 'url'  => 'superadmin/organizations/create', 'icon' => 'fas fa-fw fa-plus', ],
+                [ 'text' => 'List Organizations', 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
+                [ 'text' => 'Add Organization', 'route'  => 'superadmin.organizations.create', 'icon' => 'fas fa-fw fa-plus', ],
             ],
         ],
         [
@@ -246,6 +241,7 @@ return [
                     'text' => 'Activation Requests',
                     'route'  => 'superadmin.subscriptions.requests',
                     'icon' => 'fas fa-fw fa-hourglass-start',
+                    'id' => 'subscription-requests-link'
                 ],
                 [
                     'text' => 'List Subscriptions',
@@ -311,7 +307,7 @@ return [
             'route'  => 'staff.dashboard',
             'icon' => 'fas fa-fw fa-tachometer-alt',
             'can'  => 'is-staff',
-            'active' => ['staff/dashboard*']
+            'active' => ['staff/dashboard*', 'notifications*']
         ],
         [
             'text'  => 'Calendar',

@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
+use App\Notifications\ClientTaskAssigned;
 
 class ClientController extends Controller
 {
@@ -335,7 +336,7 @@ class ClientController extends Controller
                    ->whereHas('service', function ($query) use ($organizationId) {
                        $query->where('organization_id', $organizationId);
                    })
-                   ->with('tasks')
+                   ->with('tasks.staff') // Eager load the default staff member
                    ->orderBy('name')
                    ->get();
         
@@ -380,18 +381,24 @@ class ClientController extends Controller
                             'name' => $taskTemplate->name,
                             'description' => $taskTemplate->description,
                             'status' => 'pending',
-                            'start' => $taskTemplate->start, // Direct copy
-                            'end' => $taskTemplate->end,     // Direct copy
+                            'start' => $taskTemplate->start,
+                            'end' => $taskTemplate->end,
                             'is_recurring' => $taskTemplate->is_recurring,
                             'recurring_frequency' => $taskTemplate->recurring_frequency,
                         ]
                     );
 
-                    if (isset($validated['staff_assignments'][$taskTemplate->id])) {
-                        $staffIds = $validated['staff_assignments'][$taskTemplate->id];
-                        $assignedTask->staff()->sync($staffIds);
-                    } else {
-                        $assignedTask->staff()->detach();
+                    $staffIds = $validated['staff_assignments'][$taskTemplate->id] ?? [];
+                    
+                    $syncResult = $assignedTask->staff()->sync($staffIds);
+                    $newlyAttachedStaffIds = $syncResult['attached'];
+
+                    if (!empty($newlyAttachedStaffIds)) {
+                        $newlyAssignedStaff = User::find($newlyAttachedStaffIds);
+                        
+                        foreach ($newlyAssignedStaff as $staffMember) {
+                            $staffMember->notify(new ClientTaskAssigned($assignedTask));
+                        }
                     }
                 }
             }

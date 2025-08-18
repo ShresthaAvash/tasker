@@ -31,16 +31,17 @@ class AuthenticatedSessionController extends Controller
         $user = $request->user();
 
         if ($user->type === 'S') {
-            // Directly return view for Super Admin dashboard
-            return response()->view('SuperAdmin.dashboard');
+            // --- THIS IS THE FIX ---
+            // We change from directly returning a view to redirecting to the correct route.
+            return redirect()->route('superadmin.dashboard');
         }
 
         if ($user->type === 'O') {
             // Redirect to route for Organization dashboard
             return redirect()->route('organization.dashboard');
         }
-    return redirect()->intended(route('dashboard', absolute: false));
-
+        
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use App\Notifications\TaskAssignedToStaff; // <-- ADD THIS LINE
 
 class TaskController extends Controller
 {
@@ -80,6 +81,16 @@ class TaskController extends Controller
         ]);
 
         $task->update(['staff_id' => $request->staff_id]);
+
+        // --- THIS IS THE NEW LOGIC ---
+        // If a staff member was assigned (not un-assigned), send a notification
+        if ($request->filled('staff_id')) {
+            $staffMember = User::find($request->staff_id);
+            if ($staffMember) {
+                $staffMember->notify(new TaskAssignedToStaff($task));
+            }
+        }
+        // --- END OF NEW LOGIC ---
 
         return response()->json(['success' => 'Task assigned successfully.']);
     }

@@ -10,25 +10,27 @@
 
 @section('css')
 <style>
-    .card-primary.card-tabs .card-header {
-        background-color: #343a40;
+    /* --- THIS IS THE FIX --- */
+    /* Updated all .card-primary selectors to .card-info and changed color codes */
+    .card-info.card-tabs .card-header {
+        background-color: #17a2b8; /* AdminLTE info color */
         border-bottom: none;
     }
-    .card-primary.card-tabs .nav-link {
+    .card-info.card-tabs .nav-link {
         border: 0;
-        color: rgba(255, 255, 255, 0.7);
+        color: rgba(255, 255, 255, 0.8);
         transition: all 0.2s ease-in-out;
         border-top: 3px solid transparent;
         margin-bottom: -1px;
     }
-    .card-primary.card-tabs .nav-link.active {
+    .card-info.card-tabs .nav-link.active {
         background-color: #fff;
-        color: #343a40;
-        border-top-color: #007bff;
+        color: #17a2b8;
+        border-top-color: #17a2b8; /* AdminLTE info color */
     }
-    .card-primary.card-tabs .nav-link:not(.active):hover {
+    .card-info.card-tabs .nav-link:not(.active):hover {
         color: #ffffff;
-        border-top-color: #6c757d;
+        border-top-color: #138496; /* A slightly darker info color for hover */
     }
     .pinned-note-bar {
         background-color: #fff3cd;
@@ -48,9 +50,11 @@
         border-color: #ced4da;
         color: #495057;
     }
+    /* --- THIS IS THE FIX --- */
+    /* Updated select2 choice color to match theme */
     .select2-container--default .select2-selection--multiple .select2-selection__choice {
-        background-color: #007bff;
-        border-color: #006fe6;
+        background-color: #17a2b8;
+        border-color: #138496;
         color: #fff;
     }
     .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
@@ -82,7 +86,9 @@
     <div class="alert alert-danger"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
 @endif
 
-<div class="card card-primary card-tabs">
+{{-- --- THIS IS THE FIX --- --}}
+{{-- Changed card-primary to card-info --}}
+<div class="card card-info card-tabs">
     <div class="card-header p-0 pt-1">
         <ul class="nav nav-tabs" id="client-tabs" role="tablist">
             <li class="nav-item"><a class="nav-link active" id="general-tab-link" data-toggle="pill" href="#general-tab" role="tab">General</a></li>
@@ -106,7 +112,9 @@
                     <div class="form-group"><label>Status</label><select class="form-control" name="status" required><option value="A" @if(old('status', $client->status) == 'A') selected @endif>Active</option><option value="I" @if(old('status', $client->status) == 'I') selected @endif>Inactive</option></select></div>
                     <hr><p class="text-muted">Password (leave blank to keep current)</p>
                     <div class="row"><div class="col-md-6"><div class="form-group"><label>New Password</label><input type="password" class="form-control" name="password"></div></div><div class="col-md-6"><div class="form-group"><label>Confirm Password</label><input type="password" class="form-control" name="password_confirmation"></div></div></div>
-                    <button type="submit" class="btn btn-primary">Save Changes</button> <a href="{{ route('clients.index') }}" class="btn btn-secondary">Back to List</a>
+                    {{-- --- THIS IS THE FIX --- --}}
+                    {{-- Changed btn-primary to btn-info --}}
+                    <button type="submit" class="btn btn-info">Save Changes</button> <a href="{{ route('clients.index') }}" class="btn btn-secondary">Back to List</a>
                 </form>
             </div>
 
@@ -157,24 +165,15 @@
 
             <!-- Services Tab -->
             <div class="tab-pane fade" id="services-tab" role="tabpanel">
-                
-                {{-- --- THIS IS THE FIX (Part 1) --- --}}
-                {{-- This script block will ONLY be present if the client already has assigned services. --}}
-                {{-- It will run once the page is ready. --}}
                 @if($client->assignedServices->isNotEmpty())
                 <script>
                     $(function() {
-                        // Hide the service selection and show the job configuration.
                         $('#service-selection-step').hide();
                         $('#job-config-step').show();
-
-                        // Trigger the AJAX call to load the jobs and tasks for the existing services.
                         $('#next-to-jobs-btn').trigger('click');
                     });
                 </script>
                 @endif
-                {{-- --- END OF FIX --- --}}
-
                 <form id="service-assignment-form" action="{{ route('clients.services.assign', $client) }}" method="POST">
                     @csrf
                     <div id="service-selection-step">
@@ -187,7 +186,9 @@
                                 <p class="text-muted">No services have been created yet. <a href="{{ route('services.create') }}">Create one now</a>.</p>
                             @endforelse
                         </div>
-                        <button type="button" id="next-to-jobs-btn" class="btn btn-primary">Next <i class="fas fa-arrow-right"></i></button>
+                        {{-- --- THIS IS THE FIX --- --}}
+                        {{-- Changed btn-primary to btn-info --}}
+                        <button type="button" id="next-to-jobs-btn" class="btn btn-info">Next <i class="fas fa-arrow-right"></i></button>
                     </div>
 
                     <div id="job-config-step" style="display: none;">
@@ -205,25 +206,14 @@
 </div>
 
 <!-- Modals -->
-<div class="modal fade" id="contactModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="contactForm" method="POST" action="{{ route('clients.contacts.store', $client) }}">@csrf<input type="hidden" id="contact-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="contactModalLabel">Add Contact</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Name</label><input type="text" id="contact-name" name="name" class="form-control" required></div><div class="form-group"><label>Email</label><input type="email" id="contact-email" name="email" class="form-control" required></div><div class="form-group"><label>Phone (Optional)</label><input type="text" id="contact-phone" name="phone" class="form-control"></div><div class="form-group"><label>Position</label><input type="text" id="contact-position" name="position" class="form-control"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Save</button></div></form></div></div></div>
-<div class="modal fade" id="noteModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="noteForm" method="POST" action="{{ route('clients.notes.store', $client) }}">@csrf<input type="hidden" id="note-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="noteModalLabel">Add Note</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Title</label><input type="text" id="note-title" name="title" class="form-control" required></div><div class="form-group"><label>Content</label><textarea id="note-content" name="content" class="form-control" rows="4" required></textarea></div><div class="form-group"><label>Date</label><input type="date" id="note-date" name="note_date" class="form-control" required></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Save</button></div></form></div></div></div>
-<div class="modal fade" id="documentModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="documentForm" method="POST" action="{{ route('clients.documents.store', $client) }}" enctype="multipart/form-data">@csrf<div class="modal-header"><h5 class="modal-title">Upload Document</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Document Name</label><input type="text" name="name" class="form-control" required placeholder="e.g., Signed Contract"></div><div class="form-group"><label>File</label><input type="file" name="document_file" class="form-control-file" required><small class="form-text text-muted">Allowed types: PDF, DOCX, PNG, JPG. Max size: 10MB.</small></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Upload</button></div></form></div></div></div>
+<div class="modal fade" id="contactModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="contactForm" method="POST" action="{{ route('clients.contacts.store', $client) }}">@csrf<input type="hidden" id="contact-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="contactModalLabel">Add Contact</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Name</label><input type="text" id="contact-name" name="name" class="form-control" required></div><div class="form-group"><label>Email</label><input type="email" id="contact-email" name="email" class="form-control" required></div><div class="form-group"><label>Phone (Optional)</label><input type="text" id="contact-phone" name="phone" class="form-control"></div><div class="form-group"><label>Position</label><input type="text" id="contact-position" name="position" class="form-control"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-info">Save</button></div></form></div></div></div>
+<div class="modal fade" id="noteModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="noteForm" method="POST" action="{{ route('clients.notes.store', $client) }}">@csrf<input type="hidden" id="note-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="noteModalLabel">Add Note</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Title</label><input type="text" id="note-title" name="title" class="form-control" required></div><div class="form-group"><label>Content</label><textarea id="note-content" name="content" class="form-control" rows="4" required></textarea></div><div class="form-group"><label>Date</label><input type="date" id="note-date" name="note_date" class="form-control" required></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-info">Save</button></div></form></div></div></div>
+<div class="modal fade" id="documentModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="documentForm" method="POST" action="{{ route('clients.documents.store', $client) }}" enctype="multipart/form-data">@csrf<div class="modal-header"><h5 class="modal-title">Upload Document</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Document Name</label><input type="text" name="name" class="form-control" required placeholder="e.g., Signed Contract"></div><div class="form-group"><label>File</label><input type="file" name="document_file" class="form-control-file" required><small class="form-text text-muted">Allowed types: PDF, DOCX, PNG, JPG. Max size: 10MB.</small></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-info">Upload</button></div></form></div></div></div>
 @stop
 
 @section('js')
 <script>
 $(document).ready(function() {
-    
-    // --- THIS IS THE FIX (Part 2) ---
-    // Remove the localStorage logic to ensure the "General" tab is always the default.
-    // $('a[data-toggle="pill"]').on('shown.bs.tab', function (e) {
-    //     localStorage.setItem('activeClientTab', $(e.target).attr('href'));
-    // });
-    // let activeTab = localStorage.getItem('activeClientTab');
-    // if (activeTab && $('#client-tabs a[href="' + activeTab + '"]').length) {
-    //     $('#client-tabs a[href="' + activeTab + '"]').tab('show');
-    // }
-    // --- END OF FIX ---
 
     $('#contactModal').on('show.bs.modal', function (event) {
         const button = $(event.relatedTarget);

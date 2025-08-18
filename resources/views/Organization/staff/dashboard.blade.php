@@ -3,7 +3,12 @@
 @section('title', 'Staff Dashboard')
 
 @section('content_header')
-    <h1>Dashboard</h1>
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>Dashboard</h1>
+        <a href="{{ route('generate.report') }}" class="btn btn-primary">
+            <i class="fas fa-download mr-1"></i> Generate Report
+        </a>
+    </div>
 @stop
 
 @section('content')
@@ -19,7 +24,6 @@
             <div class="icon">
                 <i class="fas fa-tasks"></i>
             </div>
-            {{-- Calendar link for staff --}}
             <a href="{{ route('staff.calendar') }}" class="small-box-footer">
                 View My Calendar <i class="fas fa-arrow-circle-right"></i>
             </a>
@@ -38,7 +42,6 @@
                 <ul class="list-group list-group-flush">
                     @forelse($upcomingTasks as $task)
                         <li class="list-group-item">
-                            {{-- Use display_name if set, otherwise fallback to name --}}
                             <strong>{{ $task->display_name ?? $task->name }}</strong>
                             <span class="float-right text-muted">
                                 {{ optional($task->start)->diffForHumans() }}

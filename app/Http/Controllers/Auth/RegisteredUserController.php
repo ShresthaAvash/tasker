@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Notification; // <-- ADD THIS LINE
+use App\Notifications\SubscriptionRequested;    // <-- ADD THIS LINE
 
 class RegisteredUserController extends Controller
 {
@@ -40,12 +42,17 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'type' => 'O',
-            'status' => 'R', // <-- ADD THIS: Set status to 'Requested'
+            'status' => 'R', // Set status to 'Requested'
         ]);
 
         event(new Registered($user));
 
-        // Auth::login($user); // We don't want to log them in automatically
+        // --- THIS IS THE NEW NOTIFICATION LOGIC ---
+        $superAdmins = User::where('type', 'S')->get();
+        if ($superAdmins->isNotEmpty()) {
+            Notification::send($superAdmins, new SubscriptionRequested($user));
+        }
+        // --- END OF NEW LOGIC ---
 
         // Redirect to a new pending page
         return redirect()->route('subscription.pending');
