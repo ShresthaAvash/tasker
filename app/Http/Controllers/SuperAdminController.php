@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-
 class SuperAdminController extends Controller
 {
     // List all organizations
     public function index(Request $request)
     {
-        $query = User::where('type', 'O');
+        // Eager load the subscription relationship provided by Cashier
+        $query = User::where('type', 'O')->with('subscriptions');
 
         if ($request->filled('search')) {
             $query->where('name', 'like', "%{$request->search}%")
@@ -21,7 +21,7 @@ class SuperAdminController extends Controller
 
         return view('SuperAdmin.index', compact('organizations'));
     }
-
+    
     // Show create form
     public function create()
     {
@@ -68,7 +68,7 @@ class SuperAdminController extends Controller
     // Show details
     public function show($id)
     {
-        $organization = User::where('type', 'O')->findOrFail($id);
+        $organization = User::where('type', 'O')->with('subscriptions')->findOrFail($id);
         return view('SuperAdmin.view', compact('organization'));
     }
 
@@ -121,6 +121,22 @@ class SuperAdminController extends Controller
         return view('SuperAdmin.subscriptions.requests', compact('requestedOrganizations'));
     }
 
+    public function activeSubscriptions()
+    {
+        $organizations = User::where('type', 'O')
+            ->whereHas('subscriptions', function ($query) {
+                $query->where('stripe_status', 'active');
+            })
+            // --- THIS IS THE CHANGE ---
+            ->with('subscriptions.plan') // Eager-load the plan relationship
+            ->latest()
+            ->paginate(10);
+
+        return view('SuperAdmin.subscriptions.active', compact('organizations'));
+    }
+
+    
+
     /**
      * Approve a subscription request.
      */
@@ -133,5 +149,25 @@ class SuperAdminController extends Controller
         }
 
         return redirect()->route('superadmin.subscriptions.requests')->with('error', 'Invalid request.');
+    }
+
+    public function cancelSubscription(User $user)
+    {
+        try {
+            $user->subscription('default')->cancel();
+            return redirect()->back()->with('success', "Subscription for {$user->name} has been scheduled for cancellation.");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Could not cancel subscription. ' . $e->getMessage());
+        }
+    }
+
+    public function resumeSubscription(User $user)
+    {
+        try {
+            $user->subscription('default')->resume();
+            return redirect()->back()->with('success', "Subscription for {$user->name} has been resumed.");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Could not resume subscription. ' . $e->getMessage());
+        }
     }
 };

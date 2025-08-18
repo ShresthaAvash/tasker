@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('job_id');
             $table->string('name');
+            $table->string('status')->nullable();
             $table->text('description')->nullable();
             // Deadline offset from the job's start date
             $table->integer('deadline_offset')->default(0); 

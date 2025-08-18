@@ -31,4 +31,11 @@ return [
         ],
     ],
 
+    // --- ADD THIS ENTIRE BLOCK ---
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+    ],
+    // --- END OF BLOCK ---
+
 ];

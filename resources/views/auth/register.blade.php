@@ -68,9 +68,15 @@
             </div>
 
             <div class="register-box">
-                <form method="POST" action="{{ route('register') }}">
-                    @csrf
-
+    <form method="POST" action="{{ route('register') }}">
+        @csrf
+        
+        <!--
+        THE URL has '?plan=1', so we should use request('plan'), not request('plan_id').
+        This ensures the value from the URL is correctly placed in the form.
+        -->
+                    <!-- ADD THIS HIDDEN INPUT -->
+                     <input type="hidden" name="plan_id" value="{{ request()->query('plan') }}">
                     <!-- Name -->
                     <div>
                         <x-input-label for="name" :value="__('Name')" />

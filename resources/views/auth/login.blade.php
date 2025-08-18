@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
+<head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -61,7 +61,7 @@
             .login-box a { color: var(--primary-color); }
         </style>
     </head>
-    <body class="font-sans text-gray-900 antialiased">
+        <body class="font-sans text-gray-900 antialiased">
         <div class="login-container">
             <div>
                 <a href="/">
@@ -70,10 +70,18 @@
             </div>
 
             <div class="login-box">
-     
+                {{-- Session Status for things like password resets --}}
                 <x-auth-session-status class="mb-4" :status="session('status')" />
 
-                <form method="POST" action="{{ route('login') }}">
+                {{-- --- THIS IS THE FIX: Display the error message --- --}}
+                @if (session('error'))
+                    <div class="mb-4 font-medium text-sm text-red-600 bg-red-100 p-3 rounded-md">
+                        {{ session('error') }}
+                    </div>
+                @endif
+                {{-- --- END OF FIX --- --}}
+
+<form method="POST" action="{{ route('login') }}">
                     @csrf
 
                     <!-- Email Address -->

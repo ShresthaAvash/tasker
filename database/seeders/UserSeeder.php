@@ -28,8 +28,8 @@ class UserSeeder extends Seeder
         // Create Organization
         $organization = User::create([
             'name' => 'Gtech Vision',
-            'email' => 'gtechvision@example.com', // ✅ Corrected to be a valid email
-            'password' => Hash::make('gtechvision123'),
+            'email' => 'gtech@gmail.com', // ✅ Corrected to be a valid email
+            'password' => Hash::make('password'),
             'status' => 'A', // ✅ Set a default status
             'type' => 'O', // ✅ Corrected type for Organization
             'created_at' => now(),

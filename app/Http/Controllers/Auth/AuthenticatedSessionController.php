@@ -30,17 +30,26 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
 
+        // --- THIS IS THE NEW LOGIC ---
+        // If the user is an Organization and has never subscribed, block them.
+        if ($user->type === 'O' && !$user->subscribed('default')) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect('/login')->with('error', 'You have not subscribed to a plan. Please register and subscribe.');
+        }
+        // --- END OF NEW LOGIC ---
+
         if ($user->type === 'S') {
-            // Directly return view for Super Admin dashboard
             return response()->view('SuperAdmin.dashboard');
         }
 
         if ($user->type === 'O') {
-            // Redirect to route for Organization dashboard
             return redirect()->route('organization.dashboard');
         }
-    return redirect()->intended(route('dashboard', absolute: false));
 
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 
     /**

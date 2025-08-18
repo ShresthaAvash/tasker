@@ -3,13 +3,13 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\View; // <-- Add this line
-use Illuminate\Support\Facades\Auth; // <-- Add this line
-use App\Models\Task;                  // <-- Add this line
-use App\Models\AssignedTask;          // <-- Add this line
-use Carbon\Carbon;                    // <-- Add this line
-use Illuminate\Pagination\Paginator; // <-- ADD THIS LINE
+use Illuminate\Support\Facades\Schema; // <-- ADD THIS LINE
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Task;
+use App\Models\AssignedTask;
+use Carbon\Carbon;
+use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,12 +26,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // --- THIS IS THE FIX ---
-        // This line tells Laravel to use the Bootstrap 4 styling
-        // for all pagination links throughout your entire application.
+        Schema::defaultStringLength(191); // <-- ADD THIS LINE
+
         Paginator::useBootstrapFour();
-            // --- ADD THIS ENTIRE BLOCK ---
-        // This shares the active timer data with all views when a staff member is logged in.
+        
         View::composer('*', function ($view) {
             if (Auth::check() && Auth::user()->type === 'T') {
                 $staffId = Auth::id();
@@ -64,7 +62,5 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('activeTimer', $activeTimer);
             }
         });
-        // --- END OF BLOCK ---
-
     }
 }

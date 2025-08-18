@@ -222,6 +222,7 @@ return [
 
         // --- Your sidebar menu items start here ---
         // SUPER ADMIN MENU
+        // SUPER ADMIN MENU
         [
             'text' => 'Dashboard',
             'url'  => 'superadmin/dashboard',
@@ -243,23 +244,24 @@ return [
             'can'     => 'is-superadmin',
             'submenu' => [
                 [
-                    'text' => 'Activation Requests',
-                    'route'  => 'superadmin.subscriptions.requests',
-                    'icon' => 'fas fa-fw fa-hourglass-start',
+                    'text' => 'Active Subscriptions',
+                    'route'  => 'superadmin.subscriptions.active',
+                    'icon' => 'fas fa-fw fa-check-circle',
                 ],
                 [
-                    'text' => 'List Subscriptions',
-                    'route'  => 'superadmin.subscriptions.index',
+                    // --- THIS IS THE FIX ---
+                    'text' => 'List Subscription Plans',
+                    'route'  => 'superadmin.plans.index', // Use the new 'plans' route
                     'icon' => 'fas fa-fw fa-list',
                 ],
                 [
-                    'text' => 'Add Subscription',
-                    'route'  => 'superadmin.subscriptions.create',
+                    // --- THIS IS THE FIX ---
+                    'text' => 'Add Subscription Plan',
+                    'route'  => 'superadmin.plans.create', // Use the new 'plans' route
                     'icon' => 'fas fa-fw fa-plus',
                 ],
             ],
         ],
-
         // ORGANIZATION MENU
         [
             'text' => 'Dashboard',

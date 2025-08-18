@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Subscription;
+use App\Models\Plan;
 use Illuminate\Http\Request;
 
 class LandingPageController extends Controller
@@ -20,7 +20,7 @@ class LandingPageController extends Controller
      */
     public function pricing()
     {
-        $subscriptions = Subscription::all();
+        $subscriptions = Plan::all();
         return view('pricing', compact('subscriptions'));
     }
 }

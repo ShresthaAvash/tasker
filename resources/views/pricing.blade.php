@@ -84,25 +84,25 @@
                             <p class="text-muted small">(<span class="monthly-price-note"></span> / user / month)</p>
                         </div>
                         <!-- UPDATE: Changed button text and link -->
-                        <a href="{{ route('register') }}" class="btn btn-outline-primary btn-lg mt-3">Purchase</a>
-                    </div>
-                </div>
+<a href="{{ route('register', ['plan' => $monthlyPlan->id]) }}" class="btn btn-outline-primary btn-lg mt-3">Purchase</a>
+</div>
+</div>
 
-                {{-- Annual Card --}}
-                <div class="col-lg-4 mb-4">
-                     <!-- ADD: h-100 class makes cards in a row equal height -->
-                    <div class="pricing-card highlight h-100">
-                        <div class="card-body-content">
-                            <h5>{{ $annualPlan->name }}</h5>
-                            <h2 class="price my-3">£<span id="annual-price-per-user">0.00</span></h2>
-                            <p class="text-muted">Per User Per Month + VAT</p>
-                            <div class="badge bg-success my-2 fs-6">Save 20%</div>
-                            <hr>
-                            <p><strong class="fs-5">£<span id="annual-total">0.00</span></strong> / year</p>
-                            <p class="text-muted small">paid annually in advance</p>
-                        </div>
-                         <!-- UPDATE: Changed button text and link -->
-                        <a href="{{ route('register') }}" class="btn btn-primary btn-lg mt-3">Purchase</a>
+{{-- Annual Card --}}
+<div class="col-lg-4 mb-4">
+    <!-- ADD: h-100 class makes cards in a row equal height -->
+    <div class="pricing-card highlight h-100">
+        <div class="card-body-content">
+            <h5>{{ $annualPlan->name }}</h5>
+            <h2 class="price my-3">£<span id="annual-price-per-user">0.00</span></h2>
+            <p class="text-muted">Per User Per Month + VAT</p>
+            <div class="badge bg-success my-2 fs-6">Save 20%</div>
+            <hr>
+            <p><strong class="fs-5">£<span id="annual-total">0.00</span></strong> / year</p>
+            <p class="text-muted small">paid annually in advance</p>
+        </div>
+        <!-- UPDATE: Changed button text and link -->
+        <a href="{{ route('register', ['plan' => $annualPlan->id]) }}" class="btn btn-primary btn-lg mt-3">Purchase</a>
                     </div>
                 </div>
             </div>

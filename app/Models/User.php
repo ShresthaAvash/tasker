@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Cashier\Billable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, Billable;
 
     /**
      * The attributes that are mass assignable.
@@ -50,6 +51,22 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // --- THIS IS THE FIX ---
+    /**
+     * Get the subscriptions for the user.
+     *
+     * This overrides the default relationship in the Billable trait
+     * to ensure it uses our custom Subscription model, which has the 'plan' relationship.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function subscriptions()
+    {
+        return $this->hasMany(\App\Models\Subscription::class)->orderBy('created_at', 'desc');
+    }
+    // --- END OF THE FIX ---
+
 
     /**
      * Get the designation for the staff member.

@@ -14,6 +14,8 @@ use App\Http\Controllers\Organization\TaskController;
 use App\Http\Controllers\Organization\CalendarController;
 use App\Http\Controllers\SubscriptionPendingController;
 use App\Http\Controllers\Staff\TaskController as StaffTaskController;
+use App\Http\Controllers\SubscriptionController; // Add this
+use App\Http\Controllers\SuperAdmin\PlanController as SuperAdminPlanController;
 use Illuminate\Support\Facades\Auth;
 
 /*
@@ -21,16 +23,15 @@ use Illuminate\Support\Facades\Auth;
 | Web Routes
 |--------------------------------------------------------------------------
 */
-
 // Public Routes
 Route::get('/', [LandingPageController::class, 'index'])->name('landing');
 Route::get('/pricing', [LandingPageController::class, 'pricing'])->name('pricing');
 
 // ADD THIS NEW ROUTE FOR THE PENDING PAGE
 Route::get('/subscription/pending', [SubscriptionPendingController::class, 'index'])->name('subscription.pending');
+// ADD THIS NEW ROUTE FOR THE EXPIRED PAGE
+Route::get('/subscription/expired', [SubscriptionPendingController::class, 'expired'])->name('subscription.expired');
 
-// ADD THIS NEW ROUTE FOR THE PENDING PAGE
-Route::get('/subscription/pending', [SubscriptionPendingController::class, 'index'])->name('subscription.pending');
 
 Route::get('/dashboard', function () {
     if (Auth::check()) {
@@ -48,6 +49,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/profile/activity-log', [ProfileController::class, 'showActivityLog'])->name('profile.activity_log');
+    // New Subscription Routes
+    Route::get('/subscription/checkout', [SubscriptionController::class, 'checkout'])->name('subscription.checkout');
+    Route::post('/subscription/store', [SubscriptionController::class, 'store'])->name('subscription.store');
 });
 
 // Route::get('/', function () {
@@ -63,13 +67,19 @@ Route::middleware('auth')->group(function () {
 // Super Admin routes
 Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmin')->group(function () {
     Route::get('/dashboard', [SuperAdminController::class, 'index'])->name('superadmin.dashboard');
-    
-    // ADD THESE TWO NEW ROUTES
+
     Route::get('/subscription-requests', [SuperAdminController::class, 'subscriptionRequests'])->name('superadmin.subscriptions.requests');
     Route::patch('/subscription-requests/{user}/approve', [SuperAdminController::class, 'approveSubscription'])->name('superadmin.subscriptions.approve');
-    
+
     Route::resource('organizations', SuperAdminController::class)->names('superadmin.organizations');
-    Route::resource('subscriptions', \App\Http\Controllers\SuperAdmin\SubscriptionController::class)->names('superadmin.subscriptions');
+
+    // --- THIS IS THE CORRECTED ROUTE RESOURCE ---
+    // It should be 'plans' and point to your renamed 'SuperAdminPlanController'
+    Route::resource('plans', SuperAdminPlanController::class)->names('superadmin.plans');
+
+    Route::get('/active-subscriptions', [SuperAdminController::class, 'activeSubscriptions'])->name('superadmin.subscriptions.active');
+    Route::patch('/subscriptions/{user}/cancel', [SuperAdminController::class, 'cancelSubscription'])->name('superadmin.subscriptions.cancel');
+    Route::patch('/subscriptions/{user}/resume', [SuperAdminController::class, 'resumeSubscription'])->name('superadmin.subscriptions.resume');
 });
 
 // Organization routes

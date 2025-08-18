@@ -13,7 +13,13 @@ class SubscriptionPendingController extends Controller
     {
         return view('auth.pending');
     }
+
+    /**
+     * --- THIS IS THE NEW METHOD ---
+     * Show the subscription expired/ended page.
+     */
+    public function expired()
+    {
+        return view('subscription.expired');
+    }
 }
-
-
-

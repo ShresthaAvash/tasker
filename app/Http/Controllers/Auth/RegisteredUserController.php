@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Plan; // <-- It's good practice to import the model
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,9 +18,10 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('auth.register');
+        // This is correct, it passes the plan id to the view.
+        return view('auth.register', ['plan_id' => $request->query('plan')]);
     }
 
     /**
@@ -33,6 +35,7 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'plan_id' => ['required', 'exists:plans,id'], // <-- THIS IS THE FIX
         ]);
 
         $user = User::create([
@@ -40,14 +43,14 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'type' => 'O',
-            'status' => 'R', // <-- ADD THIS: Set status to 'Requested'
+            'status' => 'R', // Status is 'Requested' until payment
         ]);
 
         event(new Registered($user));
 
-        // Auth::login($user); // We don't want to log them in automatically
+        Auth::login($user); // Log the user in
 
-        // Redirect to a new pending page
-        return redirect()->route('subscription.pending');
+        // Redirect to the subscription checkout page
+        return redirect()->route('subscription.checkout', ['plan' => $request->plan_id]);
     }
 }
