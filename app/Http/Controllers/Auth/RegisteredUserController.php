@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Notification; // <-- ADD THIS LINE
+use App\Notifications\SubscriptionRequested;    // <-- ADD THIS LINE
 
 class RegisteredUserController extends Controller
 {
@@ -43,12 +45,17 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'type' => 'O',
-            'status' => 'R', // Status is 'Requested' until payment
+            'status' => 'R', // Set status to 'Requested'
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user); // Log the user in
+        // --- THIS IS THE NEW NOTIFICATION LOGIC ---
+        $superAdmins = User::where('type', 'S')->get();
+        if ($superAdmins->isNotEmpty()) {
+            Notification::send($superAdmins, new SubscriptionRequested($user));
+        }
+        // --- END OF NEW LOGIC ---
 
         // Redirect to the subscription checkout page
         return redirect()->route('subscription.checkout', ['plan' => $request->plan_id]);

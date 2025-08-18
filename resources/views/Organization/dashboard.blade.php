@@ -3,7 +3,12 @@
 @section('title', 'Dashboard')
 
 @section('content_header')
-    <h1>Dashboard</h1>
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>Dashboard</h1>
+        <a href="{{ route('generate.report') }}" class="btn btn-primary">
+            <i class="fas fa-download mr-1"></i> Generate Report
+        </a>
+    </div>
 @stop
 
 @section('content')
@@ -30,8 +35,6 @@
                         <li class="list-group-item">
                             <strong>{{ $task->name }}</strong>
                             <br>
-                            {{-- --- THIS IS THE FIX --- --}}
-                            {{-- The order of the items has been changed --}}
                             <small class="text-muted">
                                 Service: {{ $task->job->service->name ?? 'N/A' }} |
                                 Job: {{ $task->job->name ?? 'N/A' }} | 
@@ -59,6 +62,7 @@
                 <a href="{{ route('clients.create') }}" class="btn btn-app bg-info"><i class="fas fa-users"></i> Add Client</a>
                 <a href="{{ route('staff.create') }}" class="btn btn-app bg-success"><i class="fas fa-user-tie"></i> Add Staff</a>
                 <a href="{{ route('services.create') }}" class="btn btn-app bg-danger"><i class="fas fa-concierge-bell"></i> Add Service</a>
+                <a href="{{ route('organization.subscription.index') }}" class="btn btn-app bg-purple"><i class="fas fa-tags"></i> My Subscription</a>
             </div>
         </div>
 

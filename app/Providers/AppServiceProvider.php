@@ -2,14 +2,16 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Schema; // <-- ADD THIS LINE
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Pagination\Paginator;
 use App\Models\Task;
 use App\Models\AssignedTask;
 use Carbon\Carbon;
-use Illuminate\Pagination\Paginator;
+use JeroenNoten\LaravelAdminLte\Events\BuildingMenu;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,14 +28,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Schema::defaultStringLength(191); // <-- ADD THIS LINE
-
+        Schema::defaultStringLength(191);
         Paginator::useBootstrapFour();
-        
+
+        /**
+         * View Composer for staff active timers
+         */
         View::composer('*', function ($view) {
             if (Auth::check() && Auth::user()->type === 'T') {
                 $staffId = Auth::id();
-                
+
                 $activeTask = Task::where('staff_id', $staffId)
                     ->whereNotNull('timer_started_at')
                     ->first();
@@ -42,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
                     ->whereNotNull('timer_started_at')
                     ->with('client')
                     ->first();
-                
+
                 $activeTimer = null;
                 $task = $activeTask ?? $activeAssignedTask;
 
@@ -59,7 +63,24 @@ class AppServiceProvider extends ServiceProvider
                     ];
                 }
 
+                // 🔥 Share $activeTimer with all views
                 $view->with('activeTimer', $activeTimer);
+            }
+        });
+
+        /**
+         * View Composer for Super Admin subscription request badge
+         */
+        View::composer('vendor.adminlte.page', function ($view) {
+            if (Auth::check() && Auth::user()->type === 'S') {
+                $requestCount = User::where('type', 'O')->where('status', 'R')->count();
+
+                if ($requestCount > 0) {
+                    $view->getFactory()->startPush(
+                        'menu_items',
+                        "<li class='nav-header bg-warning'>PENDING REQUESTS: {$requestCount}</li>"
+                    );
+                }
             }
         });
     }

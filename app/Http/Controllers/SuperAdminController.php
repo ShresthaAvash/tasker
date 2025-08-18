@@ -3,9 +3,44 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Subscription;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 class SuperAdminController extends Controller
 {
+    /**
+     * Display the dashboard with stats.
+     */
+    public function dashboard()
+    {
+        $organizationCount = User::where('users.type', 'O')->count();
+        $subscriptionPlansCount = Subscription::count();
+        $subscribedOrgsCount = User::where('users.type', 'O')->whereNotNull('subscription_id')->count();
+
+        // Calculate Estimated Monthly Earnings
+        $monthlyEarnings = User::where('users.type', 'O')
+            ->whereHas('subscription', fn($q) => $q->where('type', 'monthly'))
+            ->join('subscriptions', 'users.subscription_id', '=', 'subscriptions.id')
+            ->sum('subscriptions.price');
+
+        $annualEarnings = User::where('users.type', 'O')
+            ->whereHas('subscription', fn($q) => $q->where('type', 'annually'))
+            ->join('subscriptions', 'users.subscription_id', '=', 'subscriptions.id')
+            ->sum('subscriptions.price');
+
+        $totalMonthlyEarnings = $monthlyEarnings + ($annualEarnings / 12);
+        
+        $recentRequests = User::where('type', 'O')->where('status', 'R')->latest()->take(5)->get();
+
+        return view('SuperAdmin.dashboard', compact(
+            'organizationCount',
+            'subscriptionPlansCount',
+            'subscribedOrgsCount',
+            'totalMonthlyEarnings',
+            'recentRequests'
+        ));
+    }
+
     // List all organizations
     public function index(Request $request)
     {
@@ -32,31 +67,21 @@ class SuperAdminController extends Controller
     public function store(Request $request)
     {
         $id = $request->input('id');
-
-        // Check if we're creating or updating
         $user = empty($id) ? new User() : User::findOrFail($id);
-
-        // Assign values manually
         $user->name     = $request->input('name');
         $user->email    = $request->input('email');
         $user->phone    = $request->input('phone');
         $user->address  = $request->input('address');
 
-        // If creating a new user or changing password
         if (empty($id) || $request->filled('password')) {
-            $request->validate([
-                'password' => 'required|string|min:6|confirmed'
-            ]);
+            $request->validate(['password' => 'required|string|min:6|confirmed']);
             $user->password = bcrypt($request->input('password'));
         }
 
-        // Set type and status
-        $user->type   = 'O';  // ✅ Mark as Organization
-        $user->status = 'A';  // Active by default
-
+        $user->type   = 'O';
+        $user->status = 'A';
         $user->save();
         
-        // ✅ ADDED: If creating, set organization_id to the new user's own ID
         if (empty($id)) {
             $user->organization_id = $user->id;
             $user->save();
@@ -83,21 +108,13 @@ class SuperAdminController extends Controller
     public function update(Request $request, $id)
     {
         $organization = User::where('type', 'O')->findOrFail($id);
-
         $request->validate([
             'name'    => 'required|string|max:255',
             'email'   => 'required|email|unique:users,email,' . $organization->id,
             'phone'   => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
         ]);
-
-        $organization->update([
-            'name'    => $request->name,
-            'email'   => $request->email,
-            'phone'   => $request->phone,
-            'address' => $request->address,
-        ]);
-
+        $organization->update($request->all());
         return redirect()->route('superadmin.organizations.index')->with('success', 'Organization updated successfully.');
     }
 

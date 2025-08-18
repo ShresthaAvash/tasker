@@ -14,6 +14,8 @@ use App\Http\Controllers\Organization\TaskController;
 use App\Http\Controllers\Organization\CalendarController;
 use App\Http\Controllers\SubscriptionPendingController;
 use App\Http\Controllers\Staff\TaskController as StaffTaskController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ReportController; // <-- Ensure this is here
 use App\Http\Controllers\SubscriptionController; // Add this
 use App\Http\Controllers\SuperAdmin\PlanController as SuperAdminPlanController;
 use Illuminate\Support\Facades\Auth;
@@ -41,7 +43,7 @@ Route::get('/dashboard', function () {
         if ($userType === 'T') return redirect()->route('staff.dashboard');
     }
     return redirect()->route('login');
-})->middleware(['auth', 'checkUserStatus'])->name('dashboard'); // <-- ADD 'checkUserStatus' MIDDLEWARE
+})->middleware(['auth', 'checkUserStatus'])->name('dashboard');
 
 // This block makes the profile routes available to the whole app.
 Route::middleware('auth')->group(function () {
@@ -52,25 +54,17 @@ Route::middleware('auth')->group(function () {
     // New Subscription Routes
     Route::get('/subscription/checkout', [SubscriptionController::class, 'checkout'])->name('subscription.checkout');
     Route::post('/subscription/store', [SubscriptionController::class, 'store'])->name('subscription.store');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    
+    // --- THIS IS THE NEW UNIFIED REPORT ROUTE ---
+    Route::get('/generate-report', ReportController::class)->name('generate.report');
 });
-
-// Route::get('/', function () {
-//     if (Auth::check()) {
-//         if (Auth::user()->type === 'S') return redirect()->route('superadmin.dashboard');
-//         if (Auth::user()->type === 'O') return redirect()->route('organization.dashboard');
-//         if (Auth::user()->type === 'T') return redirect()->route('staff.dashboard');
-//         return view('home');
-//     }
-//     return view('auth.login');
-// })->name('home');
 
 // Super Admin routes
 Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmin')->group(function () {
-    Route::get('/dashboard', [SuperAdminController::class, 'index'])->name('superadmin.dashboard');
-
-    Route::get('/subscription-requests', [SuperAdminController::class, 'subscriptionRequests'])->name('superadmin.subscriptions.requests');
-    Route::patch('/subscription-requests/{user}/approve', [SuperAdminController::class, 'approveSubscription'])->name('superadmin.subscriptions.approve');
-
+    Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('superadmin.dashboard');
+    Route::get('/subscription-requests', [\App\Http\Controllers\SuperAdmin\SubscriptionController::class, 'subscriptionRequests'])->name('superadmin.subscriptions.requests');
+    Route::patch('/subscription-requests/{user}/approve', [\App\Http\Controllers\SuperAdmin\SubscriptionController::class, 'approveSubscription'])->name('superadmin.subscriptions.approve');
     Route::resource('organizations', SuperAdminController::class)->names('superadmin.organizations');
 
     // --- THIS IS THE CORRECTED ROUTE RESOURCE ---
@@ -85,13 +79,16 @@ Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmi
 // Organization routes
 Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organization')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
-    Route::get('/staff/dashboard', [DashboardController::class, 'staffDashboard'])->name('staff.dashboard');
     
-    // ... (All your other organization routes remain the same) ...
+    Route::get('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'index'])->name('organization.subscription.index');
+    Route::post('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'store'])->name('organization.subscription.store');
+    
+    // Calendar
     Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
     Route::get('calendar/events', [CalendarController::class, 'fetchEvents'])->name('organization.calendar.events');
     Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
-    Route::resource('clients', ClientController::class);
+    
+    // Client Management
     Route::get('clients/suspended', [ClientController::class, 'suspended'])->name('clients.suspended');
     Route::patch('clients/{client}/status', [ClientController::class, 'toggleStatus'])->name('clients.toggleStatus');
     Route::resource('clients', ClientController::class);
@@ -108,9 +105,9 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::get('client-documents/{document}/download', [ClientController::class, 'downloadDocument'])->name('clients.documents.download');
     Route::get('services/get-jobs-for-assignment', [ClientController::class, 'getJobsForServiceAssignment'])->name('clients.services.getJobs');
     Route::post('clients/{client}/assign-services', [ClientController::class, 'assignServices'])->name('clients.services.assign');
+    
+    // Staff Management
     Route::resource('staff-designations', StaffDesignationController::class);
-
-    // Staff Member Management
     Route::get('staff/suspended', [StaffController::class, 'suspended'])->name('staff.suspended');
     Route::patch('staff/{staff}/status', [StaffController::class, 'toggleStatus'])->name('staff.toggleStatus');
     Route::resource('staff', StaffController::class);
@@ -119,13 +116,14 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::get('services/suspended', [ServiceController::class, 'suspended'])->name('services.suspended');
     Route::patch('services/{service}/status', [ServiceController::class, 'toggleStatus'])->name('services.toggleStatus');
     Route::resource('services', ServiceController::class);
-
-    // Nested routes for Jobs (within a Service) and Tasks (within a Job)
     Route::resource('services.jobs', JobController::class)->shallow()->only(['store', 'update', 'destroy', 'edit']);
     Route::resource('jobs.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy']);
     Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
+    Route::post('tasks/{task}/stop', [TaskController::class, 'stopTask'])->name('tasks.stop');
+    Route::post('jobs/{job}/assign-tasks', [JobController::class, 'assignTasks'])->name('jobs.assignTasks');
 });
 
+// Staff routes
 Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'staffDashboard'])->name('staff.dashboard');
     Route::get('calendar', [CalendarController::class, 'index'])->name('staff.calendar');
@@ -133,14 +131,10 @@ Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->grou
     Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('staff.calendar.ajax');
     Route::get('tasks', [StaffTaskController::class, 'index'])->name('staff.tasks.index');
 
-    // The where('task', '.*') constraint tells Laravel to accept any string for the {task} parameter,
-    // which bypasses the automatic model binding and prevents the 404 error.
     Route::patch('tasks/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('staff.tasks.updateStatus')->where('task', '.*');
     Route::patch('tasks/{task}/timer/start', [StaffTaskController::class, 'startTimer'])->name('staff.tasks.timer.start')->where('task', '.*');
     Route::patch('tasks/{task}/timer/stop', [StaffTaskController::class, 'stopTimer'])->name('staff.tasks.timer.stop')->where('task', '.*');
     Route::post('tasks/{task}/timer/manual', [StaffTaskController::class, 'addManualTime'])->name('staff.tasks.timer.manual')->where('task', '.*');
-    Route::post('tasks/{task}/stop', [TaskController::class, 'stopTask'])->name('tasks.stop');
-    Route::post('jobs/{job}/assign-tasks', [JobController::class, 'assignTasks'])->name('jobs.assignTasks');
 });
 
 require __DIR__.'/auth.php';

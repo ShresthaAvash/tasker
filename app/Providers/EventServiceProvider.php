@@ -8,6 +8,7 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
+// REMOVED: The 'use' statements for BuildingMenu and BuildMenuNotifications
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -21,10 +22,11 @@ class EventServiceProvider extends ServiceProvider
             SendEmailVerificationNotification::class,
         ],
         
-        // This is the crucial part that links the Login event to our new listener
         Login::class => [
             LogSuccessfulLogin::class,
         ],
+
+        // --- THE BuildingMenu LISTENER HAS BEEN REMOVED FROM THIS ARRAY ---
     ];
 
     /**

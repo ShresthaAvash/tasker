@@ -82,6 +82,7 @@
                 {{-- --- END OF FIX --- --}}
 
 <form method="POST" action="{{ route('login') }}">
+                    {{-- THIS IS THE CRUCIAL LINE --}}
                     @csrf
 
                     <!-- Email Address -->
@@ -113,7 +114,6 @@
                         </x-primary-button>
                     </div>
                 
-                    {{-- --- THIS IS THE FIX --- --}}
                     <!-- Forgot Password & Register Links -->
                     <div class="text-center mt-4">
                         @if (Route::has('password.request'))

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\Service;
 use App\Models\Task;
-use App\Models\AssignedTask; // Import AssignedTask
+use App\Models\AssignedTask;
 
 class DashboardController extends Controller
 {
@@ -63,6 +63,41 @@ class DashboardController extends Controller
             'upcomingTasks',
             'chartLabels',
             'chartData'
+        ));
+    }
+
+    /**
+     * --- THIS IS THE NEW METHOD ---
+     * Display a full report for the organization.
+     */
+    public function report()
+    {
+        $organizationId = Auth::id();
+
+        // Get all summary stats
+        $clientCount = User::where('organization_id', $organizationId)->where('type', 'C')->count();
+        $staffCount = User::where('organization_id', $organizationId)->whereIn('type', ['A', 'T'])->count();
+        $serviceCount = Service::where('organization_id', $organizationId)->count();
+
+        // Get task counts by status
+        $taskStatusCounts = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
+            ->select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
+        // Get detailed lists
+        $clients = User::where('organization_id', $organizationId)->where('type', 'C')->orderBy('name')->get();
+        $staff = User::where('organization_id', $organizationId)->whereIn('type', ['A', 'T'])->orderBy('name')->get();
+        $services = Service::where('organization_id', $organizationId)->withCount('jobs')->orderBy('name')->get();
+
+        return view('Organization.report', compact(
+            'clientCount',
+            'staffCount',
+            'serviceCount',
+            'taskStatusCounts',
+            'clients',
+            'staff',
+            'services'
         ));
     }
 

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'status',
         'organization_id',
         'staff_designation_id',
+        'subscription_id', // <-- ADDED THIS LINE
     ];
 
     /**
@@ -130,5 +131,14 @@ class User extends Authenticatable
     public function assignedTasks()
     {
         return $this->hasMany(AssignedTask::class, 'client_id');
+    }
+
+    /**
+     * --- THIS IS THE NEW METHOD ---
+     * Get the subscription for the organization.
+     */
+    public function subscription()
+    {
+        return $this->belongsTo(Subscription::class);
     }
 }
