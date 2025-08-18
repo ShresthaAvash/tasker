@@ -13,9 +13,7 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        // 1. This line REGISTERS your new command with the application.
         Commands\UpdateTaskStatuses::class,
-        \App\Console\Commands\ResetTimers::class,
     ];
 
     /**

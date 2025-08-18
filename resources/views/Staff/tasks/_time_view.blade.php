@@ -5,14 +5,19 @@
                 <th>Due Date</th>
                 <th>Task Name</th>
                 <th>Client / Service / Job</th>
+                <th style="width: 200px;">Time Tracking</th>
                 <th style="width: 170px;">Status</th>
-                <th style="width: 220px;" class="text-right">Time Tracker</th>
+                <th style="width: 150px;">Actions</th>
             </tr>
         </thead>
         <tbody>
             @if(isset($paginatedTasks) && $paginatedTasks->isNotEmpty())
                 @foreach($paginatedTasks as $task)
-                <tr data-task-id="{{ ($task->is_personal ?? false) ? 'p_' : 'a_' }}{{ $task->id }}">
+                <tr data-task-id="{{ ($task->is_personal ?? false) ? 'p_' : 'a_' }}{{ $task->id }}"
+                    data-task-name="{{ $task->name }}"
+                    data-status="{{ $task->status }}"
+                    data-duration="{{ $task->duration_in_seconds ?? 0 }}"
+                    data-timer-started-at="{{ $task->timer_started_at ? $task->timer_started_at->toIso8601String() : '' }}">
                     <td>{{ $task->due_date_instance->format('d M Y, h:i A') }}</td>
                     <td>{{ $task->name }}</td>
                     <td>
@@ -24,35 +29,27 @@
                         @endif
                     </td>
                     <td>
-                        <select class="form-control form-control-sm task-status-select" data-task-id="{{ ($task->is_personal ?? false) ? 'p_' : 'a_' }}{{ $task->id }}">
+                        <div class="timer-controls d-flex align-items-center justify-content-between"></div>
+                    </td>
+                    <td>
+                        <select class="form-control form-control-sm task-status-select" data-task-id="{{ ($task->is_personal ?? false) ? 'p_' : 'a_' }}{{ $task->id }}" data-instance-date="{{ $task->due_date_instance->toDateString() }}">
                         @foreach($allStatuses as $key => $value)
                             <option value="{{ $key }}" {{ $task->status == $key ? 'selected' : '' }}>{{ $value }}</option>
                         @endforeach
                         </select>
                     </td>
-                    <td class="text-right">
-                        @if($task->status === 'ongoing')
-                        <div class="timer-button-group">
-                            <span class="timer-display font-weight-bold mr-2">{{ gmdate('H:i:s', $task->duration_in_seconds ?? 0) }}</span>
-                            @if($task->timer_started_at)
-                                <button class="btn btn-xs btn-danger stop-timer-btn" data-task-id="{{ ($task->is_personal ?? false) ? 'p_' : 'a_' }}{{ $task->id }}"><i class="fas fa-stop"></i></button>
-                            @else
-                                <button class="btn btn-xs btn-success start-timer-btn" data-task-id="{{ ($task->is_personal ?? false) ? 'p_' : 'a_' }}{{ $task->id }}"><i class="fas fa-play"></i></button>
-                            @endif
-                            <div class="btn-group ml-1">
-                                <button type="button" class="btn btn-xs btn-secondary dropdown-toggle" data-toggle="dropdown"><i class="fas fa-plus"></i></button>
-                                <div class="dropdown-menu dropdown-menu-right">
-                                    <a class="dropdown-item manual-time-btn" href="#" data-task-id="{{ ($task->is_personal ?? false) ? 'p_' : 'a_' }}{{ $task->id }}">Add Manual Time</a>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
+                    <td>
+                        <button class="btn btn-secondary btn-xs add-manual-time-btn"
+                                data-toggle="modal"
+                                data-target="#manualTimeModal">
+                            <i class="fas fa-plus-circle"></i> Add Time
+                        </button>
                     </td>
                 </tr>
                 @endforeach
             @else
                 <tr>
-                    <td colspan="5" class="text-center text-muted">No tasks found for the selected criteria.</td>
+                    <td colspan="6" class="text-center text-muted">No tasks found for the selected criteria.</td>
                 </tr>
             @endif
         </tbody>

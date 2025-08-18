@@ -31,6 +31,7 @@ class AssignedTask extends Model
         'color_overrides',
         'duration_in_seconds',
         'timer_started_at',
+        'completed_at_dates',
     ];
 
     /**
@@ -45,6 +46,7 @@ class AssignedTask extends Model
         'is_recurring' => 'boolean',
         'color_overrides' => 'array',
         'timer_started_at' => 'datetime',
+        'completed_at_dates' => 'array',
     ];
 
     public function staff()

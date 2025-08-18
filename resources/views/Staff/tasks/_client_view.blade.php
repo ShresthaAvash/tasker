@@ -14,33 +14,22 @@
                 <table class="table table-hover mb-0">
                     <tbody>
                     @foreach($personalTasks as $task)
-                        <tr data-task-id="p_{{ $task->id }}">
-                            <td>{{ $task->name }}</td>
-                            <td class="text-muted">{{ $task->start->format('d M Y, h:i A') }}</td>
-                            <td style="width: 170px;">
-                                <select class="form-control form-control-sm task-status-select" data-task-id="p_{{ $task->id }}">
+                        <tr data-task-id="p_{{ $task->id }}"
+                            data-task-name="{{ $task->name }}"
+                            data-status="{{ $task->status }}"
+                            data-duration="{{ $task->duration_in_seconds ?? 0 }}"
+                            data-timer-started-at="{{ $task->timer_started_at ? $task->timer_started_at->toIso8601String() : '' }}">
+                            <td style="width: 40%;">{{ $task->name }}</td>
+                            <td class="text-muted" style="width: 25%;">{{ $task->start->format('d M Y, h:i A') }}</td>
+                             <td style="width: 20%;">
+                                <div class="timer-controls d-flex align-items-center justify-content-between"></div>
+                            </td>
+                            <td style="width: 15%;">
+                                <select class="form-control form-control-sm task-status-select" data-task-id="p_{{ $task->id }}" data-instance-date="{{ $task->start->toDateString() }}">
                                 @foreach($allStatuses as $key => $value)
                                     <option value="{{ $key }}" {{ $task->status == $key ? 'selected' : '' }}>{{ $value }}</option>
                                 @endforeach
                                 </select>
-                            </td>
-                            <td style="width: 220px;" class="text-right">
-                                @if($task->status === 'ongoing')
-                                <div class="timer-button-group">
-                                    <span class="timer-display font-weight-bold mr-2">{{ gmdate('H:i:s', $task->duration_in_seconds ?? 0) }}</span>
-                                    @if($task->timer_started_at)
-                                        <button class="btn btn-xs btn-danger stop-timer-btn" data-task-id="p_{{ $task->id }}"><i class="fas fa-stop"></i></button>
-                                    @else
-                                        <button class="btn btn-xs btn-success start-timer-btn" data-task-id="p_{{ $task->id }}"><i class="fas fa-play"></i></button>
-                                    @endif
-                                    <div class="btn-group ml-1">
-                                        <button type="button" class="btn btn-xs btn-secondary dropdown-toggle" data-toggle="dropdown"><i class="fas fa-plus"></i></button>
-                                        <div class="dropdown-menu dropdown-menu-right">
-                                            <a class="dropdown-item manual-time-btn" href="#" data-task-id="p_{{ $task->id }}">Add Manual Time</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                @endif
                             </td>
                         </tr>
                     @endforeach
@@ -64,7 +53,6 @@
             <div id="collapse-client-{{ Str::slug($clientName) }}" class="collapse show" data-parent="#client-accordion">
                 <div class="card-body p-2">
                     @foreach($services as $serviceName => $jobs)
-                        {{-- Service and Job structure here --}}
                         @foreach($jobs as $jobName => $tasks)
                             <div class="card mb-2">
                                 <div class="card-header" id="heading-job-{{ Str::slug($clientName.$jobName) }}">
@@ -79,33 +67,22 @@
                                         <table class="table table-hover mb-0">
                                             <tbody>
                                                 @foreach($tasks as $task)
-                                                <tr data-task-id="a_{{ $task->id }}">
-                                                    <td>{{ $task->name }}</td>
-                                                    <td class="text-muted">{{ $task->due_date_instance->format('d M Y, h:i A') }}</td>
-                                                    <td style="width: 170px;">
-                                                        <select class="form-control form-control-sm task-status-select" data-task-id="a_{{ $task->id }}">
+                                                <tr data-task-id="a_{{ $task->id }}"
+                                                    data-task-name="{{ $task->name }}"
+                                                    data-status="{{ $task->status }}"
+                                                    data-duration="{{ $task->duration_in_seconds ?? 0 }}"
+                                                    data-timer-started-at="{{ $task->timer_started_at ? $task->timer_started_at->toIso8601String() : '' }}">
+                                                    <td style="width: 40%;">{{ $task->name }}</td>
+                                                    <td class="text-muted" style="width: 25%;">{{ $task->due_date_instance->format('d M Y, h:i A') }}</td>
+                                                    <td style="width: 20%;">
+                                                        <div class="timer-controls d-flex align-items-center justify-content-between"></div>
+                                                    </td>
+                                                    <td style="width: 15%;">
+                                                        <select class="form-control form-control-sm task-status-select" data-task-id="a_{{ $task->id }}" data-instance-date="{{ $task->due_date_instance->toDateString() }}">
                                                         @foreach($allStatuses as $key => $value)
                                                             <option value="{{ $key }}" {{ $task->status == $key ? 'selected' : '' }}>{{ $value }}</option>
                                                         @endforeach
                                                         </select>
-                                                    </td>
-                                                    <td style="width: 220px;" class="text-right">
-                                                        @if($task->status === 'ongoing')
-                                                        <div class="timer-button-group">
-                                                            <span class="timer-display font-weight-bold mr-2">{{ gmdate('H:i:s', $task->duration_in_seconds ?? 0) }}</span>
-                                                            @if($task->timer_started_at)
-                                                                <button class="btn btn-xs btn-danger stop-timer-btn" data-task-id="a_{{ $task->id }}"><i class="fas fa-stop"></i></button>
-                                                            @else
-                                                                <button class="btn btn-xs btn-success start-timer-btn" data-task-id="a_{{ $task->id }}"><i class="fas fa-play"></i></button>
-                                                            @endif
-                                                            <div class="btn-group ml-1">
-                                                                <button type="button" class="btn btn-xs btn-secondary dropdown-toggle" data-toggle="dropdown"><i class="fas fa-plus"></i></button>
-                                                                <div class="dropdown-menu dropdown-menu-right">
-                                                                    <a class="dropdown-item manual-time-btn" href="#" data-task-id="a_{{ $task->id }}">Add Manual Time</a>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        @endif
                                                     </td>
                                                 </tr>
                                                 @endforeach

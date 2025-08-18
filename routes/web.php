@@ -83,8 +83,9 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::patch('staff/{staff}/status', [StaffController::class, 'toggleStatus'])->name('staff.toggleStatus');
     Route::resource('staff', StaffController::class);
     
+    Route::post('clients/{client}/store-service', [ClientController::class, 'storeClientSpecificService'])->name('clients.services.storeForClient');
+    
     // Service, Job, and Task Management
-    // REMOVED: Suspended services route is gone.
     Route::patch('services/{service}/status', [ServiceController::class, 'toggleStatus'])->name('services.toggleStatus');
     Route::resource('services', ServiceController::class);
 
@@ -104,9 +105,13 @@ Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->grou
     Route::get('tasks', [StaffTaskController::class, 'index'])->name('staff.tasks.index');
 
     Route::patch('tasks/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('staff.tasks.updateStatus')->where('task', '.*');
-    Route::patch('tasks/{task}/timer/start', [StaffTaskController::class, 'startTimer'])->name('staff.tasks.timer.start')->where('task', '.*');
-    Route::patch('tasks/{task}/timer/stop', [StaffTaskController::class, 'stopTimer'])->name('staff.tasks.timer.stop')->where('task', '.*');
-    Route::post('tasks/{task}/timer/manual', [StaffTaskController::class, 'addManualTime'])->name('staff.tasks.timer.manual')->where('task', '.*');
+
+    // --- NEW ROUTES START ---
+    Route::post('tasks/{task}/start-timer', [StaffTaskController::class, 'startTimer'])->name('staff.tasks.startTimer')->where('task', '.*');
+    Route::post('tasks/{task}/stop-timer', [StaffTaskController::class, 'stopTimer'])->name('staff.tasks.stopTimer')->where('task', '.*');
+    // --- NEW ROUTES END ---
+
+    Route::post('tasks/{task}/add-manual-time', [StaffTaskController::class, 'addManualTime'])->name('staff.tasks.addManualTime')->where('task', '.*');
 });
 
 require __DIR__.'/auth.php';
