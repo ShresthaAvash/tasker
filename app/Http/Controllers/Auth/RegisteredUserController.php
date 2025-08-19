@@ -50,6 +50,10 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
+        // --- THIS IS THE FIX ---
+        // Log the user in so they can proceed to the checkout page.
+        Auth::login($user);
+
         // --- THIS IS THE NEW NOTIFICATION LOGIC ---
         $superAdmins = User::where('type', 'S')->get();
         if ($superAdmins->isNotEmpty()) {

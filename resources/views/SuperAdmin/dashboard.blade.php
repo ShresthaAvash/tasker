@@ -31,7 +31,7 @@
                 <p>Subscription Plans</p>
             </div>
             <div class="icon"><i class="fas fa-tags"></i></div>
-            <a href="{{ route('superadmin.dashboard') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            <a href="{{ route('superadmin.plans.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
     <div class="col-lg-3 col-6">
@@ -41,12 +41,13 @@
                 <p>Subscribed Organizations</p>
             </div>
             <div class="icon"><i class="fas fa-user-check"></i></div>
-            <a href="{{ route('superadmin.organizations.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            <a href="{{ route('superadmin.subscriptions.subscribed') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
     <div class="col-lg-3 col-6">
         <div class="small-box bg-danger">
             <div class="inner">
+                <h3>--</h3>
                 <p>Estimated Monthly Earnings</p>
             </div>
             <div class="icon"><i class="fas fa-dollar-sign"></i></div>
@@ -77,7 +78,8 @@
                 </ul>
             </div>
             <div class="card-footer text-center">
-                <a href="{{ route('superadmin.subscriptions.requests') }}">View All Requests</a>
+                {{-- --- THIS IS THE FIX --- --}}
+                <a href="{{ route('superadmin.subscriptions.subscribed') }}">View All Subscribed Organizations</a>
             </div>
         </div>
     </div>
@@ -93,8 +95,9 @@
                 <a href="{{ route('superadmin.plans.create') }}" class="btn btn-app bg-success">
                     <i class="fas fa-tags"></i> Add Subscription
                 </a>
-                <a href="{{ route('superadmin.subscriptions.requests') }}" class="btn btn-app bg-warning">
-                    <i class="fas fa-hourglass-start"></i> View Requests
+                {{-- --- THIS IS THE FIX --- --}}
+                <a href="{{ route('superadmin.subscriptions.subscribed') }}" class="btn btn-app bg-warning">
+                    <i class="fas fa-user-check"></i> View Subscribed
                 </a>
             </div>
         </div>

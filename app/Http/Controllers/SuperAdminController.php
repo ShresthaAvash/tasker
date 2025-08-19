@@ -16,19 +16,6 @@ class SuperAdminController extends Controller
         $organizationCount = User::where('users.type', 'O')->count();
         $subscriptionPlansCount = Subscription::count();
         $subscribedOrgsCount = User::where('users.type', 'O')->whereNotNull('subscription_id')->count();
-
-        // Calculate Estimated Monthly Earnings
-        // $monthlyEarnings = User::where('users.type', 'O')
-        //     ->whereHas('subscription', fn($q) => $q->where('type', 'monthly'))
-        //     ->join('subscriptions', 'users.subscription_id', '=', 'subscriptions.id')
-        //     ->sum('subscriptions.price');
-
-        // $annualEarnings = User::where('users.type', 'O')
-        //     ->whereHas('subscription', fn($q) => $q->where('type', 'annually'))
-        //     ->join('subscriptions', 'users.subscription_id', '=', 'subscriptions.id')
-        //     ->sum('subscriptions.price');
-
-        // $totalMonthlyEarnings = $monthlyEarnings + ($annualEarnings / 12);
         
         $recentRequests = User::where('type', 'O')->where('status', 'R')->latest()->take(5)->get();
 
@@ -36,7 +23,6 @@ class SuperAdminController extends Controller
             'organizationCount',
             'subscriptionPlansCount',
             'subscribedOrgsCount',
-            // 'totalMonthlyEarnings',
             'recentRequests'
         ));
     }
@@ -127,45 +113,52 @@ class SuperAdminController extends Controller
 
         return redirect()->route('superadmin.organizations.index')->with('success', 'Organization status updated.');
     }
-
-    public function subscriptionRequests()
-    {
-        $requestedOrganizations = User::where('type', 'O')
-            ->where('status', 'R')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-
-        return view('SuperAdmin.subscriptions.requests', compact('requestedOrganizations'));
-    }
-
-    public function activeSubscriptions()
-    {
-        $organizations = User::where('type', 'O')
-            ->whereHas('subscriptions', function ($query) {
-                $query->where('stripe_status', 'active');
-            })
-            // --- THIS IS THE CHANGE ---
-            ->with('subscriptions.plan') // Eager-load the plan relationship
-            ->latest()
-            ->paginate(10);
-
-        return view('SuperAdmin.subscriptions.active', compact('organizations'));
-    }
-
     
-
-    /**
-     * Approve a subscription request.
-     */
-    public function approveSubscription(User $user)
+    public function subscribedOrganizations(Request $request)
     {
-        if ($user->type === 'O' && $user->status === 'R') {
-            $user->status = 'A'; // Set status to Active
-            $user->save();
-            return redirect()->route('superadmin.subscriptions.requests')->with('success', 'Organization has been activated successfully.');
+        $status = $request->get('status', 'active'); // Default to the 'active' tab
+
+        $query = User::where('type', 'O')
+            ->whereHas('subscriptions', function ($q) use ($status) {
+                // --- THIS IS THE CRITICAL FIX ---
+                if ($status === 'active') {
+                    // An "active" subscription is one that is NOT canceled.
+                    // This correctly excludes subscriptions in their grace period.
+                    $q->whereNull('ends_at');
+                } else { // deactivated
+                    // A "deactivated" subscription is one that IS canceled.
+                    $q->whereNotNull('ends_at');
+                }
+            })
+            ->with(['subscriptions' => fn($q) => $q->orderBy('created_at', 'desc'), 'subscriptions.plan']);
+
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('email', 'like', '%' . $request->search . '%');
+            });
+        }
+        
+        $sort_by = $request->get('sort_by', 'created_at');
+        $sort_order = $request->get('sort_order', 'desc');
+
+        if ($sort_by === 'ends_at') {
+            $subQuery = Subscription::selectRaw('COALESCE(current_period_end, ends_at)')
+                ->whereColumn('subscriptions.user_id', 'users.id')
+                ->latest()
+                ->limit(1);
+            $query->orderBy($subQuery, $sort_order);
+        } elseif (in_array($sort_by, ['name', 'created_at'])) {
+            $query->orderBy($sort_by, $sort_order);
         }
 
-        return redirect()->route('superadmin.subscriptions.requests')->with('error', 'Invalid request.');
+        $organizations = $query->paginate(10);
+        
+        if ($request->ajax()) {
+            return view('SuperAdmin.subscriptions._subscribed_table', compact('organizations', 'sort_by', 'sort_order'))->render();
+        }
+
+        return view('SuperAdmin.subscriptions.subscribed', compact('organizations', 'sort_by', 'sort_order'));
     }
 
     public function cancelSubscription(User $user)

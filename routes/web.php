@@ -62,15 +62,15 @@ Route::middleware('auth')->group(function () {
 // Super Admin routes
 Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmin')->group(function () {
     Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('superadmin.dashboard');
-    Route::get('/subscription-requests', [SuperAdminController::class, 'subscriptionRequests'])->name('superadmin.subscriptions.requests');
-    Route::patch('/subscription-requests/{user}/approve', [SuperAdminPlanController::class, 'approveSubscription'])->name('superadmin.subscriptions.approve');
+
+    // --- MODIFICATION START ---
+    // The 'subscription-requests' routes have been removed.
+    // The 'active-subscriptions' route is replaced by the new 'subscribed' route.
+    Route::get('/subscribed-organizations', [SuperAdminController::class, 'subscribedOrganizations'])->name('superadmin.subscriptions.subscribed');
+    // --- MODIFICATION END ---
+    
     Route::resource('organizations', SuperAdminController::class)->names('superadmin.organizations');
-
-    // --- THIS IS THE CORRECTED ROUTE RESOURCE ---
-    // It should be 'plans' and point to your renamed 'SuperAdminPlanController'
     Route::resource('plans', SuperAdminPlanController::class)->names('superadmin.plans');
-
-    Route::get('/active-subscriptions', [SuperAdminController::class, 'activeSubscriptions'])->name('superadmin.subscriptions.active');
     Route::patch('/subscriptions/{user}/cancel', [SuperAdminController::class, 'cancelSubscription'])->name('superadmin.subscriptions.cancel');
     Route::patch('/subscriptions/{user}/resume', [SuperAdminController::class, 'resumeSubscription'])->name('superadmin.subscriptions.resume');
 });
@@ -83,9 +83,9 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::post('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'store'])->name('organization.subscription.store');
     
     // Calendar
-    // Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
-    // Route::get('calendar/events', [CalendarController::class, 'fetchEvents'])->name('organization.calendar.events');
-    // Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
+    Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
+    Route::get('calendar/events', [CalendarController::class, 'fetchEvents'])->name('organization.calendar.events');
+    Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
     
     // Client Management
     Route::get('clients/suspended', [ClientController::class, 'suspended'])->name('clients.suspended');

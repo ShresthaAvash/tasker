@@ -7,12 +7,24 @@
 
     <title>@yield('title', 'Secure Checkout') - {{ config('app.name', 'Tasker') }}</title>
 
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
     <!-- Scripts & Styles -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
     <style>
         body {
-            background-color: #f4f6f9; /* Light grey background */
+            font-family: 'Inter', sans-serif;
+            /* --- THIS IS THE FIX --- */
+            background: #f4f6f9; /* Professional and clean light grey background */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         .checkout-container {
             min-height: 100vh;
@@ -27,7 +39,7 @@
 </head>
 <body class="antialiased">
     <div class="checkout-container container">
-        <main class="col-md-8 col-lg-6 mx-auto">
+        <main class="col-xl-9 col-lg-10 mx-auto">
             @yield('content')
         </main>
     </div>

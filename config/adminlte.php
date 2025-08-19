@@ -218,7 +218,6 @@ return [
         ['header' => 'MAIN NAVIGATION'],
 
         // SUPER ADMIN MENU
-        // SUPER ADMIN MENU
         [
             'text' => 'Dashboard',
             'route'  => 'superadmin.dashboard',
@@ -230,8 +229,14 @@ return [
             'icon'    => 'fas fa-fw fa-building',
             'can'     => 'is-superadmin',
             'submenu' => [
-                [ 'text' => 'List Organizations', 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
+                [ 'text' => 'All Organizations', 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
                 [ 'text' => 'Add Organization', 'route'  => 'superadmin.organizations.create', 'icon' => 'fas fa-fw fa-plus', ],
+                // --- THIS IS THE MODIFIED PART ---
+                [
+                    'text' => 'Subscribed Organizations',
+                    'route'  => 'superadmin.subscriptions.subscribed',
+                    'icon' => 'fas fa-fw fa-user-check',
+                ],
             ],
         ],
         [
@@ -239,22 +244,15 @@ return [
             'icon'    => 'fas fa-fw fa-tags',
             'can'     => 'is-superadmin',
             'submenu' => [
+                // --- "Subscribed Organizations" was removed from here ---
                 [
-                    'text' => 'Activation Requests',
-                    'route'  => 'superadmin.subscriptions.requests',
-                    'icon' => 'fas fa-fw fa-hourglass-start',
-                    'id' => 'subscription-requests-link'
-                ],
-                [
-                    // --- THIS IS THE FIX ---
                     'text' => 'List Subscription Plans',
-                    'route'  => 'superadmin.plans.index', // Use the new 'plans' route
+                    'route'  => 'superadmin.plans.index',
                     'icon' => 'fas fa-fw fa-list',
                 ],
                 [
-                    // --- THIS IS THE FIX ---
                     'text' => 'Add Subscription Plan',
-                    'route'  => 'superadmin.plans.create', // Use the new 'plans' route
+                    'route'  => 'superadmin.plans.create',
                     'icon' => 'fas fa-fw fa-plus',
                 ],
             ],

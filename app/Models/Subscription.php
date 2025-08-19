@@ -14,7 +14,7 @@ class Subscription extends CashierSubscription
      */
     protected $casts = [
         'current_period_end' => 'datetime',
-        'ends_at' => 'datetime', // <-- THIS IS THE FIX
+        'ends_at' => 'datetime',
     ];
 
     /**
@@ -28,33 +28,37 @@ class Subscription extends CashierSubscription
     }
 
     /**
-     * Get the calculated end date for the current billing period.
+     * --- THIS IS THE DEFINITIVE FIX ---
+     * Get the calculated end date for the current billing period with fallbacks.
      *
      * @return \Carbon\Carbon|null
      */
     public function getCalculatedEndsAtAttribute(): ?Carbon
     {
-        // If the subscription is canceled, the official 'ends_at' is the most accurate.
+        // 1. For canceled subscriptions, the `ends_at` date is the source of truth.
         if ($this->canceled() && $this->ends_at) {
             return $this->ends_at;
         }
 
-        // For active subscriptions, the 'current_period_end' is the renewal date.
+        // 2. For active subscriptions, the end of the current billing period is the renewal date.
         if ($this->current_period_end) {
             return $this->current_period_end;
         }
         
-        // Fallback for older records
-        if ($this->plan) {
-            $startDate = $this->created_at;
-
+        // 3. FALLBACK for active subscriptions where current_period_end might be null (e.g., in testing).
+        // We calculate it manually based on the creation date and plan type.
+        if ($this->active() && !$this->onTrial() && $this->plan) {
             if ($this->plan->type === 'monthly') {
-                return $startDate->addMonth();
+                return $this->created_at->addMonth();
             }
-
             if ($this->plan->type === 'annually') {
-                return $startDate->addYear();
+                return $this->created_at->addYear();
             }
+        }
+        
+        // 4. For trials, use the trial end date.
+        if ($this->onTrial()) {
+            return $this->trial_ends_at;
         }
 
         return null;

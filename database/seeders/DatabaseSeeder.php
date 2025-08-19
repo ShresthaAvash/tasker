@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -13,10 +11,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-    $this->call([
-        UserSeeder::class,
-    ]);
+        // Order is important here!
+        // 1. Plans must exist first.
+        // 2. Users (Org, Staff, Clients) must be created.
+        // 3. Services and their relationships can then be created.
+        $this->call([
+            PlanSeeder::class,
+            UserSeeder::class,
+            ServiceSeeder::class,
+        ]);
     }
 }
