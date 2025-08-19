@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Notifications\ClientTaskAssigned;
+use Illuminate\Support\Facades\Validator;
 
 class ClientController extends Controller
 {
@@ -26,6 +27,11 @@ class ClientController extends Controller
     {
         $query = User::where('type', 'C')
             ->where('organization_id', Auth::id());
+
+        $status = $request->get('status', 'A');
+        if (in_array($status, ['A', 'I'])) {
+            $query->where('status', $status);
+        }
 
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
@@ -48,17 +54,6 @@ class ClientController extends Controller
         }
 
         return view('Organization.clients.index', compact('clients', 'sort_by', 'sort_order'));
-    }
-
-    public function suspended()
-    {
-        $clients = User::where('type', 'C')
-            ->where('organization_id', Auth::id())
-            ->where('status', 'I')
-            ->orderBy('name')
-            ->paginate(10);
-
-        return view('organization.clients.suspended', compact('clients'));
     }
 
     public function create()
@@ -100,14 +95,26 @@ class ClientController extends Controller
             ->with(['contacts', 'notes', 'pinnedNote', 'documents.uploader', 'assignedServices', 'assignedTasks.staff'])
             ->findOrFail($id);
         
-        $allServices = Service::where('organization_id', Auth::id())->where('status', 'A')->orderBy('name')->get();
+        // --- MODIFICATION START: Filter services to show only global and this client's personal services ---
+        $organizationId = Auth::id();
+        $allServices = Service::where('organization_id', $organizationId)
+            ->where('status', 'A')
+            ->where(function ($query) use ($id) {
+                $query->whereNull('client_id') // Global services
+                      ->orWhere('client_id', $id); // This client's personal services
+            })
+            ->orderBy('name')
+            ->get();
+        // --- MODIFICATION END ---
+        
         $allStaff = User::where('organization_id', Auth::id())->whereIn('type', ['T', 'A', 'M', 'O'])->orderBy('name')->get();
+        $designations = \App\Models\StaffDesignation::where('organization_id', Auth::id())->orderBy('name')->get();
         
         $allStaffJson = $allStaff->map(function ($staff) {
             return ['id' => $staff->id, 'text' => $staff->name];
         })->toJson();
 
-        return view('organization.clients.edit', compact('client', 'allServices', 'allStaff', 'allStaffJson'));
+        return view('organization.clients.edit', compact('client', 'allServices', 'allStaff', 'allStaffJson', 'designations'));
     }
 
     public function update(Request $request, $id)
@@ -406,4 +413,66 @@ class ClientController extends Controller
 
         return redirect()->route('clients.edit', $client->id)->with('success', 'Client services and tasks have been updated successfully.');
     }
+
+    // --- MODIFIED METHOD START ---
+    public function storeClientSpecificService(Request $request, User $client) {
+        if ($client->organization_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:255', Rule::unique('services')->where('organization_id', Auth::id())],
+            'description' => 'nullable|string',
+            'jobs' => 'present|array',
+            'jobs.*.name' => 'required|string|max:255',
+            'jobs.*.tasks' => 'present|array',
+            'jobs.*.tasks.*.name' => 'required|string|max:255',
+            'jobs.*.tasks.*.start' => 'required|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $service = DB::transaction(function () use ($request, $client) {
+            // Create the Service and associate it with the client
+            $service = Service::create([
+                'name' => $request->input('name'),
+                'description' => $request->input('description'),
+                'organization_id' => Auth::id(),
+                'client_id' => $client->id, // This is the crucial line
+                'status' => 'A',
+            ]);
+
+            foreach ($request->input('jobs', []) as $jobData) {
+                $job = $service->jobs()->create([
+                    'name' => $jobData['name'],
+                    'description' => $jobData['description'] ?? null,
+                ]);
+
+                foreach ($jobData['tasks'] as $taskData) {
+                    $job->tasks()->create([
+                        'name' => $taskData['name'],
+                        'description' => $taskData['description'] ?? null,
+                        'start' => $taskData['start'],
+                        'end' => $taskData['end'] ?? null,
+                        'is_recurring' => $taskData['is_recurring'] ?? false,
+                        'recurring_frequency' => $taskData['recurring_frequency'] ?? null,
+                        'staff_designation_id' => $taskData['staff_designation_id'] ?? null,
+                        'status' => 'not_started'
+                    ]);
+                }
+            }
+            return $service;
+        });
+
+        return response()->json([
+            'success' => 'Service created successfully!',
+            'service' => [
+                'id' => $service->id,
+                'name' => $service->name,
+            ]
+        ]);
+    }
+    // --- MODIFIED METHOD END ---
 }

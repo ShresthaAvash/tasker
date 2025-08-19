@@ -13,7 +13,8 @@ class Service extends Model
         'name',
         'description',
         'status',
-        'organization_id'
+        'organization_id',
+        'client_id' // <-- ADD THIS LINE
     ];
 
     /**
@@ -38,5 +39,13 @@ class Service extends Model
     public function clients()
     {
         return $this->belongsToMany(User::class, 'client_service', 'service_id', 'user_id');
+    }
+
+    /**
+     * Get the specific client this service belongs to (if it's a personal service).
+     */
+    public function client()
+    {
+        return $this->belongsTo(User::class, 'client_id');
     }
 }

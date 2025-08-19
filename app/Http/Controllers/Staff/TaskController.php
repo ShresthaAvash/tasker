@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\AssignedTask;
 use App\Models\Task;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -68,69 +67,87 @@ class TaskController extends Controller
         return view('Staff.tasks.index', compact('clientTaskGroups', 'personalTasks', 'allStatuses', 'startDate', 'endDate', 'years', 'months'));
     }
 
-    /**
-     * Fetch, filter, and expand all task instances for a given staff member and date range.
-     */
     private function getTaskInstances($staffId, Carbon $startDate, Carbon $endDate, $search)
     {
+        // Assigned (Client) Tasks
         $assignedTasksQuery = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
             ->with(['client', 'job', 'service'])
-            ->where('status', '!=', 'completed')
+            ->where(function ($query) {
+                $query->where('is_recurring', false)->where('status', '!=', 'completed')
+                      ->orWhere('is_recurring', true);
+            })
             ->where('start', '<=', $endDate)
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate));
         
         if ($search) {
             $assignedTasksQuery->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('job', fn($jq) => $jq->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
+                  ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"));
             });
         }
         
         $taskInstances = new Collection();
         foreach ($assignedTasksQuery->get() as $task) {
-            if ($task->is_recurring && $task->end) {
-                $cursor = $task->start->copy();
-                while ($cursor->lte($task->end)) {
-                    if ($cursor->between($startDate, $endDate)) {
-                        $instance = clone $task;
-                        $instance->due_date_instance = $cursor->copy();
-                        $taskInstances->push($instance);
-                    }
-                    if ($cursor > $endDate) break;
-                    
-                    switch ($task->recurring_frequency) {
-                        case 'daily': $cursor->addDay(); break;
-                        case 'weekly': $cursor->addWeek(); break;
-                        case 'monthly': $cursor->addMonthWithNoOverflow(); break;
-                        case 'yearly': $cursor->addYearWithNoOverflow(); break;
-                        default: break 2;
-                    }
-                }
-            } elseif ($task->start->between($startDate, $endDate)) {
-                $task->due_date_instance = $task->start;
-                $taskInstances->push($task);
-            }
+            $this->expandRecurringTask($task, $startDate, $endDate, $taskInstances);
         }
 
-        $personalTasks = Task::where('staff_id', $staffId)->whereNull('job_id')
-            ->where('status', '!=', 'completed')
-            ->whereBetween('start', [$startDate, $endDate])
-            ->when($search, fn($q, $s) => $q->where('name', 'like', "%{$s}%"))
-            ->get();
+        // Personal Tasks
+        $personalTasksQuery = Task::where('staff_id', $staffId)->whereNull('job_id')
+            ->where(function ($query) {
+                $query->where('is_recurring', false)->where('status', '!=', 'completed')
+                      ->orWhere('is_recurring', true);
+            })
+            ->where('start', '<=', $endDate)
+            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
+            ->when($search, fn($q, $s) => $q->where('name', 'like', "%{$s}%"));
+
+        $personalTasks = new Collection();
+        foreach($personalTasksQuery->get() as $task) {
+            $this->expandRecurringTask($task, $startDate, $endDate, $personalTasks, true);
+        }
 
         return [$taskInstances, $personalTasks];
+    }
+
+    private function expandRecurringTask($task, $startDate, $endDate, &$collection, $isPersonal = false)
+    {
+        $task->is_personal = $isPersonal;
+
+        if ($task->is_recurring && $task->start && $task->end) {
+            $completedDates = (array) ($task->completed_at_dates ?? []);
+            $cursor = $task->start->copy();
+
+            while ($cursor->lte($task->end)) {
+                if ($cursor->between($startDate, $endDate) && !in_array($cursor->toDateString(), $completedDates)) {
+                    $instance = clone $task;
+                    $instance->due_date_instance = $cursor->copy();
+                    $collection->push($instance);
+                }
+                if ($cursor > $endDate) break;
+                
+                switch ($task->recurring_frequency) {
+                    case 'daily': $cursor->addDay(); break;
+                    case 'weekly': $cursor->addWeek(); break;
+                    case 'monthly': $cursor->addMonthWithNoOverflow(); break;
+                    case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                    default: break 2;
+                }
+            }
+        } elseif ($task->start && $task->start->between($startDate, $endDate)) {
+            $task->due_date_instance = $task->start;
+            $collection->push($task);
+        }
     }
     
     private function prepareTimeViewTasks($taskInstances, $personalTasks)
     {
+        $allTasks = new Collection($taskInstances);
+        
         $personalTasks->each(function ($task) {
             $task->due_date_instance = $task->start;
-            $task->is_personal = true;
         });
         
-        return $taskInstances->concat($personalTasks)->sortBy('due_date_instance');
+        return $allTasks->concat($personalTasks)->sortBy('due_date_instance');
     }
 
     private function paginateCollection(Collection $collection, int $perPage, Request $request): LengthAwarePaginator
@@ -156,101 +173,168 @@ class TaskController extends Controller
         }
         return null;
     }
-    
-    private function stopAndSaveDuration($task)
-    {
-        if ($task && $task->timer_started_at) {
-            $started = Carbon::parse($task->timer_started_at);
-            $currentDuration = $task->duration_in_seconds ?? 0;
-            $task->duration_in_seconds = $currentDuration + now()->diffInSeconds($started);
-            $task->timer_started_at = null;
-            $task->save();
-        }
-    }
 
     public function updateStatus(Request $request, $taskId)
     {
-        $validator = Validator::make($request->all(), ['status' => 'required|in:to_do,ongoing,completed']);
-        if ($validator->fails()) { return response()->json(['error' => 'Invalid status provided.'], 422); }
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:to_do,ongoing,completed',
+            'instance_date' => 'nullable|date_format:Y-m-d',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Invalid data provided.'], 422);
+        }
 
         $task = $this->getTask($taskId);
-        if ($task) {
-            $task->status = $request->status;
-            if ($task->status !== 'ongoing' && $task->timer_started_at) {
-                $this->stopAndSaveDuration($task);
-            }
-            $task->save();
-            return response()->json(['success' => 'Status updated successfully!']);
+        if (!$task) {
+            return response()->json(['error' => 'Task not found or you are not authorized.'], 404);
         }
-        return response()->json(['error' => 'Task not found or you are not authorized.'], 404);
+        
+        if ($task->timer_started_at) {
+            return response()->json(['error' => 'Please stop the timer before changing the status.'], 422);
+        }
+
+        $newStatus = $request->input('status');
+        $instanceDate = $request->input('instance_date');
+
+        if ($task->is_recurring) {
+            if (!$instanceDate) {
+                return response()->json(['error' => 'Instance date is required for recurring tasks.'], 422);
+            }
+            
+            $completedDates = (array) ($task->completed_at_dates ?? []);
+
+            if ($newStatus === 'completed') {
+                if (!in_array($instanceDate, $completedDates)) {
+                    $completedDates[] = $instanceDate;
+                }
+            } else {
+                $completedDates = array_filter($completedDates, fn($date) => $date !== $instanceDate);
+            }
+            
+            $task->completed_at_dates = array_values(array_unique($completedDates));
+            
+            if ($newStatus !== 'completed') {
+                 $task->status = $newStatus;
+            }
+        } else {
+            $task->status = $newStatus;
+        }
+
+        $task->save();
+
+        return response()->json(['success' => 'Status updated successfully!']);
     }
-    
+
     public function startTimer(Request $request, $taskId)
     {
-        $staffId = Auth::id();
-        
-        try {
-            DB::transaction(function () use ($staffId, $taskId) {
-                $runningPersonal = Task::where('staff_id', $staffId)->whereNotNull('timer_started_at')->first();
-                if ($runningPersonal) { $this->stopAndSaveDuration($runningPersonal); }
-
-                $runningAssigned = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->whereNotNull('timer_started_at')->first();
-                if ($runningAssigned) { $this->stopAndSaveDuration($runningAssigned); }
-                
-                $taskToStart = $this->getTask($taskId);
-                if (!$taskToStart) { throw new \Exception('Task not found or you are not authorized.'); }
-
-                $taskToStart->timer_started_at = now();
-                $taskToStart->save();
-            });
-        } catch (\Exception $e) {
-            Log::error('Timer start failed: ' . $e->getMessage());
-            return response()->json(['error' => 'A database error occurred while starting the timer.'], 500);
-        }
-        
         $task = $this->getTask($taskId);
+        if (!$task) {
+            return response()->json(['error' => 'Task not found.'], 404);
+        }
+        if ($task->status !== 'ongoing') {
+            return response()->json(['error' => 'Task must be "ongoing" to start the timer.'], 422);
+        }
+
+        $this->stopAllRunningTimersForUser(Auth::id(), $taskId);
+
+        $task->timer_started_at = Carbon::now();
+        $task->save();
+
         return response()->json([
-            'success' => 'Timer started.',
-            'task_id' => $taskId,
-            'task_name' => $task instanceof AssignedTask ? (optional($task->client)->name . ': ' . $task->name) : $task->name,
-            'duration_in_seconds' => $task->duration_in_seconds ?? 0,
+            'success' => 'Timer started successfully.',
             'timer_started_at' => $task->timer_started_at->toIso8601String(),
+            'duration_in_seconds' => $task->duration_in_seconds,
         ]);
     }
 
     public function stopTimer(Request $request, $taskId)
     {
-        try {
-            $task = $this->getTask($taskId);
-            if (!$task || !$task->timer_started_at) {
-                return response()->json(['error' => 'Timer is not currently running for this task.'], 400);
+        $task = $this->getTask($taskId);
+        if (!$task || !$task->timer_started_at) {
+            return response()->json(['error' => 'Timer is not running for this task.'], 400);
+        }
+
+        $currentDuration = (int) $task->duration_in_seconds;
+        $startTime = $task->timer_started_at->getTimestamp();
+        $stopTime = Carbon::now()->getTimestamp();
+        $elapsed = $stopTime - $startTime;
+        
+        if ($elapsed > 0) {
+            $task->duration_in_seconds = $currentDuration + $elapsed;
+        }
+
+        $task->timer_started_at = null;
+        $task->save();
+
+        return response()->json([
+            'success' => 'Timer stopped successfully.',
+            'new_duration' => $task->duration_in_seconds,
+        ]);
+    }
+    
+    private function stopAllRunningTimersForUser($userId, $excludeTaskId)
+    {
+        $stopTime = Carbon::now()->getTimestamp();
+        
+        $updateTask = function ($task) use ($stopTime, $excludeTaskId) {
+            $taskId = ($task instanceof Task ? 'p_' : 'a_') . $task->id;
+            if ($taskId === $excludeTaskId) {
+                return;
             }
 
-            $this->stopAndSaveDuration($task);
+            if ($task->timer_started_at) {
+                $currentDuration = (int) $task->duration_in_seconds;
+                $startTime = $task->timer_started_at->getTimestamp();
+                $elapsed = $stopTime - $startTime;
+                
+                if ($elapsed > 0) {
+                    $task->duration_in_seconds = $currentDuration + $elapsed;
+                }
+                
+                $task->timer_started_at = null;
+                $task->save();
+            }
+        };
 
-            return response()->json([
-                'success' => 'Timer stopped successfully.',
-                'new_duration' => $task->duration_in_seconds
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error("Stop Timer Failed: " . $e->getMessage());
-            return response()->json(['error' => 'An unexpected server error occurred.'], 500);
-        }
+        Task::where('staff_id', $userId)->whereNotNull('timer_started_at')->get()->each($updateTask);
+        AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $userId))->whereNotNull('timer_started_at')->get()->each($updateTask);
     }
 
+    // --- NEW METHOD START ---
     public function addManualTime(Request $request, $taskId)
     {
-        $validator = Validator::make($request->all(), ['hours' => 'required|integer|min:0', 'minutes' => 'required|integer|min:0|max:59']);
-        if ($validator->fails()) { return response()->json(['errors' => $validator->errors()], 422); }
+        $validator = Validator::make($request->all(), [
+            'hours' => 'required|integer|min:0',
+            'minutes' => 'required|integer|min:0|max:59',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Invalid time format.'], 422);
+        }
 
         $task = $this->getTask($taskId);
-        if (!$task) { return response()->json(['error' => 'Task not found.'], 404); }
+        if (!$task) {
+            return response()->json(['error' => 'Task not found.'], 404);
+        }
 
-        $secondsToAdd = ($request->hours * 3600) + ($request->minutes * 60);
+        if ($task->timer_started_at) {
+            return response()->json(['error' => 'Please stop the live timer before adding manual time.'], 422);
+        }
+
+        $secondsToAdd = ($request->input('hours') * 3600) + ($request->input('minutes') * 60);
+
+        if ($secondsToAdd <= 0) {
+             return response()->json(['error' => 'Please enter a positive amount of time.'], 422);
+        }
+
         $task->duration_in_seconds = ($task->duration_in_seconds ?? 0) + $secondsToAdd;
         $task->save();
 
-        return response()->json(['success' => 'Manual time added.', 'new_duration' => $task->duration_in_seconds]);
+        return response()->json([
+            'success' => 'Manual time added successfully.',
+            'new_duration' => $task->duration_in_seconds,
+        ]);
     }
+    // --- NEW METHOD END ---
 }

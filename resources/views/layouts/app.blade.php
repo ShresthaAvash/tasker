@@ -1,16 +1,18 @@
+{{-- resources/views/layouts/app.blade.php --}}
 @extends('adminlte::page')
 
 @section('title', 'Dashboard')
 
 @section('content_header')
-    <h1>Dashboard</h1>
-@stop
+    {{-- Allows child views to override the page title --}}
+    <h1>@yield('page_title', 'Dashboard')</h1>
+@endsection
 
 @section('content')
     @yield('page-content')
-@stop
+@endsection
 
-{{-- This section adds custom items to the top-right of the navigation bar. --}}
+{{-- Top-right navbar items --}}
 @section('content_top_nav_right')
 
     {{-- Notifications Dropdown Menu --}}
@@ -47,20 +49,115 @@
         </div>
     </li>
 
-    {{-- Active Timer (For Staff) --}}
+    {{-- Legacy Active Timer Placeholder (kept for compatibility if needed) --}}
     @if(isset($activeTimer) && $activeTimer)
         <li class="nav-item">
             <div id="global-timer-bar" class="d-flex align-items-center bg-warning p-2 rounded">
-                 {{-- ... timer details ... --}}
+                 {{-- Old timer display (optional, can be removed since global tracker handles it) --}}
             </div>
         </li>
     @endif
 @endsection
 
-{{-- THE CSS SECTION IS NOW EMPTY --}}
+{{-- Custom CSS (currently none) --}}
 @section('css')
 @stop
 
-{{-- THE JS SECTION IS NOW EMPTY --}}
+{{-- Global JS including the new timer logic --}}
 @section('js')
+<script>
+    $(document).ready(function() {
+        // ============== GLOBAL TIMER SCRIPT START ==============
+
+        let globalTimerInterval;
+
+        function formatTime(totalSeconds) {
+            if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
+            const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+            const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+
+        function renderGlobalTracker() {
+            $('#global-live-tracker').remove();
+
+            const timerData = JSON.parse(localStorage.getItem('runningTimer'));
+
+            if (!timerData) {
+                if (globalTimerInterval) clearInterval(globalTimerInterval);
+                return;
+            }
+
+            const trackerHtml = `
+                <div id="global-live-tracker"
+                     class="alert alert-info d-flex justify-content-between align-items-center p-2 mb-4 shadow-sm"
+                     style="position: sticky; top: 10px; z-index: 1050; display: none;"
+                     role="alert">
+                    <div>
+                        <i class="fas fa-stopwatch fa-spin mr-2"></i>
+                        <span class="font-weight-bold">Tracking:</span>
+                        <span class="mx-2">${timerData.taskName}</span>
+                        <span id="global-live-tracker-display" class="badge badge-dark" style="font-size: 1.1em; min-width: 80px;">00:00:00</span>
+                    </div>
+                    <button id="global-live-tracker-stop-btn" data-task-id="${timerData.taskId}" class="btn btn-danger btn-sm">
+                        <i class="fas fa-stop"></i> Stop Timer
+                    </button>
+                </div>
+            `;
+
+            $('.content-wrapper .content').prepend(trackerHtml);
+            $('#global-live-tracker').fadeIn();
+
+            const duration = parseInt(timerData.duration, 10) || 0;
+            const startTime = new Date(timerData.startedAt).getTime();
+            const display = $('#global-live-tracker-display');
+
+            if (globalTimerInterval) clearInterval(globalTimerInterval);
+
+            const updateDisplay = () => {
+                const now = new Date().getTime();
+                const elapsed = Math.floor((now - startTime) / 1000);
+                display.text(formatTime(duration + elapsed));
+            };
+
+            updateDisplay();
+            globalTimerInterval = setInterval(updateDisplay, 1000);
+        }
+
+        $(document).on('click', '#global-live-tracker-stop-btn', function() {
+            const button = $(this);
+            const taskId = button.data('task-id');
+            
+            button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Stopping...');
+
+            $.ajax({
+                type: 'POST',
+                url: `/staff/tasks/${taskId}/stop-timer`,
+                data: { _token: '{{ csrf_token() }}' },
+                success: function(response) {
+                    localStorage.removeItem('runningTimer');
+                    if (globalTimerInterval) clearInterval(globalTimerInterval);
+                    $('#global-live-tracker').fadeOut(400, () => $(this).remove());
+                    
+                    if (window.location.pathname.includes('/staff/tasks')) {
+                        window.location.reload();
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error: Could not stop the timer. Please refresh the page.');
+                    button.prop('disabled', false).html('<i class="fas fa-stop"></i> Stop Timer');
+                }
+            });
+        });
+
+        renderGlobalTracker();
+        window.renderGlobalTracker = renderGlobalTracker;
+
+        // ============== GLOBAL TIMER SCRIPT END ==============
+    });
+</script>
+
+{{-- Allow child views to push page-specific JS --}}
+@yield('page_content_js')
 @stop

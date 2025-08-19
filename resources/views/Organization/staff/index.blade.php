@@ -7,14 +7,20 @@
 @stop
 
 @section('content')
-{{-- --- THIS IS THE FIX --- --}}
-{{-- We add 'card-info' and 'card-outline' to style the card --}}
-<div class="card card-info card-outline">
+<div class="card card-info card-outline card-tabs">
+    <div class="card-header p-0 pt-1 border-bottom-0">
+        <ul class="nav nav-tabs" id="staff-status-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="active-staff-tab" data-status="A" data-toggle="pill" href="#staff-content" role="tab">Active Staff</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="suspended-staff-tab" data-status="I" data-toggle="pill" href="#staff-content" role="tab">Suspended Staff</a>
+            </li>
+        </ul>
+    </div>
     <div class="card-header">
-        <h3 class="card-title">All Staff</h3>
+        <h3 class="card-title" id="card-title">All Active Staff</h3>
         <div class="card-tools">
-            {{-- --- THIS IS THE FIX --- --}}
-            {{-- We change the button to 'btn-info' to match the theme --}}
             <a href="{{ route('staff.create') }}" class="btn btn-info btn-sm">Add New Staff</a>
         </div>
     </div>
@@ -55,11 +61,18 @@
 $(document).ready(function() {
     let debounceTimer;
 
-    function fetch_staff_data(page, sort_by, sort_order, search, designation_id) {
+    function fetch_staff_data(page, sort_by, sort_order, search, designation_id, status) {
         $('#staff-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
         $.ajax({
             url: "{{ route('staff.index') }}",
-            data: { page: page, sort_by: sort_by, sort_order: sort_order, search: search, designation_id: designation_id },
+            data: { 
+                page: page, 
+                sort_by: sort_by, 
+                sort_order: sort_order, 
+                search: search, 
+                designation_id: designation_id,
+                status: status
+            },
             success: function(data) { $('#staff-table-container').html(data); },
             error: function() {
                 alert('Could not load staff data. Please refresh the page.');
@@ -68,14 +81,23 @@ $(document).ready(function() {
         });
     }
 
+    function getCurrentStatus() {
+        return $('#staff-status-tabs .nav-link.active').data('status') || 'A';
+    }
+
+    // Tab switching
+    $('#staff-status-tabs a[data-toggle="pill"]').on('shown.bs.tab', function (e) {
+        const status = $(e.target).data('status');
+        const title = status === 'A' ? 'All Active Staff' : 'All Suspended Staff';
+        $('#card-title').text(title);
+        fetch_staff_data(1, 'created_at', 'desc', $('#search-input').val(), $('#designation-filter').val(), status);
+    });
+
     $('#search-input').on('keyup', function() {
         clearTimeout(debounceTimer);
         const search = $(this).val();
         debounceTimer = setTimeout(function() {
-            const sort_by = $('#sort_by').val();
-            const sort_order = $('#sort_order').val();
-            const designation_id = $('#designation-filter').val();
-            fetch_staff_data(1, sort_by, sort_order, search, designation_id);
+            fetch_staff_data(1, $('#sort_by').val(), $('#sort_order').val(), search, $('#designation-filter').val(), getCurrentStatus());
         }, 300);
     });
 
@@ -84,7 +106,7 @@ $(document).ready(function() {
         const search = $('#search-input').val();
         const sort_by = $('#sort_by').val();
         const sort_order = $('#sort_order').val();
-        fetch_staff_data(1, sort_by, sort_order, search, designation_id);
+        fetch_staff_data(1, sort_by, sort_order, search, designation_id, getCurrentStatus());
     });
 
     $(document).on('click', '#staff-table-container .sort-link', function(e) {
@@ -93,7 +115,7 @@ $(document).ready(function() {
         const sort_order = $(this).data('sortorder');
         const search = $('#search-input').val();
         const designation_id = $('#designation-filter').val();
-        fetch_staff_data(1, sort_by, sort_order, search, designation_id);
+        fetch_staff_data(1, sort_by, sort_order, search, designation_id, getCurrentStatus());
     });
 
     $(document).on('click', '#staff-table-container .pagination a', function(e) {
@@ -103,7 +125,7 @@ $(document).ready(function() {
         const sort_order = $('#sort_order').val();
         const search = $('#search-input').val();
         const designation_id = $('#designation-filter').val();
-        fetch_staff_data(page, sort_by, sort_order, search, designation_id);
+        fetch_staff_data(page, sort_by, sort_order, search, designation_id, getCurrentStatus());
     });
 
     setTimeout(function() { $('#success-alert').fadeOut('slow'); }, 5000);

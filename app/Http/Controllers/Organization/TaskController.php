@@ -3,20 +3,25 @@
 namespace App\Http\Controllers\Organization;
 
 use App\Http\Controllers\Controller;
-use App\Models\Job;
+use App\Models\AssignedTask;
 use App\Models\Task;
-use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use App\Notifications\TaskAssignedToStaff; // <-- ADD THIS LINE
 
 class TaskController extends Controller
 {
     /**
-     * Store a newly created task in storage.
+     * Display a listing of the staff member's tasks, supporting multiple views and filters.
      */
-    public function store(Request $request, Job $job)
+    public function index(Request $request)
     {
         if ($job->service->organization_id !== Auth::id()) {
             abort(403);
@@ -82,16 +87,6 @@ class TaskController extends Controller
 
         $task->update(['staff_id' => $request->staff_id]);
 
-        // --- THIS IS THE NEW LOGIC ---
-        // If a staff member was assigned (not un-assigned), send a notification
-        if ($request->filled('staff_id')) {
-            $staffMember = User::find($request->staff_id);
-            if ($staffMember) {
-                $staffMember->notify(new TaskAssignedToStaff($task));
-            }
-        }
-        // --- END OF NEW LOGIC ---
-
         return response()->json(['success' => 'Task assigned successfully.']);
     }
 
@@ -104,20 +99,35 @@ class TaskController extends Controller
             abort(403);
         }
 
-        $task->update(['status' => 'inactive']);
+        $newStatus = $request->input('status');
+        $instanceDate = $request->input('instance_date');
 
-        return redirect()->back()->with('success', 'Task has been stopped.');
-    }
+        if ($task->is_recurring) {
+            if (!$instanceDate) {
+                return response()->json(['error' => 'Instance date is required for recurring tasks.'], 422);
+            }
+            
+            $completedDates = (array) ($task->completed_at_dates ?? []);
 
-    /**
-     * Remove the specified task from storage.
-     */
-    public function destroy(Task $task)
-    {
-        if ($task->job->service->organization_id !== Auth::id()) {
-            abort(403);
+            if ($newStatus === 'completed') {
+                if (!in_array($instanceDate, $completedDates)) {
+                    $completedDates[] = $instanceDate;
+                }
+            } else {
+                $completedDates = array_filter($completedDates, fn($date) => $date !== $instanceDate);
+            }
+            
+            $task->completed_at_dates = array_values(array_unique($completedDates));
+            
+            if ($newStatus !== 'completed') {
+                 $task->status = $newStatus;
+            }
+        } else {
+            $task->status = $newStatus;
         }
-        $task->delete();
-        return redirect()->back()->with('success', 'Task deleted successfully.');
+
+        $task->save();
+
+        return response()->json(['success' => 'Status updated successfully!']);
     }
 }

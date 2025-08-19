@@ -198,8 +198,9 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'menu' => [
-        // User Dropdown Menu Items
+    'menu' =>
+    [
+        // User menu items located in the top-right navbar.
         [
             'text'        => 'Profile',
             'route'       => 'profile.edit',
@@ -278,7 +279,6 @@ return [
             'submenu' => [
                 [ 'text' => 'List Clients', 'route'  => 'clients.index', 'icon' => 'fas fa-fw fa-list', ],
                 [ 'text' => 'Add Client', 'route'  => 'clients.create', 'icon' => 'fas fa-fw fa-plus', ],
-                [ 'text' => 'Suspended Clients', 'route'  => 'clients.suspended', 'icon' => 'fas fa-fw fa-user-lock', ],
             ],
         ],
         [
@@ -288,7 +288,6 @@ return [
             'submenu' => [
                 [ 'text' => 'List Staff', 'route'  => 'staff.index', 'icon' => 'fas fa-fw fa-users-cog', ],
                 [ 'text' => 'Add Staff', 'route'  => 'staff.create', 'icon' => 'fas fa-fw fa-plus', ],
-                [ 'text' => 'Suspended Staff', 'route'  => 'staff.suspended', 'icon' => 'fas fa-fw fa-user-slash', ],
                 [ 'text' => 'Staff Designations', 'route'  => 'staff-designations.index', 'icon' => 'fas fa-fw fa-id-badge', ],
             ],
         ],
@@ -299,7 +298,6 @@ return [
             'submenu' => [
                 [ 'text' => 'List Services', 'route'  => 'services.index', 'icon' => 'fas fa-fw fa-list', ],
                 [ 'text' => 'Add Service', 'route'  => 'services.create', 'icon' => 'fas fa-fw fa-plus', ],
-                [ 'text' => 'Suspended Services', 'route'  => 'services.suspended', 'icon' => 'fas fa-fw fa-bell-slash', ],
             ],
         ],
 

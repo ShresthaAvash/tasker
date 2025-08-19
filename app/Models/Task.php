@@ -23,20 +23,22 @@ class Task extends Model
         'end',
         'is_recurring', 
         'recurring_frequency', 
+        'color_overrides', 
         'staff_id',
-        'status', // Assuming you added this from a previous step
+        'status',
         'color',
-        // --- ADD THESE TWO LINES ---
         'duration_in_seconds',
         'timer_started_at',
+        'completed_at_dates',
     ];
 
     protected $casts = [
         'start' => 'datetime',
         'end' => 'datetime',
         'is_recurring' => 'boolean',
-        // --- ADD THIS LINE ---
+         'color_overrides' => 'array',
         'timer_started_at' => 'datetime',
+        'completed_at_dates' => 'array',
     ];
 
     /**

@@ -12,6 +12,7 @@ use App\Models\Task;
 use App\Models\AssignedTask;
 use Carbon\Carbon;
 use JeroenNoten\LaravelAdminLte\Events\BuildingMenu;
+use App\Http\View\Composers\GlobalComposer; // <-- NEW
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -83,5 +84,11 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
         });
+
+        /**
+         * Global Composer (new incoming code)
+         * Runs for ALL views, making $runningTimer available everywhere
+         */
+        View::composer('*', GlobalComposer::class);
     }
 }
