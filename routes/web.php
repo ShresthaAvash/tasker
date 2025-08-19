@@ -1,327 +1,146 @@
 <?php
 
-namespace App\Http\Controllers\Organization;
-
-use App\Http\Controllers\Controller;
-use App\Models\AssignedTask;
-use App\Models\Job;
-use App\Models\Task;
-use App\Models\User;
-use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\Organization\DashboardController;
+use App\Http\Controllers\Organization\ClientController;
+use App\Http\Controllers\Organization\StaffDesignationController;
+use App\Http\Controllers\Organization\StaffController;
+use App\Http\Controllers\Organization\ServiceController;
+use App\Http\Controllers\Organization\JobController;
+use App\Http\Controllers\Organization\TaskController;
+use App\Http\Controllers\Organization\CalendarController;
+use App\Http\Controllers\SubscriptionPendingController;
+use App\Http\Controllers\Staff\TaskController as StaffTaskController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ReportController; // <-- Ensure this is here
+use App\Http\Controllers\SubscriptionController; // Add this
+use App\Http\Controllers\SuperAdmin\PlanController as SuperAdminPlanController;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use App\Notifications\TaskAssignedToStaff;
 
-class TaskController extends Controller
-{
-    /**
-     * Display a listing of the staff member's tasks, supporting multiple views and filters.
-     */
-    public function index(Request $request)
-    {
-        $staffId = Auth::id();
-        $viewType = $request->get('view_type', 'client');
-        $search = $request->get('search');
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
+// Public Routes
+Route::get('/', [LandingPageController::class, 'index'])->name('landing');
+Route::get('/pricing', [LandingPageController::class, 'pricing'])->name('pricing');
 
-        // --- 1. Determine Date Range ---
-        if ($request->get('use_custom_range') === 'true') {
-            $startDate = $request->filled('start_date') ? Carbon::parse($request->start_date)->startOfDay() : now()->startOfDay();
-            $endDate = $request->filled('end_date') ? Carbon::parse($request->end_date)->endOfDay() : now()->endOfDay();
-        } else {
-            $year = $request->get('year', now()->year);
-            $month = $request->get('month', now()->month);
-            if ($month === 'all') {
-                $startDate = Carbon::create($year)->startOfYear();
-                $endDate = Carbon::create($year)->endOfYear();
-            } else {
-                $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-                $endDate = Carbon::create($year, $month, 1)->endOfMonth();
-            }
-        }
+// ADD THIS NEW ROUTE FOR THE PENDING PAGE
+Route::get('/subscription/pending', [SubscriptionPendingController::class, 'index'])->name('subscription.pending');
+// ADD THIS NEW ROUTE FOR THE EXPIRED PAGE
+Route::get('/subscription/expired', [SubscriptionPendingController::class, 'expired'])->name('subscription.expired');
 
-        // --- 2. Data Fetching & Expansion ---
-        [$taskInstances, $personalTasks] = $this->getTaskInstances($staffId, $startDate, $endDate, $search);
 
-        $allStatuses = ['to_do' => 'To Do', 'ongoing' => 'Ongoing', 'completed' => 'Completed'];
-        
-        // --- 3. Prepare Data for Views ---
-        if ($request->ajax()) {
-            if ($viewType === 'client') {
-                $clientTaskGroups = $taskInstances->sortBy('due_date_instance')->groupBy(['client.name', 'service.name', 'job.name'], true);
-                return view('Staff.tasks._client_view', compact('clientTaskGroups', 'personalTasks', 'allStatuses'));
-            } else { // time view
-                $allFlatTasks = $this->prepareTimeViewTasks($taskInstances, $personalTasks);
-                $paginatedTasks = $this->paginateCollection($allFlatTasks, 15, $request);
-                return view('Staff.tasks._time_view', compact('paginatedTasks', 'allStatuses'));
-            }
-        }
-        
-        // --- Initial Page Load ---
-        $clientTaskGroups = $taskInstances->sortBy('due_date_instance')->groupBy(['client.name', 'service.name', 'job.name'], true);
-        $years = range(now()->year - 4, now()->year + 2);
-        $months = [ 'all' => 'All Months', 1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'];
-        
-        return view('Staff.tasks.index', compact('clientTaskGroups', 'personalTasks', 'allStatuses', 'startDate', 'endDate', 'years', 'months'));
+Route::get('/dashboard', function () {
+    if (Auth::check()) {
+        $userType = Auth::user()->type;
+        if ($userType === 'S') return redirect()->route('superadmin.dashboard');
+        if ($userType === 'O') return redirect()->route('organization.dashboard');
+        if ($userType === 'T') return redirect()->route('staff.dashboard');
     }
+    return redirect()->route('login');
+})->middleware(['auth', 'checkUserStatus'])->name('dashboard');
 
-    private function getTaskInstances($staffId, Carbon $startDate, Carbon $endDate, $search)
-    {
-        // Assigned (Client) Tasks
-        $assignedTasksQuery = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
-            ->with(['client', 'job', 'service'])
-            ->where(function ($query) {
-                $query->where('is_recurring', false)->where('status', '!=', 'completed')
-                      ->orWhere('is_recurring', true);
-            })
-            ->where('start', '<=', $endDate)
-            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate));
-        
-        if ($search) {
-            $assignedTasksQuery->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"));
-            });
-        }
-        
-        $taskInstances = new Collection();
-        foreach ($assignedTasksQuery->get() as $task) {
-            $this->expandRecurringTask($task, $startDate, $endDate, $taskInstances);
-        }
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile/activity-log', [ProfileController::class, 'showActivityLog'])->name('profile.activity_log');
+    // New Subscription Routes
+    Route::get('/subscription/checkout', [SubscriptionController::class, 'checkout'])->name('subscription.checkout');
+    Route::post('/subscription/store', [SubscriptionController::class, 'store'])->name('subscription.store');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    
+    // --- THIS IS THE NEW UNIFIED REPORT ROUTE ---
+    Route::get('/generate-report', ReportController::class)->name('generate.report');
+});
 
-        // Personal Tasks
-        $personalTasksQuery = Task::where('staff_id', $staffId)->whereNull('job_id')
-            ->where(function ($query) {
-                $query->where('is_recurring', false)->where('status', '!=', 'completed')
-                      ->orWhere('is_recurring', true);
-            })
-            ->where('start', '<=', $endDate)
-            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
-            ->when($search, fn($q, $s) => $q->where('name', 'like', "%{$s}%"));
+// Super Admin routes
+Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmin')->group(function () {
+    Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('superadmin.dashboard');
+    Route::get('/subscription-requests', [SuperAdminController::class, 'subscriptionRequests'])->name('superadmin.subscriptions.requests');
+    Route::patch('/subscription-requests/{user}/approve', [SuperAdminPlanController::class, 'approveSubscription'])->name('superadmin.subscriptions.approve');
+    Route::resource('organizations', SuperAdminController::class)->names('superadmin.organizations');
 
-        $personalTasks = new Collection();
-        foreach($personalTasksQuery->get() as $task) {
-            $this->expandRecurringTask($task, $startDate, $endDate, $personalTasks, true);
-        }
+    // --- THIS IS THE CORRECTED ROUTE RESOURCE ---
+    // It should be 'plans' and point to your renamed 'SuperAdminPlanController'
+    Route::resource('plans', SuperAdminPlanController::class)->names('superadmin.plans');
 
-        return [$taskInstances, $personalTasks];
-    }
+    Route::get('/active-subscriptions', [SuperAdminController::class, 'activeSubscriptions'])->name('superadmin.subscriptions.active');
+    Route::patch('/subscriptions/{user}/cancel', [SuperAdminController::class, 'cancelSubscription'])->name('superadmin.subscriptions.cancel');
+    Route::patch('/subscriptions/{user}/resume', [SuperAdminController::class, 'resumeSubscription'])->name('superadmin.subscriptions.resume');
+});
 
-    private function expandRecurringTask($task, $startDate, $endDate, &$collection, $isPersonal = false)
-    {
-        $task->is_personal = $isPersonal;
+// Organization routes
+Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organization')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
+    
+    Route::get('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'index'])->name('organization.subscription.index');
+    Route::post('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'store'])->name('organization.subscription.store');
+    
+    // Calendar
+    // Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
+    // Route::get('calendar/events', [CalendarController::class, 'fetchEvents'])->name('organization.calendar.events');
+    // Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
+    
+    // Client Management
+    Route::get('clients/suspended', [ClientController::class, 'suspended'])->name('clients.suspended');
+    Route::patch('clients/{client}/status', [ClientController::class, 'toggleStatus'])->name('clients.toggleStatus');
+    Route::resource('clients', ClientController::class);
+    Route::post('clients/{client}/contacts', [ClientController::class, 'storeContact'])->name('clients.contacts.store');
+    Route::put('client-contacts/{contact}', [ClientController::class, 'updateContact'])->name('clients.contacts.update');
+    Route::delete('client-contacts/{contact}', [ClientController::class, 'destroyContact'])->name('clients.contacts.destroy');
+    Route::post('clients/{client}/notes', [ClientController::class, 'storeNote'])->name('clients.notes.store');
+    Route::put('client-notes/{note}', [ClientController::class, 'updateNote'])->name('clients.notes.update');
+    Route::delete('client-notes/{note}', [ClientController::class, 'destroyNote'])->name('clients.notes.destroy');
+    Route::patch('client-notes/{note}/pin', [ClientController::class, 'pinNote'])->name('clients.notes.pin');
+    Route::patch('client-notes/{note}/unpin', [ClientController::class, 'unpinNote'])->name('clients.notes.unpin');
+    Route::post('clients/{client}/documents', [ClientController::class, 'storeDocument'])->name('clients.documents.store');
+    Route::delete('client-documents/{document}', [ClientController::class, 'destroyDocument'])->name('clients.documents.destroy');
+    Route::get('client-documents/{document}/download', [ClientController::class, 'downloadDocument'])->name('clients.documents.download');
+    Route::get('services/get-jobs-for-assignment', [ClientController::class, 'getJobsForServiceAssignment'])->name('clients.services.getJobs');
+    Route::post('clients/{client}/assign-services', [ClientController::class, 'assignServices'])->name('clients.services.assign');
+    
+    // Staff Management
+    Route::resource('staff-designations', StaffDesignationController::class);
+    Route::get('staff/suspended', [StaffController::class, 'suspended'])->name('staff.suspended');
+    Route::patch('staff/{staff}/status', [StaffController::class, 'toggleStatus'])->name('staff.toggleStatus');
+    Route::resource('staff', StaffController::class);
+    
+    Route::post('clients/{client}/store-service', [ClientController::class, 'storeClientSpecificService'])->name('clients.services.storeForClient');
+    
+    // Service, Job, and Task Management
+    Route::patch('services/{service}/status', [ServiceController::class, 'toggleStatus'])->name('services.toggleStatus');
+    Route::resource('services', ServiceController::class);
 
-        if ($task->is_recurring && $task->start && $task->end) {
-            $completedDates = (array) ($task->completed_at_dates ?? []);
-            $cursor = $task->start->copy();
+    // Nested routes for Jobs (within a Service) and Tasks (within a Job)
+    Route::resource('services.jobs', JobController::class)->shallow()->only(['store', 'update', 'destroy', 'edit']);
+    Route::resource('jobs.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy']);
+    Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
+    Route::post('tasks/{task}/stop', [TaskController::class, 'stopTask'])->name('tasks.stop');
+    Route::post('jobs/{job}/assign-tasks', [JobController::class, 'assignTasks'])->name('jobs.assignTasks');
+});
 
-            while ($cursor->lte($task->end)) {
-                if ($cursor->between($startDate, $endDate) && !in_array($cursor->toDateString(), $completedDates)) {
-                    $instance = clone $task;
-                    $instance->due_date_instance = $cursor->copy();
-                    $collection->push($instance);
-                }
-                if ($cursor > $endDate) break;
-                
-                switch ($task->recurring_frequency) {
-                    case 'daily': $cursor->addDay(); break;
-                    case 'weekly': $cursor->addWeek(); break;
-                    case 'monthly': $cursor->addMonthWithNoOverflow(); break;
-                    case 'yearly': $cursor->addYearWithNoOverflow(); break;
-                    default: break 2;
-                }
-            }
-        } elseif ($task->start && $task->start->between($startDate, $endDate)) {
-            $task->due_date_instance = $task->start;
-            $collection->push($task);
-        }
-    }
+// Staff routes
+Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'staffDashboard'])->name('staff.dashboard');
+    Route::get('calendar', [CalendarController::class, 'index'])->name('staff.calendar');
+    Route::get('calendar/events', [CalendarController::class, 'fetchEvents'])->name('staff.calendar.events');
+    Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('staff.calendar.ajax');
+    Route::get('tasks', [StaffTaskController::class, 'index'])->name('staff.tasks.index');
 
-    private function prepareTimeViewTasks($taskInstances, $personalTasks)
-    {
-        $personalTasks->each(function ($task) {
-            $task->due_date_instance = $task->start;
-            $task->is_personal = true;
-        });
-        
-        return $taskInstances->concat($personalTasks)->sortBy('due_date_instance');
-    }
+    Route::patch('tasks/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('staff.tasks.updateStatus')->where('task', '.*');
 
-    private function paginateCollection(Collection $collection, int $perPage, Request $request): LengthAwarePaginator
-    {
-        $currentPage = Paginator::resolveCurrentPage('page');
-        $currentPageItems = $collection->slice(($currentPage - 1) * $perPage, $perPage)->values();
-        $paginated = new LengthAwarePaginator($currentPageItems, $collection->count(), $perPage, $currentPage, [
-            'path' => Paginator::resolveCurrentPath(),
-            'pageName' => 'page',
-        ]);
-        return $paginated->appends($request->all());
-    }
+    // --- NEW ROUTES START ---
+    Route::post('tasks/{task}/start-timer', [StaffTaskController::class, 'startTimer'])->name('staff.tasks.startTimer')->where('task', '.*');
+    Route::post('tasks/{task}/stop-timer', [StaffTaskController::class, 'stopTimer'])->name('staff.tasks.stopTimer')->where('task', '.*');
+    // --- NEW ROUTES END ---
 
-    private function getTask($taskId)
-    {
-        if (empty($taskId) || !str_contains($taskId, '_')) return null;
-        [$type, $id] = explode('_', $taskId);
-        if ($type === 'p' && $id) {
-            return Task::where('id', $id)->where('staff_id', Auth::id())->first();
-        }
-        if ($type === 'a' && $id) {
-            return AssignedTask::where('id', $id)->whereHas('staff', fn($q) => $q->where('users.id', Auth::id()))->first();
-        }
-        return null;
-    }
+    Route::post('tasks/{task}/add-manual-time', [StaffTaskController::class, 'addManualTime'])->name('staff.tasks.addManualTime')->where('task', '.*');
+});
 
-    public function updateStatus(Request $request, $taskId)
-    {
-        $validator = Validator::make($request->all(), [
-            'status' => 'required|in:to_do,ongoing,completed',
-            'instance_date' => 'nullable|date_format:Y-m-d',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => 'Invalid data provided.'], 422);
-        }
-
-        $task = $this->getTask($taskId);
-        if (!$task) {
-            return response()->json(['error' => 'Task not found or you are not authorized.'], 404);
-        }
-
-        $newStatus = $request->input('status');
-        $instanceDate = $request->input('instance_date');
-
-        if ($task->is_recurring) {
-            if (!$instanceDate) {
-                return response()->json(['error' => 'Instance date is required for recurring tasks.'], 422);
-            }
-            
-            $completedDates = (array) ($task->completed_at_dates ?? []);
-
-            if ($newStatus === 'completed') {
-                if (!in_array($instanceDate, $completedDates)) {
-                    $completedDates[] = $instanceDate;
-                }
-            } else {
-                $completedDates = array_filter($completedDates, fn($date) => $date !== $instanceDate);
-            }
-            
-            $task->completed_at_dates = array_values(array_unique($completedDates));
-            
-            if ($newStatus !== 'completed') {
-                 $task->status = $newStatus;
-            }
-        } else {
-            $task->status = $newStatus;
-        }
-
-        $task->save();
-
-        return response()->json(['success' => 'Status updated successfully!']);
-    }
-
-    /**
-     * Store a newly created task in storage.
-     */
-    public function store(Request $request, Job $job)
-    {
-        if ($job->service->organization_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'start' => 'required|date',
-            'end' => 'required_if:is_recurring,true|nullable|date|after_or_equal:start',
-            'is_recurring' => 'sometimes|boolean',
-            'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
-            'staff_designation_id' => ['nullable', 'integer', Rule::exists('staff_designations', 'id')->where('organization_id', Auth::id())],
-        ]);
-
-        $data = $request->all();
-        $data['is_recurring'] = $request->has('is_recurring');
-
-        $job->tasks()->create($data);
-        return redirect()->back()->with('success', 'Task added successfully.');
-    }
-
-    /**
-     * Update the specified task in storage.
-     */
-    public function update(Request $request, Task $task)
-    {
-        if ($task->job->service->organization_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'start' => 'required|date',
-            'end' => 'required_if:is_recurring,true|nullable|date|after_or_equal:start',
-            'is_recurring' => 'sometimes|boolean',
-            'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
-            'staff_designation_id' => ['nullable', 'integer', Rule::exists('staff_designations', 'id')->where('organization_id', Auth::id())],
-        ]);
-
-        $data = $request->all();
-        $data['is_recurring'] = $request->has('is_recurring');
-
-        $task->update($data);
-        return redirect()->back()->with('success', 'Task updated successfully.');
-    }
-
-    /**
-     * Handle the quick assignment of a staff member to a task via AJAX.
-     */
-    public function assignStaff(Request $request, Task $task)
-    {
-        if ($task->job->service->organization_id !== Auth::id()) {
-            return response()->json(['error' => 'Forbidden'], 403);
-        }
-
-        $request->validate([
-            'staff_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('organization_id', Auth::id())],
-        ]);
-
-        $task->update(['staff_id' => $request->staff_id]);
-
-        if ($request->filled('staff_id')) {
-            $staffMember = User::find($request->staff_id);
-            if ($staffMember) {
-                $staffMember->notify(new TaskAssignedToStaff($task));
-            }
-        }
-
-        return response()->json(['success' => 'Task assigned successfully.']);
-    }
-
-    /**
-     * Manually stop a task by setting its status to 'inactive'.
-     */
-    public function stopTask(Task $task)
-    {
-        if ($task->job->service->organization_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $task->update(['status' => 'inactive']);
-        return redirect()->back()->with('success', 'Task has been stopped.');
-    }
-
-    /**
-     * Remove the specified task from storage.
-     */
-    public function destroy(Task $task)
-    {
-        if ($task->job->service->organization_id !== Auth::id()) {
-            abort(403);
-        }
-        $task->delete();
-        return redirect()->back()->with('success', 'Task deleted successfully.');
-    }
-}
+require __DIR__.'/auth.php';

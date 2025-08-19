@@ -37,17 +37,17 @@ class TaskController extends Controller
                 $startDate = Carbon::create($year)->startOfYear();
                 $endDate = Carbon::create($year)->endOfYear();
             } else {
-                $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-                $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+                $startDate = Carbon::create($year, (int)$month, 1)->startOfMonth();
+                $endDate = Carbon::create($year, (int)$month, 1)->endOfMonth();
             }
         }
 
         // --- 2. Data Fetching & Expansion ---
-        [$taskInstances, $personalTasks] = $this->getTaskInstances($staffId, $startDate, $endDate, $search);
+        [$taskInstances, $personalTasks] = $this->getTaskInstancesInDateRange($staffId, $startDate, $endDate, $search);
 
         $allStatuses = ['to_do' => 'To Do', 'ongoing' => 'Ongoing', 'completed' => 'Completed'];
         
-        // --- 3. Prepare Data for Views ---
+        // --- 3. Handle AJAX requests for view updates ---
         if ($request->ajax()) {
             if ($viewType === 'client') {
                 $clientTaskGroups = $taskInstances->sortBy('due_date_instance')->groupBy(['client.name', 'service.name', 'job.name'], true);
@@ -59,7 +59,7 @@ class TaskController extends Controller
             }
         }
         
-        // --- Initial Page Load ---
+        // --- 4. Initial Page Load ---
         $clientTaskGroups = $taskInstances->sortBy('due_date_instance')->groupBy(['client.name', 'service.name', 'job.name'], true);
         $years = range(now()->year - 4, now()->year + 2);
         $months = [ 'all' => 'All Months', 1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'];
@@ -67,17 +67,21 @@ class TaskController extends Controller
         return view('Staff.tasks.index', compact('clientTaskGroups', 'personalTasks', 'allStatuses', 'startDate', 'endDate', 'years', 'months'));
     }
 
-    private function getTaskInstances($staffId, Carbon $startDate, Carbon $endDate, $search)
+    /**
+     * Fetches and expands all task instances within a given date range for a staff member.
+     */
+    private function getTaskInstancesInDateRange($staffId, Carbon $startDate, Carbon $endDate, $search)
     {
         // Assigned (Client) Tasks
         $assignedTasksQuery = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
             ->with(['client', 'job', 'service'])
             ->where(function ($query) {
+                // Get non-recurring tasks that are not yet complete OR any recurring task.
                 $query->where('is_recurring', false)->where('status', '!=', 'completed')
                       ->orWhere('is_recurring', true);
             })
-            ->where('start', '<=', $endDate)
-            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate));
+            ->where('start', '<=', $endDate) // Task must have started before the end of the range
+            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate)); // and end after the start of the range (or have no end date)
         
         if ($search) {
             $assignedTasksQuery->where(function ($q) use ($search) {
@@ -91,7 +95,7 @@ class TaskController extends Controller
             $this->expandRecurringTask($task, $startDate, $endDate, $taskInstances);
         }
 
-        // Personal Tasks
+        // Personal (Non-Client) Tasks
         $personalTasksQuery = Task::where('staff_id', $staffId)->whereNull('job_id')
             ->where(function ($query) {
                 $query->where('is_recurring', false)->where('status', '!=', 'completed')
@@ -109,6 +113,9 @@ class TaskController extends Controller
         return [$taskInstances, $personalTasks];
     }
 
+    /**
+     * Expands a recurring task into individual instances for a given date range.
+     */
     private function expandRecurringTask($task, $startDate, $endDate, &$collection, $isPersonal = false)
     {
         $task->is_personal = $isPersonal;
@@ -118,31 +125,38 @@ class TaskController extends Controller
             $cursor = $task->start->copy();
 
             while ($cursor->lte($task->end)) {
+                // Only create an instance if it falls within our view's date range and is not marked as complete.
                 if ($cursor->between($startDate, $endDate) && !in_array($cursor->toDateString(), $completedDates)) {
                     $instance = clone $task;
-                    $instance->due_date_instance = $cursor->copy();
+                    $instance->due_date_instance = $cursor->copy(); // This holds the specific date for this instance.
                     $collection->push($instance);
                 }
-                if ($cursor > $endDate) break;
+                
+                if ($cursor > $endDate) break; // Optimization: stop if we've passed the viewable range.
                 
                 switch ($task->recurring_frequency) {
                     case 'daily': $cursor->addDay(); break;
                     case 'weekly': $cursor->addWeek(); break;
                     case 'monthly': $cursor->addMonthWithNoOverflow(); break;
                     case 'yearly': $cursor->addYearWithNoOverflow(); break;
-                    default: break 2;
+                    default: break 2; // Exit the loop if frequency is unknown.
                 }
             }
         } elseif ($task->start && $task->start->between($startDate, $endDate)) {
+            // For non-recurring tasks, just add it to the collection.
             $task->due_date_instance = $task->start;
             $collection->push($task);
         }
     }
     
+    /**
+     * Prepares a flat, sorted collection of all tasks for the 'Time View'.
+     */
     private function prepareTimeViewTasks($taskInstances, $personalTasks)
     {
         $allTasks = new Collection($taskInstances);
         
+        // Ensure personal tasks also have a due_date_instance for consistent sorting.
         $personalTasks->each(function ($task) {
             $task->due_date_instance = $task->start;
         });
@@ -150,6 +164,9 @@ class TaskController extends Controller
         return $allTasks->concat($personalTasks)->sortBy('due_date_instance');
     }
 
+    /**
+     * Manually paginates a Laravel Collection.
+     */
     private function paginateCollection(Collection $collection, int $perPage, Request $request): LengthAwarePaginator
     {
         $currentPage = Paginator::resolveCurrentPage('page');
@@ -161,19 +178,29 @@ class TaskController extends Controller
         return $paginated->appends($request->all());
     }
 
+    /**
+     * Helper to retrieve a task (personal or assigned) based on a composite ID from the front-end.
+     */
     private function getTask($taskId)
     {
         if (empty($taskId) || !str_contains($taskId, '_')) return null;
+
         [$type, $id] = explode('_', $taskId);
+
         if ($type === 'p' && $id) {
             return Task::where('id', $id)->where('staff_id', Auth::id())->first();
         }
+
         if ($type === 'a' && $id) {
             return AssignedTask::where('id', $id)->whereHas('staff', fn($q) => $q->where('users.id', Auth::id()))->first();
         }
+
         return null;
     }
 
+    /**
+     * Updates the status of a task instance.
+     */
     public function updateStatus(Request $request, $taskId)
     {
         $validator = Validator::make($request->all(), [
@@ -205,19 +232,20 @@ class TaskController extends Controller
             $completedDates = (array) ($task->completed_at_dates ?? []);
 
             if ($newStatus === 'completed') {
+                // Add the date to the completed list if it's not already there.
                 if (!in_array($instanceDate, $completedDates)) {
                     $completedDates[] = $instanceDate;
                 }
             } else {
+                // If the status is changing from completed, remove it from the list
+                // and update the parent task's status to reflect it's active again.
                 $completedDates = array_filter($completedDates, fn($date) => $date !== $instanceDate);
+                $task->status = $newStatus;
             }
             
             $task->completed_at_dates = array_values(array_unique($completedDates));
-            
-            if ($newStatus !== 'completed') {
-                 $task->status = $newStatus;
-            }
         } else {
+            // For non-recurring tasks, simply update the status.
             $task->status = $newStatus;
         }
 
@@ -226,6 +254,9 @@ class TaskController extends Controller
         return response()->json(['success' => 'Status updated successfully!']);
     }
 
+    /**
+     * Starts the timer for a specific task.
+     */
     public function startTimer(Request $request, $taskId)
     {
         $task = $this->getTask($taskId);
@@ -236,6 +267,7 @@ class TaskController extends Controller
             return response()->json(['error' => 'Task must be "ongoing" to start the timer.'], 422);
         }
 
+        // Stop any other running timers for this user first.
         $this->stopAllRunningTimersForUser(Auth::id(), $taskId);
 
         $task->timer_started_at = Carbon::now();
@@ -248,6 +280,9 @@ class TaskController extends Controller
         ]);
     }
 
+    /**
+     * Stops the timer for a specific task.
+     */
     public function stopTimer(Request $request, $taskId)
     {
         $task = $this->getTask($taskId);
@@ -273,14 +308,17 @@ class TaskController extends Controller
         ]);
     }
     
+    /**
+     * Stops all currently running timers for a user, excluding a specific task.
+     */
     private function stopAllRunningTimersForUser($userId, $excludeTaskId)
     {
         $stopTime = Carbon::now()->getTimestamp();
         
         $updateTask = function ($task) use ($stopTime, $excludeTaskId) {
-            $taskId = ($task instanceof Task ? 'p_' : 'a_') . $task->id;
-            if ($taskId === $excludeTaskId) {
-                return;
+            $currentTaskId = ($task instanceof Task ? 'p_' : 'a_') . $task->id;
+            if ($currentTaskId === $excludeTaskId) {
+                return; // Don't stop the timer for the task we are about to start.
             }
 
             if ($task->timer_started_at) {
@@ -301,7 +339,9 @@ class TaskController extends Controller
         AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $userId))->whereNotNull('timer_started_at')->get()->each($updateTask);
     }
 
-    // --- NEW METHOD START ---
+    /**
+     * Adds a manual amount of time to a task's duration.
+     */
     public function addManualTime(Request $request, $taskId)
     {
         $validator = Validator::make($request->all(), [
@@ -336,5 +376,4 @@ class TaskController extends Controller
             'new_duration' => $task->duration_in_seconds,
         ]);
     }
-    // --- NEW METHOD END ---
 }

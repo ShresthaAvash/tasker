@@ -267,12 +267,6 @@ return [
             'can'  => 'is-organization',
         ],
         [
-            'text'  => 'Calendar',
-            'route' => 'organization.calendar',
-            'icon'  => 'fas fa-fw fa-calendar-alt',
-            'can'   => 'is-organization',
-        ],
-        [
             'text'    => 'Clients',
             'icon'    => 'fas fa-fw fa-users',
             'can'     => 'is-organization',

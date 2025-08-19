@@ -18,17 +18,17 @@ class SuperAdminController extends Controller
         $subscribedOrgsCount = User::where('users.type', 'O')->whereNotNull('subscription_id')->count();
 
         // Calculate Estimated Monthly Earnings
-        $monthlyEarnings = User::where('users.type', 'O')
-            ->whereHas('subscription', fn($q) => $q->where('type', 'monthly'))
-            ->join('subscriptions', 'users.subscription_id', '=', 'subscriptions.id')
-            ->sum('subscriptions.price');
+        // $monthlyEarnings = User::where('users.type', 'O')
+        //     ->whereHas('subscription', fn($q) => $q->where('type', 'monthly'))
+        //     ->join('subscriptions', 'users.subscription_id', '=', 'subscriptions.id')
+        //     ->sum('subscriptions.price');
 
-        $annualEarnings = User::where('users.type', 'O')
-            ->whereHas('subscription', fn($q) => $q->where('type', 'annually'))
-            ->join('subscriptions', 'users.subscription_id', '=', 'subscriptions.id')
-            ->sum('subscriptions.price');
+        // $annualEarnings = User::where('users.type', 'O')
+        //     ->whereHas('subscription', fn($q) => $q->where('type', 'annually'))
+        //     ->join('subscriptions', 'users.subscription_id', '=', 'subscriptions.id')
+        //     ->sum('subscriptions.price');
 
-        $totalMonthlyEarnings = $monthlyEarnings + ($annualEarnings / 12);
+        // $totalMonthlyEarnings = $monthlyEarnings + ($annualEarnings / 12);
         
         $recentRequests = User::where('type', 'O')->where('status', 'R')->latest()->take(5)->get();
 
@@ -36,7 +36,7 @@ class SuperAdminController extends Controller
             'organizationCount',
             'subscriptionPlansCount',
             'subscribedOrgsCount',
-            'totalMonthlyEarnings',
+            // 'totalMonthlyEarnings',
             'recentRequests'
         ));
     }

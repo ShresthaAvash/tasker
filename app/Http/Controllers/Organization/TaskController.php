@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Organization;
 use App\Http\Controllers\Controller;
 use App\Models\AssignedTask;
 use App\Models\Task;
+use App\Models\Job; // <-- MODIFIED: Added this line
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -14,14 +15,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use App\Notifications\TaskAssignedToStaff; // <-- ADD THIS LINE
+use App\Notifications\TaskAssignedToStaff;
+use Illuminate\Validation\Rule; // <-- MODIFIED: Added this line
 
 class TaskController extends Controller
 {
     /**
-     * Display a listing of the staff member's tasks, supporting multiple views and filters.
+     * Store a newly created task in storage, associated with a job.
      */
-    public function index(Request $request)
+    public function store(Request $request, Job $job) // <-- MODIFIED: This was incorrectly named 'index'
     {
         if ($job->service->organization_id !== Auth::id()) {
             abort(403);
@@ -71,7 +73,7 @@ class TaskController extends Controller
         $task->update($data);
         return redirect()->back()->with('success', 'Task updated successfully.');
     }
-    
+
     /**
      * Handle the quick assignment of a staff member to a task via AJAX.
      */
@@ -91,9 +93,9 @@ class TaskController extends Controller
     }
 
     /**
-     * Manually stop a task by setting its status to 'inactive'.
+     * Manually stop or update the status of a task instance.
      */
-    public function stopTask(Task $task)
+    public function stopTask(Request $request, Task $task) // <-- MODIFIED: Added Request $request parameter
     {
         if ($task->job->service->organization_id !== Auth::id()) {
             abort(403);
@@ -106,7 +108,7 @@ class TaskController extends Controller
             if (!$instanceDate) {
                 return response()->json(['error' => 'Instance date is required for recurring tasks.'], 422);
             }
-            
+
             $completedDates = (array) ($task->completed_at_dates ?? []);
 
             if ($newStatus === 'completed') {
@@ -116,9 +118,9 @@ class TaskController extends Controller
             } else {
                 $completedDates = array_filter($completedDates, fn($date) => $date !== $instanceDate);
             }
-            
+
             $task->completed_at_dates = array_values(array_unique($completedDates));
-            
+
             if ($newStatus !== 'completed') {
                  $task->status = $newStatus;
             }

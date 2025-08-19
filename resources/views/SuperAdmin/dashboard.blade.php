@@ -31,7 +31,7 @@
                 <p>Subscription Plans</p>
             </div>
             <div class="icon"><i class="fas fa-tags"></i></div>
-            <a href="{{ route('superadmin.subscriptions.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            <a href="{{ route('superadmin.dashboard') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
     <div class="col-lg-3 col-6">
@@ -47,7 +47,6 @@
     <div class="col-lg-3 col-6">
         <div class="small-box bg-danger">
             <div class="inner">
-                <h3>${{ number_format($totalMonthlyEarnings, 2) }}</h3>
                 <p>Estimated Monthly Earnings</p>
             </div>
             <div class="icon"><i class="fas fa-dollar-sign"></i></div>
@@ -91,7 +90,7 @@
                 <a href="{{ route('superadmin.organizations.create') }}" class="btn btn-app bg-primary">
                     <i class="fas fa-building"></i> Add Organization
                 </a>
-                <a href="{{ route('superadmin.subscriptions.create') }}" class="btn btn-app bg-success">
+                <a href="{{ route('superadmin.plans.create') }}" class="btn btn-app bg-success">
                     <i class="fas fa-tags"></i> Add Subscription
                 </a>
                 <a href="{{ route('superadmin.subscriptions.requests') }}" class="btn btn-app bg-warning">

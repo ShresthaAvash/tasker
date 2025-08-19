@@ -133,12 +133,4 @@ class User extends Authenticatable
         return $this->hasMany(AssignedTask::class, 'client_id');
     }
 
-    /**
-     * --- THIS IS THE NEW METHOD ---
-     * Get the subscription for the organization.
-     */
-    public function subscription()
-    {
-        return $this->belongsTo(Subscription::class);
-    }
 }

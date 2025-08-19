@@ -343,7 +343,7 @@ class ClientController extends Controller
                    ->whereHas('service', function ($query) use ($organizationId) {
                        $query->where('organization_id', $organizationId);
                    })
-                   ->with('tasks.staff') // Eager load the default staff member
+                   ->with(['service', 'tasks.staff']) // Eager load the default staff member
                    ->orderBy('name')
                    ->get();
         
