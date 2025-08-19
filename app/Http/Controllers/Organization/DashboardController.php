@@ -67,7 +67,6 @@ class DashboardController extends Controller
     }
 
     /**
-     * --- THIS IS THE NEW METHOD ---
      * Display a full report for the organization.
      */
     public function report()
@@ -87,7 +86,7 @@ class DashboardController extends Controller
 
         // Get detailed lists
         $clients = User::where('organization_id', $organizationId)->where('type', 'C')->orderBy('name')->get();
-        $staff = User::where('organization_id', $organizationId)->whereIn('type', ['A', 'T'])->orderBy('name')->get();
+        $staff = User::where('organization_id', $organizationId)->whereIn('type', ['A', 'T', 'O'])->orderBy('name')->get();
         $services = Service::where('organization_id', $organizationId)->withCount('jobs')->orderBy('name')->get();
 
         return view('Organization.report', compact(
@@ -108,8 +107,29 @@ class DashboardController extends Controller
     {
         $staffId = Auth::id();
 
-        // Personal tasks
+        // Calculate all counts first.
+        
+        // 1. Active Personal Tasks Count
+        $activePersonalCount = Task::where('staff_id', $staffId)
+            ->whereNull('job_id')
+            ->where('status', 'active')
+            ->count();
+
+        // 2. Active Assigned Tasks Count
+        $activeAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
+            ->where('status', '!=', 'completed')
+            ->count();
+        
+        $activeTaskCount = $activePersonalCount + $activeAssignedCount;
+
+        // 3. Completed Tasks Count (Both Personal and Assigned)
+        $completedPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'completed')->count();
+        $completedAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'completed')->count();
+        $completedTaskCount = $completedPersonalCount + $completedAssignedCount;
+        
+        // Fetch Upcoming Personal tasks
         $personalTasks = Task::where('staff_id', $staffId)
+            ->whereNull('job_id')
             ->where('status', 'active')
             ->whereNotNull('start')
             ->where('start', '>=', now())
@@ -118,26 +138,29 @@ class DashboardController extends Controller
             ->get()
             ->map(function ($task) {
                 $task->display_name = $task->name;
+                $task->task_details = 'Personal Task';
                 return $task;
             });
 
-        // Assigned client tasks
+        // Fetch Upcoming Assigned client tasks
         $assignedTasks = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
-            ->where('status', 'pending')
+            ->where('status', '!=', 'completed')
             ->whereNotNull('start')
             ->where('start', '>=', now())
-            ->with('client')
+            ->with(['client', 'service', 'job'])
+            ->orderBy('start', 'asc')
+            ->limit(10)
             ->get()
             ->map(function ($task) {
-                $task->display_name = $task->client->name . ': ' . $task->name;
+                $task->display_name = $task->name;
+                $task->task_details = "Service: {$task->service->name} | Job: {$task->job->name} | Client: {$task->client->name}";
                 return $task;
             });
 
-        // Combine and sort tasks
+        // Combine and sort tasks for the upcoming list
         $allTasks = $personalTasks->concat($assignedTasks);
         $upcomingTasks = $allTasks->sortBy('start')->take(10);
-        $activeTaskCount = $allTasks->count();
-
-        return view('Organization.staff.dashboard', compact('activeTaskCount', 'upcomingTasks'));
+        
+        return view('Organization.staff.dashboard', compact('activeTaskCount', 'completedTaskCount', 'upcomingTasks'));
     }
 }
