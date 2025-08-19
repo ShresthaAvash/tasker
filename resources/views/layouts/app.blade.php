@@ -12,7 +12,7 @@
     @yield('page-content')
 @endsection
 
-{{-- Top-right navbar items --}}
+{{-- This section adds all custom items to the top-right of the navigation bar --}}
 @section('content_top_nav_right')
 
     {{-- Notifications Dropdown Menu --}}
@@ -52,15 +52,46 @@
     {{-- Legacy Active Timer Placeholder (kept for compatibility if needed) --}}
     @if(isset($activeTimer) && $activeTimer)
         <li class="nav-item">
-            <div id="global-timer-bar" class="d-flex align-items-center bg-warning p-2 rounded">
-                 {{-- Old timer display (optional, can be removed since global tracker handles it) --}}
+            <div id="global-timer-bar" class="d-flex align-items-center bg-warning p-2 rounded"
+                 data-task-id="{{ $activeTimer['task_id'] }}"
+                 data-task-name="{{ $activeTimer['task_name'] }}"
+                 data-initial-seconds="{{ $activeTimer['duration_in_seconds'] }}"
+                 data-start-time="{{ $activeTimer['timer_started_at'] }}">
+                <i class="fas fa-clock fa-spin mr-2"></i>
+                <span id="global-timer-task-name" class="font-weight-bold mr-3">{{ $activeTimer['task_name'] }}</span>
+                <span id="global-timer-display" class="mr-3">00:00:00</span>
+                <button id="global-timer-stop-btn" class="btn btn-xs btn-danger">Stop</button>
             </div>
         </li>
     @endif
 @endsection
 
-{{-- Custom CSS (currently none) --}}
 @section('css')
+    <style>
+        /*
+         * Increase the root font size to scale up the entire UI.
+         * Default is 16px. 16px * 1.25 = 20px.
+         * This makes the entire layout look like it's at 125% zoom by default.
+        */
+        html {
+            font-size: 20px !important;
+        }
+
+        /* Force the main sidebar and the top brand link to have a pure white background */
+        .main-sidebar, .brand-link {
+            background-color: #ffffff !important;
+        }
+        
+        /* Ensure the "Tasker" text is dark and readable on the white background */
+        .brand-link .brand-text {
+            color: #343a40 !important;
+        }
+
+        /* Add a subtle vertical line to the right of the sidebar for separation */
+        .main-sidebar {
+            border-right: 1px solid #dee2e6 !important;
+        }
+    </style>
 @stop
 
 {{-- Global JS including the new timer logic --}}

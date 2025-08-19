@@ -29,6 +29,22 @@
             </a>
         </div>
     </div>
+
+    {{-- --- THIS IS THE NEW INFO BOX --- --}}
+    <div class="col-lg-4 col-md-6">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>{{ $completedTaskCount }}</h3>
+                <p>Completed Tasks</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <a href="{{ route('staff.tasks.index') }}" class="small-box-footer">
+                View All Tasks <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
 </div>
 
 <div class="row">
@@ -43,6 +59,8 @@
                     @forelse($upcomingTasks as $task)
                         <li class="list-group-item">
                             <strong>{{ $task->display_name ?? $task->name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ $task->task_details }}</small>
                             <span class="float-right text-muted">
                                 {{ optional($task->start)->diffForHumans() }}
                             </span>
