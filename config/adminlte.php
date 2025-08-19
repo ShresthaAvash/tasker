@@ -87,7 +87,7 @@ return [
 
     'usermenu_enabled' => true,
     'usermenu_header' => true,
-    'usermenu_header_class' => 'bg-primary', // This will now use your custom light blue
+    'usermenu_header_class' => 'bg-primary',
     'usermenu_image' => false,
     'usermenu_desc' => false,
     'usermenu_profile_url' => false,
@@ -124,13 +124,13 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'classes_body' => 'bg-white',
+    'classes_body' => 'sidebar-light-primary elevation-4',
     'classes_brand' => 'navbar-light',
     'classes_brand_text' => '',
-    'classes_content_wrapper' => 'bg-white',
+    'classes_content_wrapper' => 'sidebar-light-primary elevation-4',
     'classes_content_header' => '',
-    'classes_content' => 'bg-white',
-    'classes_sidebar' => 'sidebar-light-primary elevation-4', // This uses your new white bg and blue accent
+    'classes_content' => '',
+    'classes_sidebar' => 'sidebar-light-primary elevation-4',
     'classes_sidebar_nav' => '',
     'classes_topnav' => 'navbar-white navbar-light',
     'classes_topnav_nav' => 'navbar-expand',
@@ -142,7 +142,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'sidebar_mini' => '',
+    'sidebar_mini' => 'lg',
     'sidebar_collapse' => false,
     'sidebar_collapse_auto_size' => false,
     'sidebar_collapse_remember' => false,
@@ -193,7 +193,7 @@ return [
     'laravel_js_path' => 'js/app.js',
 
     /*
-    |-------------------lg-------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Menu Items
     |--------------------------------------------------------------------------
     */

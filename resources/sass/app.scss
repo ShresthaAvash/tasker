@@ -1,9 +1,8 @@
-// tasker/resources/sass/app.scss
+// Fonts
+@import url('https://fonts.bunny.net/css?family=Nunito');
 
-// 1. Your Custom Variables (MUST BE IMPORTED FIRST to override defaults)
-@import 'custom_variables';
+// Variables
+@import 'variables';
 
-// 2. Import the main AdminLTE SASS file
-// This is the most important part. It builds all the theme styles
-// using your custom variables.
-@import '../vendor/jeroennoten/laravel-adminlte/resources/sass/adminlte';
+// Bootstrap
+@import 'bootstrap/scss/bootstrap';
