@@ -124,13 +124,13 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'classes_body' => 'sidebar-light-primary elevation-4',
-    'classes_brand' => 'navbar-light',
+    'classes_body' => 'sidebar-light-primary',
+    'classes_brand' => '',
     'classes_brand_text' => '',
-    'classes_content_wrapper' => 'sidebar-light-primary elevation-4',
+    'classes_content_wrapper' => 'sidebar-light-primary',
     'classes_content_header' => '',
     'classes_content' => '',
-    'classes_sidebar' => 'sidebar-light-primary elevation-4',
+    'classes_sidebar' => 'sidebar-light-primary',
     'classes_sidebar_nav' => '',
     'classes_topnav' => 'navbar-white navbar-light',
     'classes_topnav_nav' => 'navbar-expand',
