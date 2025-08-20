@@ -86,7 +86,7 @@ class JobController extends Controller
 
     /**
      * Find all tasks for a job that have been assigned to a staff member
-     * and change their status from 'not_started' to 'active'.
+     * and change their status from 'not_started' to 'ongoing'.
      */
     public function assignTasks(Job $job)
     {
@@ -94,10 +94,11 @@ class JobController extends Controller
             abort(403);
         }
 
+        // --- THIS IS THE FIX: Status changed from 'active' to 'ongoing' ---
         $tasksUpdated = $job->tasks()
             ->where('status', 'not_started')
             ->whereNotNull('staff_id')
-            ->update(['status' => 'active']);
+            ->update(['status' => 'ongoing']);
 
         if ($tasksUpdated > 0) {
             return redirect()->back()->with('success', "$tasksUpdated tasks have been activated and are now visible on the calendar.");

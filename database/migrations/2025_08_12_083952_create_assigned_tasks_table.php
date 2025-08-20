@@ -14,7 +14,8 @@ $table->unsignedBigInteger('client_id');
 $table->unsignedBigInteger('task_template_id'); // Link to the original task
 $table->string('name');
 $table->date('due_date')->nullable();
-$table->string('status')->default('pending');
+// --- THIS IS THE FIX: Default status is now 'to_do' ---
+$table->string('status')->default('to_do');
 $table->timestamps();
 
 $table->foreign('client_id')->references('id')->on('users')->onDelete('cascade');

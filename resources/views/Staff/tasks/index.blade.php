@@ -1,7 +1,41 @@
 @extends('layouts.app')
 
 @section('title', 'My Tasks')
+@section('plugins.Select2', true)
 @section('page_title', 'My Tasks')
+
+@section('css')
+<style>
+    /* --- THIS IS THE NEW CSS FOR ACCORDION --- */
+    .accordion .card-header {
+        padding: 0;
+    }
+
+    .accordion-toggle-link {
+        display: block;
+        text-decoration: none !important;
+        color: #495057;
+        transition: background-color 0.2s ease-in-out;
+    }
+
+    .accordion-toggle-link:hover {
+        background-color: #f8f9fa;
+        color: #343a40;
+    }
+
+    .accordion-toggle-link.bg-info:hover {
+        background-color: #138496 !important; /* A darker shade of info */
+    }
+
+    .accordion-toggle-link .collapse-icon {
+        transition: transform 0.3s ease;
+    }
+
+    .accordion-toggle-link[aria-expanded="true"] .collapse-icon {
+        transform: rotate(-180deg);
+    }
+</style>
+@stop
 
 @section('page-content')
 <div class="card" id="task-manager-card">
@@ -21,10 +55,13 @@
 
         <!-- Filter and Search Row -->
         <div class="row mb-3 align-items-center">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <input type="text" id="search-input" class="form-control" placeholder="Search by Client, Service, Job or Task...">
             </div>
-            <div class="col-md-6">
+            <div class="col-md-3">
+                <select id="status-filter" class="form-control" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-4">
                 <div id="dropdown-filters" class="row">
                     <div class="col">
                         <select id="year-filter" class="form-control">
@@ -77,6 +114,17 @@ $(document).ready(function() {
     const taskManager = $('#task-manager-card');
     window.taskTimers = {};
 
+    $('#status-filter').select2({
+        placeholder: 'Filter by Status',
+        data: [
+            { id: 'to_do', text: 'To Do' },
+            { id: 'ongoing', text: 'Ongoing' },
+            { id: 'completed', text: 'Completed' }
+        ]
+    });
+
+    $('#status-filter').val(['to_do', 'ongoing']).trigger('change');
+
     function formatTime(totalSeconds) {
         if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
         const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
@@ -90,42 +138,47 @@ $(document).ready(function() {
         const status = taskRow.data('status');
         const duration = parseInt(taskRow.data('duration'), 10) || 0;
         const timerStartedAt = taskRow.data('timer-started-at');
-        const controlsContainer = taskRow.find('.timer-controls');
-        
+        const displayContainer = taskRow.find('.timer-display-container');
+        const actionsContainer = taskRow.find('.timer-actions-container');
+
         if (window.taskTimers[taskId]) {
             clearInterval(window.taskTimers[taskId]);
             delete window.taskTimers[taskId];
         }
-        controlsContainer.empty();
+        displayContainer.empty();
+        actionsContainer.empty();
 
         let buttonHtml = '';
-        let displayHtml = `<span class="timer-display font-weight-bold mr-2">${formatTime(duration)}</span>`;
+        let displayHtml = `<span class="timer-display">${formatTime(duration)}</span>`;
 
         if (status === 'ongoing') {
             if (timerStartedAt) {
-                buttonHtml = `<button class="btn btn-danger btn-xs stop-timer-btn" data-task-id="${taskId}"><i class="fas fa-stop"></i> Stop</button>`;
+                buttonHtml += `<button class="btn btn-danger btn-xs stop-timer-btn" title="Stop Timer" data-task-id="${taskId}"><i class="fas fa-stop"></i></button>`;
                 const startTime = new Date(timerStartedAt).getTime();
                 const updateLiveTime = () => {
                     const now = new Date().getTime();
                     const elapsed = Math.floor((now - startTime) / 1000);
                     taskRow.find('.timer-display').text(formatTime(duration + elapsed));
                 };
-                updateLiveTime(); 
+                updateLiveTime();
                 window.taskTimers[taskId] = setInterval(updateLiveTime, 1000);
             } else {
-                buttonHtml = `<button class="btn btn-success btn-xs start-timer-btn" data-task-id="${taskId}"><i class="fas fa-play"></i> Start</button>`;
+                buttonHtml += `<button class="btn btn-success btn-xs start-timer-btn" title="Start Timer" data-task-id="${taskId}"><i class="fas fa-play"></i></button>`;
             }
         }
         
         const manualTimeButton = `
-            <button class="btn btn-outline-secondary btn-xs ml-auto add-manual-time-btn" 
+            <button class="btn btn-outline-secondary btn-xs add-manual-time-btn" 
                     title="Add Manual Time"
                     data-toggle="modal" 
                     data-target="#manualTimeModal">
                 <i class="fas fa-plus"></i>
             </button>`;
-            
-        controlsContainer.html(displayHtml + buttonHtml + manualTimeButton);
+        
+        buttonHtml += manualTimeButton;
+
+        displayContainer.html(displayHtml);
+        actionsContainer.html(buttonHtml);
     }
 
     function initializeAllTimers() {
@@ -137,11 +190,18 @@ $(document).ready(function() {
     }
 
     function fetchTasks(page = 1) {
-        // ... (existing fetchTasks function, no changes needed here)
         clearTimeout(debounceTimer);
         const search = taskManager.find('#search-input').val();
         const viewType = taskManager.find('input[name="view_type"]:checked').val();
-        let data = { search: search, view_type: viewType, page: page };
+        const statuses = $('#status-filter').val();
+
+        let data = { 
+            search: search, 
+            view_type: viewType, 
+            page: page,
+            statuses: statuses
+        };
+
         if ($('#custom-search-switch').is(':checked')) {
             data.use_custom_range = 'true';
             data.start_date = taskManager.find('#start-date-filter').val();
@@ -166,37 +226,42 @@ $(document).ready(function() {
     }
     
     initializeAllTimers();
-
-    // --- EXISTING EVENT LISTENERS (no changes) ---
+    
     taskManager.on('click', '#client-view-btn, #time-view-btn', () => setTimeout(fetchTasks, 50));
+    
     taskManager.on('change', '#custom-search-switch', function() {
         $('#dropdown-filters').toggle(!this.checked);
         $('#custom-range-filters').toggle(this.checked);
         fetchTasks(1);
     });
-    taskManager.on('keyup change', '#search-input, #start-date-filter, #end-date-filter, #year-filter, #month-filter', () => {
+
+    taskManager.on('keyup change', '#search-input, #start-date-filter, #end-date-filter, #year-filter, #month-filter, #status-filter', () => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => fetchTasks(1), 500);
     });
+
     taskManager.on('click', '#reset-filters', () => {
         const now = new Date();
         $('#search-input').val('');
+        $('#status-filter').val(['to_do', 'ongoing']).trigger('change');
         $('#custom-search-switch').prop('checked', false).trigger('change');
         $('#year-filter').val(now.getFullYear());
         $('#month-filter').val(now.getMonth() + 1);
-        fetchTasks(1);
     });
+
     taskManager.on('click', '.pagination a', function(e) {
         e.preventDefault();
         const page = new URL($(this).attr('href')).searchParams.get('page');
         fetchTasks(page);
     });
+
     taskManager.on('change', '.task-status-select', function() {
         const select = $(this);
         const taskRow = select.closest('tr[data-task-id]');
         if (taskRow.data('timer-started-at')) {
             alert('Please stop the timer before changing the task status.');
-            select.val(taskRow.data('status')); return;
+            select.val(taskRow.data('status')); 
+            return;
         }
         $.ajax({
             type: 'PATCH',
@@ -209,6 +274,7 @@ $(document).ready(function() {
             }
         });
     });
+
     taskManager.on('click', '.start-timer-btn', function() {
         const button = $(this);
         const taskId = button.data('task-id');
@@ -233,6 +299,7 @@ $(document).ready(function() {
             error: (xhr) => alert(xhr.responseJSON?.error || 'Could not start timer.')
         });
     });
+
     taskManager.on('click', '.stop-timer-btn', function() {
         const taskId = $(this).data('task-id');
         $.ajax({
@@ -247,7 +314,6 @@ $(document).ready(function() {
         });
     });
 
-    // --- NEW SCRIPT FOR MANUAL TIME MODAL ---
     $('#manualTimeModal').on('show.bs.modal', function(event) {
         const button = $(event.relatedTarget);
         const taskRow = button.closest('tr');
@@ -277,15 +343,12 @@ $(document).ready(function() {
             success: function(response) {
                 $('#manualTimeModal').modal('hide');
                 
-                // --- THIS IS THE KEY PART ---
-                // Manually update the data on the row and re-render its timer UI.
                 const taskId = form.attr('action').split('/')[3];
                 const taskRow = $(`tr[data-task-id="${taskId}"]`);
                 
                 taskRow.data('duration', response.new_duration);
                 renderTimerUI(taskRow);
                 
-                // Also update global tracker if it's the one running
                 const runningTimerData = JSON.parse(localStorage.getItem('runningTimer'));
                 if (runningTimerData && runningTimerData.taskId === taskId) {
                     runningTimerData.duration = response.new_duration;

@@ -140,8 +140,8 @@ $(document).ready(function() {
         function toggleRecurringFields() {
             if ($('#is_recurring').is(':checked')) {
                 $('#recurring-options').slideDown();
-                $('#task-end').prop('required', true);
-                $('#end-date-help').text("The date the recurrence will end.");
+                $('#task-end').prop('required', false);
+                $('#end-date-help').text("The date the recurrence will end (optional, leave blank for infinite).");
             } else {
                 $('#recurring-options').slideUp();
                 $('#task-end').prop('required', false);

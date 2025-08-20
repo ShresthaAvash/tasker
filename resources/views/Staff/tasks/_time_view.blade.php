@@ -1,13 +1,13 @@
 <div class="table-responsive">
-    <table class="table table-hover">
+    <table class="table table-hover time-view-table">
         <thead>
             <tr>
                 <th>Due Date</th>
                 <th>Task Name</th>
                 <th>Client / Service / Job</th>
-                <th style="width: 200px;">Time Tracking</th>
+                <th style="width: 120px;">Time Logged</th>
                 <th style="width: 170px;">Status</th>
-                <th style="width: 150px;">Actions</th>
+                <th style="width: 120px;">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -29,7 +29,9 @@
                         @endif
                     </td>
                     <td>
-                        <div class="timer-controls d-flex align-items-center justify-content-between"></div>
+                        <div class="timer-display-container font-weight-bold">
+                            {{-- This div is populated by JS with timer info --}}
+                        </div>
                     </td>
                     <td>
                         <select class="form-control form-control-sm task-status-select" data-task-id="{{ ($task->is_personal ?? false) ? 'p_' : 'a_' }}{{ $task->id }}" data-instance-date="{{ $task->due_date_instance->toDateString() }}">
@@ -39,11 +41,9 @@
                         </select>
                     </td>
                     <td>
-                        <button class="btn btn-secondary btn-xs add-manual-time-btn"
-                                data-toggle="modal"
-                                data-target="#manualTimeModal">
-                            <i class="fas fa-plus-circle"></i> Add Time
-                        </button>
+                        <div class="timer-actions-container btn-group">
+                             {{-- This div is populated by JS with buttons --}}
+                        </div>
                     </td>
                 </tr>
                 @endforeach

@@ -44,8 +44,6 @@
                             <option value="daily">Day</option>
                             <option value="weekly">Week</option>
                             <option value="monthly">Month</option>
-                            {{-- --- THIS IS THE NEW OPTION --- --}}
-                            <option value="yearly">Year</option>
                             <option value="yearly">Year</option>
                         </select>
                     </div>
@@ -55,13 +53,13 @@
                     <p class="text-muted">Set dates for scheduling and calendar visibility.</p>
                     <div class="form-group">
                         <label for="task-start">Start Date & Time</label>
-                        <input type="datetime-local" id="task-start" name="start" class="form-control" required>
-                        <small class="form-text text-muted">For recurring tasks, this is the first occurrence. Required for all tasks.</small>
+                        <input type="datetime-local" id="task-start" name="start" class="form-control">
+                        <small class="form-text text-muted">For recurring tasks, this is the first occurrence. Leave blank to require date upon client assignment.</small>
                     </div>
                     <div class="form-group">
                         <label for="task-end">End Date & Time</label>
                         <input type="datetime-local" id="task-end" name="end" class="form-control">
-                        <small class="form-text text-muted" id="end-date-help">For recurring tasks, this sets the recurrence end date. For non-recurring, it's the task's duration (optional).</small>
+                        <small class="form-text text-muted" id="end-date-help">For recurring tasks, this sets the recurrence end date (optional, leave blank for infinite). For non-recurring, it's the task's duration (optional).</small>
                     </div>
                 </div>
                 <div class="modal-footer">

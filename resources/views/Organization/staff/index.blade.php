@@ -1,25 +1,16 @@
 @extends('layouts.app')
 
 @section('title', 'Staff')
+@section('plugins.Select2', true)
 
 @section('content_header')
     <h1>Staff Members</h1>
 @stop
 
 @section('content')
-<div class="card card-info card-outline card-tabs">
-    <div class="card-header p-0 pt-1 border-bottom-0">
-        <ul class="nav nav-tabs" id="staff-status-tabs" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" id="active-staff-tab" data-status="A" data-toggle="pill" href="#staff-content" role="tab">Active Staff</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="suspended-staff-tab" data-status="I" data-toggle="pill" href="#staff-content" role="tab">Suspended Staff</a>
-            </li>
-        </ul>
-    </div>
+<div class="card card-info card-outline">
     <div class="card-header">
-        <h3 class="card-title" id="card-title">All Active Staff</h3>
+        <h3 class="card-title">All Staff</h3>
         <div class="card-tools">
             <a href="{{ route('staff.create') }}" class="btn btn-info btn-sm">Add New Staff</a>
         </div>
@@ -31,10 +22,8 @@
         
         <!-- Filter and Search Row -->
         <div class="row mb-3">
-            <div class="col-md-8">
-                <div class="input-group">
-                    <input type="text" name="search" id="search-input" class="form-control" placeholder="Search by name or email..." value="{{ request('search') }}">
-                </div>
+            <div class="col-md-5">
+                <input type="text" name="search" id="search-input" class="form-control" placeholder="Search by name or email..." value="{{ request('search') }}">
             </div>
             <div class="col-md-4">
                 <select name="designation_id" id="designation-filter" class="form-control">
@@ -44,6 +33,12 @@
                             {{ $designation->name }}
                         </option>
                     @endforeach
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="statuses[]" id="status-filter" class="form-control" multiple="multiple">
+                    <option value="A">Active</option>
+                    <option value="I">Inactive</option>
                 </select>
             </div>
         </div>
@@ -61,7 +56,13 @@
 $(document).ready(function() {
     let debounceTimer;
 
-    function fetch_staff_data(page, sort_by, sort_order, search, designation_id, status) {
+    $('#status-filter').select2({
+        placeholder: 'Filter by Status'
+    });
+    // Set default value to Active and trigger the initial load
+    $('#status-filter').val(['A']).trigger('change.select2');
+
+    function fetch_staff_data(page, sort_by, sort_order, search, designation_id, statuses) {
         $('#staff-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
         $.ajax({
             url: "{{ route('staff.index') }}",
@@ -71,7 +72,7 @@ $(document).ready(function() {
                 sort_order: sort_order, 
                 search: search, 
                 designation_id: designation_id,
-                status: status
+                statuses: statuses
             },
             success: function(data) { $('#staff-table-container').html(data); },
             error: function() {
@@ -81,33 +82,20 @@ $(document).ready(function() {
         });
     }
 
-    function getCurrentStatus() {
-        return $('#staff-status-tabs .nav-link.active').data('status') || 'A';
+    function trigger_fetch() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function() {
+            const search = $('#search-input').val();
+            const designation_id = $('#designation-filter').val();
+            const statuses = $('#status-filter').val();
+            const sort_by = $('#sort_by').val() || 'created_at';
+            const sort_order = $('#sort_order').val() || 'desc';
+            fetch_staff_data(1, sort_by, sort_order, search, designation_id, statuses);
+        }, 300);
     }
 
-    // Tab switching
-    $('#staff-status-tabs a[data-toggle="pill"]').on('shown.bs.tab', function (e) {
-        const status = $(e.target).data('status');
-        const title = status === 'A' ? 'All Active Staff' : 'All Suspended Staff';
-        $('#card-title').text(title);
-        fetch_staff_data(1, 'created_at', 'desc', $('#search-input').val(), $('#designation-filter').val(), status);
-    });
-
-    $('#search-input').on('keyup', function() {
-        clearTimeout(debounceTimer);
-        const search = $(this).val();
-        debounceTimer = setTimeout(function() {
-            fetch_staff_data(1, $('#sort_by').val(), $('#sort_order').val(), search, $('#designation-filter').val(), getCurrentStatus());
-        }, 300);
-    });
-
-    $('#designation-filter').on('change', function() {
-        const designation_id = $(this).val();
-        const search = $('#search-input').val();
-        const sort_by = $('#sort_by').val();
-        const sort_order = $('#sort_order').val();
-        fetch_staff_data(1, sort_by, sort_order, search, designation_id, getCurrentStatus());
-    });
+    $('#search-input').on('keyup', trigger_fetch);
+    $('#designation-filter, #status-filter').on('change', trigger_fetch);
 
     $(document).on('click', '#staff-table-container .sort-link', function(e) {
         e.preventDefault();
@@ -115,7 +103,8 @@ $(document).ready(function() {
         const sort_order = $(this).data('sortorder');
         const search = $('#search-input').val();
         const designation_id = $('#designation-filter').val();
-        fetch_staff_data(1, sort_by, sort_order, search, designation_id, getCurrentStatus());
+        const statuses = $('#status-filter').val();
+        fetch_staff_data(1, sort_by, sort_order, search, designation_id, statuses);
     });
 
     $(document).on('click', '#staff-table-container .pagination a', function(e) {
@@ -125,7 +114,8 @@ $(document).ready(function() {
         const sort_order = $('#sort_order').val();
         const search = $('#search-input').val();
         const designation_id = $('#designation-filter').val();
-        fetch_staff_data(page, sort_by, sort_order, search, designation_id, getCurrentStatus());
+        const statuses = $('#status-filter').val();
+        fetch_staff_data(page, sort_by, sort_order, search, designation_id, statuses);
     });
 
     setTimeout(function() { $('#success-alert').fadeOut('slow'); }, 5000);

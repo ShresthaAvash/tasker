@@ -25,6 +25,20 @@ class TaskController extends Controller
         $staffId = Auth::id();
         $viewType = $request->get('view_type', 'client');
         $search = $request->get('search');
+        
+        // --- THIS IS THE DEFINITIVE FIX for STATUS FILTERING ---
+        $statuses = $request->input('statuses');
+
+        // Default to 'to_do' and 'ongoing' ONLY if the statuses parameter is completely absent from the request.
+        if ($statuses === null) {
+            $statuses = ['to_do', 'ongoing'];
+        }
+        // If the user de-selects everything, the frontend will send an empty array.
+        // We must ensure it's an array to prevent errors.
+        if (!is_array($statuses)) {
+            $statuses = [];
+        }
+        // --- END OF FIX ---
 
         // --- 1. Determine Date Range ---
         if ($request->get('use_custom_range') === 'true') {
@@ -43,7 +57,7 @@ class TaskController extends Controller
         }
 
         // --- 2. Data Fetching & Expansion ---
-        [$taskInstances, $personalTasks] = $this->getTaskInstancesInDateRange($staffId, $startDate, $endDate, $search);
+        [$taskInstances, $personalTasks] = $this->getTaskInstancesInDateRange($staffId, $startDate, $endDate, $search, $statuses);
 
         $allStatuses = ['to_do' => 'To Do', 'ongoing' => 'Ongoing', 'completed' => 'Completed'];
         
@@ -70,82 +84,100 @@ class TaskController extends Controller
     /**
      * Fetches and expands all task instances within a given date range for a staff member.
      */
-    private function getTaskInstancesInDateRange($staffId, Carbon $startDate, Carbon $endDate, $search)
+    private function getTaskInstancesInDateRange($staffId, Carbon $startDate, Carbon $endDate, $search, $statuses)
     {
         // Assigned (Client) Tasks
         $assignedTasksQuery = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
             ->with(['client', 'job', 'service'])
-            ->where(function ($query) {
-                // Get non-recurring tasks that are not yet complete OR any recurring task.
-                $query->where('is_recurring', false)->where('status', '!=', 'completed')
-                      ->orWhere('is_recurring', true);
-            })
-            ->where('start', '<=', $endDate) // Task must have started before the end of the range
-            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate)); // and end after the start of the range (or have no end date)
+            ->whereNotNull('start')
+            ->where('start', '<=', $endDate) 
+            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate));
         
+        // Personal (Non-Client) Tasks
+        $personalTasksQuery = Task::where('staff_id', $staffId)->whereNull('job_id')
+            ->whereNotNull('start')
+            ->where('start', '<=', $endDate)
+            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate));
+
         if ($search) {
             $assignedTasksQuery->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"));
             });
+            $personalTasksQuery->when($search, fn($q, $s) => $q->where('name', 'like', "%{$s}%"));
         }
         
         $taskInstances = new Collection();
         foreach ($assignedTasksQuery->get() as $task) {
-            $this->expandRecurringTask($task, $startDate, $endDate, $taskInstances);
+            $this->expandAndFilterTask($task, $startDate, $endDate, $taskInstances, $statuses);
         }
-
-        // Personal (Non-Client) Tasks
-        $personalTasksQuery = Task::where('staff_id', $staffId)->whereNull('job_id')
-            ->where(function ($query) {
-                $query->where('is_recurring', false)->where('status', '!=', 'completed')
-                      ->orWhere('is_recurring', true);
-            })
-            ->where('start', '<=', $endDate)
-            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
-            ->when($search, fn($q, $s) => $q->where('name', 'like', "%{$s}%"));
 
         $personalTasks = new Collection();
         foreach($personalTasksQuery->get() as $task) {
-            $this->expandRecurringTask($task, $startDate, $endDate, $personalTasks, true);
+            $this->expandAndFilterTask($task, $startDate, $endDate, $personalTasks, $statuses, true);
         }
 
         return [$taskInstances, $personalTasks];
     }
 
     /**
-     * Expands a recurring task into individual instances for a given date range.
+     * Expands a task into individual instances for a given date range and filters by status.
      */
-    private function expandRecurringTask($task, $startDate, $endDate, &$collection, $isPersonal = false)
+    private function expandAndFilterTask($task, $startDate, $endDate, &$collection, $statuses, $isPersonal = false)
     {
         $task->is_personal = $isPersonal;
+        $completedDates = (array) ($task->completed_at_dates ?? []);
 
-        if ($task->is_recurring && $task->start && $task->end) {
-            $completedDates = (array) ($task->completed_at_dates ?? []);
-            $cursor = $task->start->copy();
-
-            while ($cursor->lte($task->end)) {
-                // Only create an instance if it falls within our view's date range and is not marked as complete.
-                if ($cursor->between($startDate, $endDate) && !in_array($cursor->toDateString(), $completedDates)) {
-                    $instance = clone $task;
-                    $instance->due_date_instance = $cursor->copy(); // This holds the specific date for this instance.
-                    $collection->push($instance);
+        // Handle non-recurring tasks
+        if (!$task->is_recurring) {
+            if ($task->start && $task->start->between($startDate, $endDate)) {
+                $instanceStatus = $task->status;
+                if (empty($statuses) || in_array($instanceStatus, $statuses)) {
+                    $task->due_date_instance = $task->start;
+                    $collection->push($task);
                 }
-                
-                if ($cursor > $endDate) break; // Optimization: stop if we've passed the viewable range.
-                
+            }
+            return;
+        }
+        
+        // Handle recurring tasks
+        if ($task->is_recurring && $task->start && $task->recurring_frequency) {
+            $cursor = $task->start->copy();
+            $seriesEndDate = $task->end;
+
+            // Fast-forward cursor to the start of the viewing window if it starts before
+            while ($cursor->lt($startDate)) {
+                if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
                 switch ($task->recurring_frequency) {
                     case 'daily': $cursor->addDay(); break;
                     case 'weekly': $cursor->addWeek(); break;
                     case 'monthly': $cursor->addMonthWithNoOverflow(); break;
                     case 'yearly': $cursor->addYearWithNoOverflow(); break;
-                    default: break 2; // Exit the loop if frequency is unknown.
+                    default: break 2;
                 }
             }
-        } elseif ($task->start && $task->start->between($startDate, $endDate)) {
-            // For non-recurring tasks, just add it to the collection.
-            $task->due_date_instance = $task->start;
-            $collection->push($task);
+
+            // Generate and filter instances within the viewing window
+            while ($cursor->lte($endDate)) {
+                if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
+                
+                $instanceStatus = in_array($cursor->toDateString(), $completedDates) ? 'completed' : $task->status;
+                
+                if (empty($statuses) || in_array($instanceStatus, $statuses)) {
+                    $instance = clone $task;
+                    $instance->status = $instanceStatus; // Override the status for this instance
+                    $instance->due_date_instance = $cursor->copy();
+                    $collection->push($instance);
+                }
+
+                switch ($task->recurring_frequency) {
+                    case 'daily': $cursor->addDay(); break;
+                    case 'weekly': $cursor->addWeek(); break;
+                    case 'monthly': $cursor->addMonthWithNoOverflow(); break;
+                    case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                    default: break 2;
+                }
+            }
         }
     }
     
@@ -156,9 +188,10 @@ class TaskController extends Controller
     {
         $allTasks = new Collection($taskInstances);
         
-        // Ensure personal tasks also have a due_date_instance for consistent sorting.
         $personalTasks->each(function ($task) {
-            $task->due_date_instance = $task->start;
+            if (!isset($task->due_date_instance)) {
+                $task->due_date_instance = $task->start;
+            }
         });
         
         return $allTasks->concat($personalTasks)->sortBy('due_date_instance');
@@ -232,20 +265,16 @@ class TaskController extends Controller
             $completedDates = (array) ($task->completed_at_dates ?? []);
 
             if ($newStatus === 'completed') {
-                // Add the date to the completed list if it's not already there.
                 if (!in_array($instanceDate, $completedDates)) {
                     $completedDates[] = $instanceDate;
                 }
             } else {
-                // If the status is changing from completed, remove it from the list
-                // and update the parent task's status to reflect it's active again.
                 $completedDates = array_filter($completedDates, fn($date) => $date !== $instanceDate);
                 $task->status = $newStatus;
             }
             
             $task->completed_at_dates = array_values(array_unique($completedDates));
         } else {
-            // For non-recurring tasks, simply update the status.
             $task->status = $newStatus;
         }
 
@@ -267,7 +296,6 @@ class TaskController extends Controller
             return response()->json(['error' => 'Task must be "ongoing" to start the timer.'], 422);
         }
 
-        // Stop any other running timers for this user first.
         $this->stopAllRunningTimersForUser(Auth::id(), $taskId);
 
         $task->timer_started_at = Carbon::now();
@@ -318,7 +346,7 @@ class TaskController extends Controller
         $updateTask = function ($task) use ($stopTime, $excludeTaskId) {
             $currentTaskId = ($task instanceof Task ? 'p_' : 'a_') . $task->id;
             if ($currentTaskId === $excludeTaskId) {
-                return; // Don't stop the timer for the task we are about to start.
+                return;
             }
 
             if ($task->timer_started_at) {
