@@ -85,12 +85,12 @@ class SuperAdminController extends Controller
         // --- NEW --- Calculate the combined total revenue
         $totalRevenue = $earnings['monthly'] + $earnings['yearly'];
 
-        // --- NEW --- Get subscription counts
-        $monthlySubscriptionCount = Subscription::where('stripe_status', 'active')->whereHas('plan', fn($q) => $q->where('type', 'monthly'))->count();
-        $yearlySubscriptionCount = Subscription::where('stripe_status', 'active')->whereHas('plan', fn($q) => $q->where('type', 'annually'))->count();
-        $totalSubscriptionCount = $monthlySubscriptionCount + $yearlySubscriptionCount;
+        // --- THIS IS THE FIX ---
+        // We now count distinct USERS with active subscriptions, not the subscriptions themselves.
+        $totalSubscriptionCount = User::where('type', 'O')
+                                      ->whereHas('subscriptions', fn($q) => $q->where('stripe_status', 'active'))
+                                      ->count();
 
-        // --- MODIFICATION START ---
         // Determine which tab is active (monthly, yearly, or total)
         $type = $request->get('type', 'total'); // Default to 'total'
         
@@ -99,21 +99,18 @@ class SuperAdminController extends Controller
             'annually' => 'Yearly Subscriptions',
             default => 'All Active Subscriptions',
         };
-        // --- MODIFICATION END ---
 
         // Query for organizations with the selected subscription type
         $query = User::where('type', 'O')
             ->whereHas('subscriptions', function ($q) use ($type) {
                 $q->where('stripe_status', 'active');
                 
-                // --- MODIFICATION START ---
                 // Only filter by plan type if it's not the 'total' view
                 if (in_array($type, ['monthly', 'annually'])) {
                     $q->whereHas('plan', function ($planQuery) use ($type) {
                         $planQuery->where('type', $type);
                     });
                 }
-                // --- MODIFICATION END ---
             })
             ->with(['subscriptions' => function($q) {
                 $q->where('stripe_status', 'active')->with('plan');
@@ -140,7 +137,7 @@ class SuperAdminController extends Controller
             'monthlyEarnings' => $earnings['monthly'],
             'yearlyEarnings' => $earnings['yearly'],
             'totalRevenue' => $totalRevenue,
-            'totalSubscriptionCount' => $totalSubscriptionCount, // --- PASS NEW VARIABLE ---
+            'totalSubscriptionCount' => $totalSubscriptionCount, // This is now the correct count
             'organizations' => $organizations,
             'title' => $title,
         ]);
