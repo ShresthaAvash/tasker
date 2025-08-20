@@ -12,8 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\Notification; // <-- ADD THIS LINE
-use App\Notifications\SubscriptionRequested;    // <-- ADD THIS LINE
+// REMOVED: All notification-related 'use' statements. They are not needed here.
 
 class RegisteredUserController extends Controller
 {
@@ -22,7 +21,6 @@ class RegisteredUserController extends Controller
      */
     public function create(Request $request): View
     {
-        // This is correct, it passes the plan id to the view.
         return view('auth.register', ['plan_id' => $request->query('plan')]);
     }
 
@@ -37,7 +35,7 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'plan_id' => ['required', 'exists:plans,id'], // <-- THIS IS THE FIX
+            'plan_id' => ['required', 'exists:plans,id'],
         ]);
 
         $user = User::create([
@@ -50,16 +48,9 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        // --- THIS IS THE FIX ---
-        // Log the user in so they can proceed to the checkout page.
         Auth::login($user);
 
-        // --- THIS IS THE NEW NOTIFICATION LOGIC ---
-        $superAdmins = User::where('type', 'S')->get();
-        if ($superAdmins->isNotEmpty()) {
-            Notification::send($superAdmins, new SubscriptionRequested($user));
-        }
-        // --- END OF NEW LOGIC ---
+        // --- CONFIRMED: The old notification logic has been completely removed. ---
 
         // Redirect to the subscription checkout page
         return redirect()->route('subscription.checkout', ['plan' => $request->plan_id]);

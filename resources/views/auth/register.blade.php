@@ -106,9 +106,8 @@
                     </div>
 
                     <div class="flex items-center justify-end mt-4">
-                        <a class="underline text-sm text-gray-600 hover:text-gray-900" href="{{ route('login') }}">
-                            {{ __('Already registered?') }}
-                        </a>
+                        {{-- --- THIS IS THE FIX --- --}}
+                        {{-- The "Already registered?" link has been removed. --}}
 
                         <x-primary-button class="ms-4 register-button">
                             {{ __('Register') }}

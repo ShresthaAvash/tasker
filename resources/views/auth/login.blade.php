@@ -124,9 +124,10 @@
                             </p>
                         @endif
 
+                        {{-- --- THIS IS THE MODIFIED LINK --- --}}
                         <p>
-                            <a href="{{ route('register') }}" class="underline text-sm text-gray-600 hover:text-gray-900">
-                                {{ __("Don't have an account? Register") }}
+                            <a href="{{ route('pricing') }}" class="underline text-sm text-gray-600 hover:text-gray-900">
+                                New User? View Pricing Plans
                             </a>
                         </p>
                     </div>
