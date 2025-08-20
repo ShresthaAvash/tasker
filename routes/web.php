@@ -18,6 +18,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportController; // <-- Ensure this is here
 use App\Http\Controllers\SubscriptionController; // Add this
 use App\Http\Controllers\SuperAdmin\PlanController as SuperAdminPlanController;
+use App\Http\Controllers\Organization\ReportController as OrganizationReportController;
 use Illuminate\Support\Facades\Auth;
 
 /*
@@ -84,6 +85,9 @@ Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmi
 Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organization')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
     
+    // --- THIS IS THE NEW ROUTE FOR THE TIME REPORT ---
+    Route::get('reports/time', [OrganizationReportController::class, 'timeReport'])->name('organization.reports.time');
+
     Route::get('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'index'])->name('organization.subscription.index');
     Route::post('subscription/swap', [\App\Http\Controllers\Organization\SubscriptionController::class, 'swap'])->name('organization.subscription.swap');
     

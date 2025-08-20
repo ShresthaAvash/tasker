@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Organization;
 use App\Http\Controllers\Controller;
 use App\Models\AssignedTask;
 use App\Models\Task;
-use App\Models\Job; // <-- MODIFIED: Added this line
+use App\Models\Job;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -16,14 +16,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Notifications\TaskAssignedToStaff;
-use Illuminate\Validation\Rule; // <-- MODIFIED: Added this line
+use Illuminate\Validation\Rule;
 
 class TaskController extends Controller
 {
     /**
      * Store a newly created task in storage, associated with a job.
      */
-    public function store(Request $request, Job $job) // <-- MODIFIED: This was incorrectly named 'index'
+    public function store(Request $request, Job $job)
     {
         if ($job->service->organization_id !== Auth::id()) {
             abort(403);
@@ -36,14 +36,22 @@ class TaskController extends Controller
             'end' => 'nullable|date|after_or_equal:start',
             'is_recurring' => 'sometimes|boolean',
             'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
-            'staff_designation_id' => ['nullable', 'integer', Rule::exists('staff_designations', 'id')->where('organization_id', Auth::id())],
         ]);
 
         $data = $request->all();
-        // Ensure 'is_recurring' is set correctly based on checkbox presence
         $data['is_recurring'] = $request->has('is_recurring');
+        $data['status'] = 'not_started';
 
-        $job->tasks()->create($data);
+        $task = $job->tasks()->create($data);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Task added successfully!',
+                'task' => $task
+            ]);
+        }
+
         return redirect()->back()->with('success', 'Task added successfully.');
     }
 
@@ -63,15 +71,40 @@ class TaskController extends Controller
             'end' => 'nullable|date|after_or_equal:start',
             'is_recurring' => 'sometimes|boolean',
             'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
-            'staff_designation_id' => ['nullable', 'integer', Rule::exists('staff_designations', 'id')->where('organization_id', Auth::id())],
         ]);
 
         $data = $request->all();
-        // Ensure 'is_recurring' is set correctly based on checkbox presence
         $data['is_recurring'] = $request->has('is_recurring');
 
         $task->update($data);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Task updated successfully!',
+                'task' => $task
+            ]);
+        }
+
         return redirect()->back()->with('success', 'Task updated successfully.');
+    }
+
+    /**
+     * Remove the specified task from storage.
+     */
+    public function destroy(Task $task)
+    {
+        if ($task->job->service->organization_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $task->delete();
+
+        if (request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Task deleted successfully.']);
+        }
+
+        return redirect()->back()->with('success', 'Task deleted successfully.');
     }
 
     /**
@@ -95,7 +128,7 @@ class TaskController extends Controller
     /**
      * Manually stop or update the status of a task instance.
      */
-    public function stopTask(Request $request, Task $task) // <-- MODIFIED: Added Request $request parameter
+    public function stopTask(Request $request, Task $task)
     {
         if ($task->job->service->organization_id !== Auth::id()) {
             abort(403);

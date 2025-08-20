@@ -1,24 +1,33 @@
-@extends('adminlte::page')
+@extends('layouts.app')
 
 @section('title', 'My Calendar')
 
+@section('page_title', 'My Calendar')
+
 @section('content_header')
-    <h1>My Calendar</h1>
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>My Calendar</h1>
+        <a href="{{ route('staff.tasks.index') }}" class="btn btn-primary">
+            <i class="fas fa-tasks mr-1"></i> View Task List
+        </a>
+    </div>
 @stop
 
-@section('content')
+@section('page-content')
 <div class="card card-primary">
     <div class="card-body p-3">
         <div id="calendar"></div>
     </div>
 </div>
 
-{{-- MODIFIED: Modal with the Delete Task button removed --}}
+{{-- Modal for event details --}}
 <div id="eventDetailModal" class="modal">
     <div class="modal-content">
         <span class="close-button">&times;</span>
         <h4 style="margin-bottom: 15px;">Task Details</h4>
         <p><strong>Title:</strong> <span id="modalTitle"></span></p>
+        <p><strong>Service:</strong> <span id="modalService"></span></p>
+        <p><strong>Job:</strong> <span id="modalJob"></span></p>
         <p><strong>Start:</strong> <span id="modalStart"></span></p>
         <p><strong>End:</strong> <span id="modalEnd"></span></p>
         <hr>
@@ -51,10 +60,11 @@
 
             <small id="color-save-status" class="form-text text-success" style="display: none;">Color Saved!</small>
         </div>
-        {{-- REMOVED: The <hr> and the delete button are gone --}}
+        <hr>
+        <a href="#" id="viewInListBtn" class="btn btn-primary btn-block"><i class="fas fa-list-alt mr-2"></i>View in Task List</a>
     </div>
 </div>
-@stop
+@endsection
 
 @section('css')
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
@@ -68,10 +78,19 @@
         .color-swatch { width: 30px; height: 30px; border-radius: 50%; margin: 5px; cursor: pointer; border: 3px solid transparent; transition: border-color 0.2s; }
         .color-swatch:hover { border-color: #ccc; }
         .color-swatch.selected { border-color: #000; }
+        #calendar {
+            height: 85vh !important;
+        }
+
+        .highlight-event {
+            border: 3px solid black !important;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+        }
     </style>
 @stop
 
-@section('js')
+@section('page_content_js')
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -81,16 +100,24 @@
         var modal = document.getElementById('eventDetailModal');
         var colorSaveStatus = document.getElementById('color-save-status');
         var modalTitle = document.getElementById('modalTitle');
+        var modalService = document.getElementById('modalService');
+        var modalJob = document.getElementById('modalJob');
         var modalStart = document.getElementById('modalStart');
         var modalEnd = document.getElementById('modalEnd');
-        // REMOVED: Delete button variable
+        var viewInListBtn = document.getElementById('viewInListBtn');
         var closeButton = document.querySelector('.close-button');
         var nonRecurringPalette = document.getElementById('non-recurring-palette');
         var recurringPalette = document.getElementById('recurring-palette');
         var currentEvent = null;
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventIdToHighlight = urlParams.get('event_id');
+        const dateToGoTo = urlParams.get('date');
+        let highlighted = false;
+
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
+            initialDate: dateToGoTo || new Date(),
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
@@ -98,14 +125,53 @@
             },
             events: '{{ route("staff.calendar.events") }}',
             editable: true,
+            height: '100%',
+
+            eventDidMount: function(info) {
+                if (!highlighted && info.event.id === eventIdToHighlight) {
+                    const eventElement = info.el;
+                    eventElement.classList.add('highlight-event');
+                    eventElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    const removeHighlight = () => {
+                        if (eventElement) {
+                            eventElement.classList.remove('highlight-event');
+                        }
+                        document.body.removeEventListener('click', removeHighlight, { capture: true });
+                    };
+                    
+                    document.body.addEventListener('click', removeHighlight, { once: true, capture: true });
+                    
+                    if (history.replaceState) {
+                        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                        window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+                    }
+                    highlighted = true;
+                }
+            },
 
             eventClick: function(info) {
                 currentEvent = info.event;
                 modalTitle.textContent = currentEvent.title;
+                modalService.textContent = currentEvent.extendedProps.serviceName || 'N/A';
+                modalJob.textContent = currentEvent.extendedProps.jobName || 'N/A';
                 modalStart.textContent = currentEvent.start.toLocaleString();
                 
                 const actualEnd = currentEvent.extendedProps.actualEnd;
                 modalEnd.textContent = actualEnd ? new Date(actualEnd).toLocaleString() : 'Not set';
+                
+                // --- THIS IS THE DEFINITIVE FIX ---
+                const taskListPageUrl = "{{ route('staff.tasks.index') }}";
+                const eventId = currentEvent.id;
+                const eventDate = currentEvent.start; // Get the full Date object
+                const eventYear = eventDate.getFullYear();
+                const eventMonth = eventDate.getMonth() + 1; // getMonth() is 0-indexed
+
+                const viewUrl = new URL(taskListPageUrl);
+                viewUrl.searchParams.append('task_id', eventId);
+                viewUrl.searchParams.append('year', eventYear);
+                viewUrl.searchParams.append('month', eventMonth);
+                viewInListBtn.href = viewUrl.toString();
 
                 const isRecurring = currentEvent.extendedProps.isRecurring;
                 if (isRecurring) {
@@ -170,10 +236,8 @@
             });
         });
         
-        // REMOVED: Delete button onclick handler is gone.
-        
         closeButton.onclick = () => { modal.style.display = 'none'; };
         window.onclick = (event) => { if (event.target == modal) { modal.style.display = 'none'; }};
     });
     </script>
-@stop
+@endsection
