@@ -15,8 +15,8 @@
 {{-- This section adds all custom items to the top-right of the navigation bar --}}
 @section('content_top_nav_right')
 
-    {{-- Notifications Dropdown Menu --}}
-    <li class="nav-item dropdown">
+    {{-- MODIFIED: Added a unique ID to the list item for precise CSS targeting --}}
+    <li class="nav-item dropdown" id="notification-bell">
         <a class="nav-link" data-toggle="dropdown" href="#">
             <i class="far fa-bell"></i>
             @if(Auth::check() && Auth::user()->unreadNotifications->count())
@@ -29,14 +29,17 @@
                 <div class="dropdown-divider"></div>
                 
                 @forelse(Auth::user()->unreadNotifications->take(5) as $notification)
+                    {{-- MODIFIED: The structure inside the link is improved for better layout --}}
                     <a href="{{ route('notifications.index') }}" class="dropdown-item">
-                        @if (isset($notification->data['organization_name']))
-                            <i class="fas fa-user-plus text-success mr-2"></i>
-                        @else
-                            <i class="fas fa-tasks text-info mr-2"></i>
-                        @endif
-                        {{ Str::limit($notification->data['message'], 35) }}
-                        <span class="float-right text-muted text-sm">{{ $notification->created_at->diffForHumans(null, true) }}</span>
+                        <div class="notification-text">
+                            @if (isset($notification->data['organization_name']))
+                                <i class="fas fa-user-plus text-success mr-2"></i>
+                            @else
+                                <i class="fas fa-tasks text-info mr-2"></i>
+                            @endif
+                            {{ $notification->data['message'] }}
+                        </div>
+                        <span class="text-nowrap text-muted text-sm">{{ $notification->created_at->diffForHumans(null, true) }}</span>
                     </a>
                     <div class="dropdown-divider"></div>
                 @empty
@@ -102,6 +105,28 @@
             border-right-color: #dee2e6;
             border-bottom-color: transparent;
             color: #17a2b8;
+        }
+        
+        /* --- THIS IS THE DEFINITIVE FIX --- */
+        #notification-bell .dropdown-menu {
+            min-width: 450px !important; /* Makes the box wider to fit the text */
+            position: absolute !important;
+            left: auto !important;
+            right: 0 !important;
+        }
+
+        #notification-bell .dropdown-item {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            white-space: normal !important; /* Allows long text to wrap gracefully */
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+
+        #notification-bell .notification-text {
+            flex-grow: 1;
+            padding-right: 15px; /* Adds space between the message and the timestamp */
         }
     </style>
 @stop

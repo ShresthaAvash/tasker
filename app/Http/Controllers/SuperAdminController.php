@@ -10,6 +10,33 @@ use Illuminate\Support\Facades\DB;
 class SuperAdminController extends Controller
 {
     /**
+     * Helper function to calculate total monthly and yearly revenue from active subscriptions.
+     */
+    private function calculateEarnings()
+    {
+        $monthlyTotal = 0;
+        $yearlyTotal = 0;
+
+        // Eager load the plan to avoid N+1 queries
+        $activeSubscriptions = Subscription::where('stripe_status', 'active')->with('plan')->get();
+
+        foreach ($activeSubscriptions as $subscription) {
+            if ($subscription->plan) { // Check if plan exists
+                if ($subscription->plan->type === 'monthly') {
+                    $monthlyTotal += $subscription->plan->price;
+                } elseif ($subscription->plan->type === 'annually') {
+                    $yearlyTotal += $subscription->plan->price;
+                }
+            }
+        }
+
+        return [
+            'monthly' => $monthlyTotal,
+            'yearly' => $yearlyTotal,
+        ];
+    }
+
+    /**
      * Display the dashboard with stats.
      */
     public function dashboard()
@@ -27,6 +54,11 @@ class SuperAdminController extends Controller
                 $query->where('stripe_status', 'active')->orWhere('stripe_status', 'trialing');
             })
             ->count();
+            
+        // --- THIS IS THE NEW LOGIC ---
+        $earnings = $this->calculateEarnings();
+        $estimatedMonthlyEarnings = $earnings['monthly'] + ($earnings['yearly'] / 12);
+        // --- END OF NEW LOGIC ---
 
         // --- END OF FIX ---
 
@@ -36,8 +68,82 @@ class SuperAdminController extends Controller
             'organizationCount',
             'subscriptionPlansCount',
             'subscribedOrgsCount',
-            'recentRequests'
+            'recentRequests',
+            'estimatedMonthlyEarnings'
         ));
+    }
+
+    /**
+     * --- THIS IS THE NEW METHOD ---
+     * Display the earnings report page.
+     */
+    public function earnings(Request $request)
+    {
+        // Get total earnings for the info boxes at the top of the page
+        $earnings = $this->calculateEarnings();
+
+        // --- NEW --- Calculate the combined total revenue
+        $totalRevenue = $earnings['monthly'] + $earnings['yearly'];
+
+        // --- NEW --- Get subscription counts
+        $monthlySubscriptionCount = Subscription::where('stripe_status', 'active')->whereHas('plan', fn($q) => $q->where('type', 'monthly'))->count();
+        $yearlySubscriptionCount = Subscription::where('stripe_status', 'active')->whereHas('plan', fn($q) => $q->where('type', 'annually'))->count();
+        $totalSubscriptionCount = $monthlySubscriptionCount + $yearlySubscriptionCount;
+
+        // --- MODIFICATION START ---
+        // Determine which tab is active (monthly, yearly, or total)
+        $type = $request->get('type', 'total'); // Default to 'total'
+        
+        $title = match ($type) {
+            'monthly' => 'Monthly Subscriptions',
+            'annually' => 'Yearly Subscriptions',
+            default => 'All Active Subscriptions',
+        };
+        // --- MODIFICATION END ---
+
+        // Query for organizations with the selected subscription type
+        $query = User::where('type', 'O')
+            ->whereHas('subscriptions', function ($q) use ($type) {
+                $q->where('stripe_status', 'active');
+                
+                // --- MODIFICATION START ---
+                // Only filter by plan type if it's not the 'total' view
+                if (in_array($type, ['monthly', 'annually'])) {
+                    $q->whereHas('plan', function ($planQuery) use ($type) {
+                        $planQuery->where('type', $type);
+                    });
+                }
+                // --- MODIFICATION END ---
+            })
+            ->with(['subscriptions' => function($q) {
+                $q->where('stripe_status', 'active')->with('plan');
+            }]);
+
+        // Handle search functionality
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        $organizations = $query->latest()->paginate(10);
+
+        // Handle AJAX requests for tab switching and searching
+        if ($request->ajax()) {
+            return view('SuperAdmin.earnings._table', compact('organizations'))->render();
+        }
+
+        // Render the full page for the initial load
+        return view('SuperAdmin.earnings.index', [
+            'monthlyEarnings' => $earnings['monthly'],
+            'yearlyEarnings' => $earnings['yearly'],
+            'totalRevenue' => $totalRevenue,
+            'totalSubscriptionCount' => $totalSubscriptionCount, // --- PASS NEW VARIABLE ---
+            'organizations' => $organizations,
+            'title' => $title,
+        ]);
     }
 
     // List all organizations

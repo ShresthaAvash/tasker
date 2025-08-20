@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\User; // ADD THIS LINE
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification; // ADD THIS LINE
+use App\Notifications\OrganizationSubscribed; // ADD THIS LINE
 
 class SubscriptionController extends Controller
 {
@@ -45,6 +48,13 @@ class SubscriptionController extends Controller
             $user->status = 'A';
             $user->organization_id = $user->id; // Set organization ID
             $user->save();
+            
+            // --- THIS IS THE NEW NOTIFICATION LOGIC ---
+            $superAdmins = User::where('type', 'S')->get();
+            if ($superAdmins->isNotEmpty()) {
+                Notification::send($superAdmins, new OrganizationSubscribed($user, $plan));
+            }
+            // --- END OF NEW LOGIC ---
 
         } catch (\Exception $e) {
             return back()->withErrors(['message' => 'Error creating subscription: ' . $e->getMessage()]);

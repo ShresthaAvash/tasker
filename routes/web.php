@@ -63,6 +63,9 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmin')->group(function () {
     Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('superadmin.dashboard');
 
+    // --- THIS IS THE NEW EARNINGS ROUTE ---
+    Route::get('/earnings', [SuperAdminController::class, 'earnings'])->name('superadmin.earnings');
+
     // --- MODIFICATION START ---
     // The 'subscription-requests' routes have been removed.
     // The 'active-subscriptions' route is replaced by the new 'subscribed' route.
