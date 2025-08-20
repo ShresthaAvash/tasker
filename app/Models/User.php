@@ -27,7 +27,7 @@ class User extends Authenticatable
         'status',
         'organization_id',
         'staff_designation_id',
-        'subscription_id', // <-- ADDED THIS LINE
+        // 'subscription_id', // <-- REMOVED THIS LINE
     ];
 
     /**

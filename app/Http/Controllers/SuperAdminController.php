@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Subscription;
+use App\Models\Plan; // <-- ADD THIS LINE
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 class SuperAdminController extends Controller
@@ -13,10 +14,22 @@ class SuperAdminController extends Controller
      */
     public function dashboard()
     {
-        $organizationCount = User::where('users.type', 'O')->count();
-        $subscriptionPlansCount = Subscription::count();
-        $subscribedOrgsCount = User::where('users.type', 'O')->whereNotNull('subscription_id')->count();
-        
+        // --- THIS IS THE FIX ---
+        // Count all organizations of type 'O'.
+        $organizationCount = User::where('type', 'O')->count();
+
+        // Count available plans from the 'plans' table.
+        $subscriptionPlansCount = Plan::count();
+
+        // Count organizations that have an active or trialing subscription.
+        $subscribedOrgsCount = User::where('type', 'O')
+            ->whereHas('subscriptions', function ($query) {
+                $query->where('stripe_status', 'active')->orWhere('stripe_status', 'trialing');
+            })
+            ->count();
+
+        // --- END OF FIX ---
+
         $recentRequests = User::where('type', 'O')->where('status', 'R')->latest()->take(5)->get();
 
         return view('SuperAdmin.dashboard', compact(
@@ -120,13 +133,9 @@ class SuperAdminController extends Controller
 
         $query = User::where('type', 'O')
             ->whereHas('subscriptions', function ($q) use ($status) {
-                // --- THIS IS THE CRITICAL FIX ---
                 if ($status === 'active') {
-                    // An "active" subscription is one that is NOT canceled.
-                    // This correctly excludes subscriptions in their grace period.
                     $q->whereNull('ends_at');
                 } else { // deactivated
-                    // A "deactivated" subscription is one that IS canceled.
                     $q->whereNotNull('ends_at');
                 }
             })
