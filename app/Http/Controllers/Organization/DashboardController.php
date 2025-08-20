@@ -19,6 +19,7 @@ class DashboardController extends Controller
     public function index()
     {
         $organizationId = Auth::id();
+        $organization = Auth::user(); // Get the authenticated user object
 
         // Stats for the info boxes
         $clientCount = User::where('organization_id', $organizationId)
@@ -30,6 +31,11 @@ class DashboardController extends Controller
             ->count();
 
         $serviceCount = Service::where('organization_id', $organizationId)->count();
+
+        // --- THIS IS THE MODIFIED LOGIC ---
+        // Count the number of active subscriptions for the organization
+        $subscriptionCount = $organization->subscriptions()->where('stripe_status', 'active')->count();
+        // --- END OF MODIFICATION ---
 
         $activeTaskCount = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
             ->where('status', 'active')
@@ -60,6 +66,7 @@ class DashboardController extends Controller
             'staffCount',
             'serviceCount',
             'activeTaskCount',
+            'subscriptionCount', // Pass the new count variable
             'upcomingTasks',
             'chartLabels',
             'chartData'
