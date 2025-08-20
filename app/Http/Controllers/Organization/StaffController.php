@@ -23,11 +23,12 @@ class StaffController extends Controller
         $query = User::where('type', 'T')
             ->where('organization_id', Auth::id())
             ->with('designation');
-
-        // MODIFIED: Filter by status, default to Active ('A')
-        $status = $request->get('status', 'A');
-        if (in_array($status, ['A', 'I'])) {
-            $query->where('status', $status);
+            
+        // --- THIS IS THE FIX: Filter by an array of statuses from the request ---
+        $statuses = $request->get('statuses');
+        if (!empty($statuses) && is_array($statuses)) {
+             // We use whereIn to filter by multiple statuses at once
+            $query->whereIn('status', $statuses);
         }
 
         if ($request->filled('search')) {
@@ -55,8 +56,6 @@ class StaffController extends Controller
         
         return view('Organization.staff.index', compact('staff', 'sort_by', 'sort_order', 'designations'));
     }
-
-    // REMOVED: The suspended() method is no longer needed as its functionality is merged into index().
     
     /**
      * Toggle the status of a staff member between Active and Inactive.

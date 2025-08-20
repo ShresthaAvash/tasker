@@ -20,6 +20,7 @@ use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Notifications\ClientTaskAssigned;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class ClientController extends Controller
 {
@@ -95,19 +96,17 @@ class ClientController extends Controller
             ->with(['contacts', 'notes', 'pinnedNote', 'documents.uploader', 'assignedServices', 'assignedTasks.staff'])
             ->findOrFail($id);
         
-        // --- MODIFICATION START: Filter services to show only global and this client's personal services ---
         $organizationId = Auth::id();
         $allServices = Service::where('organization_id', $organizationId)
             ->where('status', 'A')
             ->where(function ($query) use ($id) {
-                $query->whereNull('client_id') // Global services
-                      ->orWhere('client_id', $id); // This client's personal services
+                $query->whereNull('client_id') 
+                      ->orWhere('client_id', $id);
             })
             ->orderBy('name')
             ->get();
-        // --- MODIFICATION END ---
         
-        $allStaff = User::where('organization_id', Auth::id())->whereIn('type', ['T', 'A', 'M', 'O'])->orderBy('name')->get();
+        $allStaff = User::where('organization_id', Auth::id())->whereIn('type', ['T', 'A', 'M'])->orderBy('name')->get();
         $designations = \App\Models\StaffDesignation::where('organization_id', Auth::id())->orderBy('name')->get();
         
         $allStaffJson = $allStaff->map(function ($staff) {
@@ -343,7 +342,7 @@ class ClientController extends Controller
                    ->whereHas('service', function ($query) use ($organizationId) {
                        $query->where('organization_id', $organizationId);
                    })
-                   ->with(['service', 'tasks.staff']) // Eager load the default staff member
+                   ->with(['service', 'tasks.staff']) 
                    ->orderBy('name')
                    ->get();
         
@@ -353,30 +352,51 @@ class ClientController extends Controller
     public function assignServices(Request $request, User $client)
     {
         if ($client->organization_id !== Auth::id()) abort(403);
-
+    
         $validated = $request->validate([
             'services' => 'sometimes|array',
             'services.*' => 'exists:services,id',
             'tasks' => 'present|array',
             'staff_assignments' => 'present|array',
+            'task_start_dates' => 'sometimes|array',
+            'task_start_dates.*' => 'nullable|date',
+            'task_end_dates' => 'sometimes|array',
+            'task_end_dates.*' => 'nullable|date|after_or_equal:task_start_dates.*',
         ]);
-
+    
+        $selectedTaskIds = array_keys($validated['tasks'] ?? []);
+        if (!empty($selectedTaskIds)) {
+            $tasksNeedingDates = Task::whereIn('id', $selectedTaskIds)
+                                      ->whereNull('start')
+                                      ->get();
+    
+            foreach ($tasksNeedingDates as $task) {
+                if (empty($validated['task_start_dates'][$task->id])) {
+                    throw ValidationException::withMessages([
+                        'task_start_dates' => "A start date is required for the task '{$task->name}' because it does not have a default start date.",
+                    ]);
+                }
+            }
+        }
+    
         DB::transaction(function () use ($validated, $client) {
             $client->assignedServices()->sync($validated['services'] ?? []);
             
             $currentTaskIds = $client->assignedTasks()->pluck('task_template_id')->toArray();
             $newTaskIds = array_keys($validated['tasks'] ?? []);
-
+    
             $tasksToDelete = array_diff($currentTaskIds, $newTaskIds);
             if (!empty($tasksToDelete)) {
                 $client->assignedTasks()->whereIn('task_template_id', $tasksToDelete)->delete();
             }
-
+    
             if (!empty($newTaskIds)) {
                 $selectedTaskTemplates = Task::with('job.service')->findMany($newTaskIds);
                 
                 foreach ($selectedTaskTemplates as $taskTemplate) {
-
+                    $startDate = $taskTemplate->start ?? ($validated['task_start_dates'][$taskTemplate->id] ?? null);
+                    $endDate = $validated['task_end_dates'][$taskTemplate->id] ?? $taskTemplate->end;
+    
                     $assignedTask = AssignedTask::updateOrCreate(
                         [
                             'client_id' => $client->id,
@@ -387,19 +407,19 @@ class ClientController extends Controller
                             'job_id' => $taskTemplate->job_id,
                             'name' => $taskTemplate->name,
                             'description' => $taskTemplate->description,
-                            'status' => 'pending',
-                            'start' => $taskTemplate->start,
-                            'end' => $taskTemplate->end,
+                            'status' => 'to_do', // <-- DEFINITIVE FIX HERE
+                            'start' => $startDate,
+                            'end' => $endDate,
                             'is_recurring' => $taskTemplate->is_recurring,
                             'recurring_frequency' => $taskTemplate->recurring_frequency,
                         ]
                     );
-
+    
                     $staffIds = $validated['staff_assignments'][$taskTemplate->id] ?? [];
                     
                     $syncResult = $assignedTask->staff()->sync($staffIds);
                     $newlyAttachedStaffIds = $syncResult['attached'];
-
+    
                     if (!empty($newlyAttachedStaffIds)) {
                         $newlyAssignedStaff = User::find($newlyAttachedStaffIds);
                         
@@ -410,11 +430,10 @@ class ClientController extends Controller
                 }
             }
         });
-
+    
         return redirect()->route('clients.edit', $client->id)->with('success', 'Client services and tasks have been updated successfully.');
     }
 
-    // --- MODIFIED METHOD START ---
     public function storeClientSpecificService(Request $request, User $client) {
         if ($client->organization_id !== Auth::id()) {
             abort(403);
@@ -427,7 +446,7 @@ class ClientController extends Controller
             'jobs.*.name' => 'required|string|max:255',
             'jobs.*.tasks' => 'present|array',
             'jobs.*.tasks.*.name' => 'required|string|max:255',
-            'jobs.*.tasks.*.start' => 'required|date',
+            'jobs.*.tasks.*.start' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -435,12 +454,11 @@ class ClientController extends Controller
         }
 
         $service = DB::transaction(function () use ($request, $client) {
-            // Create the Service and associate it with the client
             $service = Service::create([
                 'name' => $request->input('name'),
                 'description' => $request->input('description'),
                 'organization_id' => Auth::id(),
-                'client_id' => $client->id, // This is the crucial line
+                'client_id' => $client->id,
                 'status' => 'A',
             ]);
 
@@ -474,5 +492,4 @@ class ClientController extends Controller
             ]
         ]);
     }
-    // --- MODIFIED METHOD END ---
 }

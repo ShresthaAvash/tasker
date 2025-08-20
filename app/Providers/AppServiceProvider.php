@@ -32,42 +32,7 @@ class AppServiceProvider extends ServiceProvider
         Schema::defaultStringLength(191);
         Paginator::useBootstrapFour();
 
-        /**
-         * View Composer for staff active timers
-         */
-        View::composer('*', function ($view) {
-            if (Auth::check() && Auth::user()->type === 'T') {
-                $staffId = Auth::id();
-
-                $activeTask = Task::where('staff_id', $staffId)
-                    ->whereNotNull('timer_started_at')
-                    ->first();
-
-                $activeAssignedTask = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
-                    ->whereNotNull('timer_started_at')
-                    ->with('client')
-                    ->first();
-
-                $activeTimer = null;
-                $task = $activeTask ?? $activeAssignedTask;
-
-                if ($task) {
-                    $isPersonal = $task instanceof Task;
-                    $taskId = ($isPersonal ? 'p_' : 'a_') . $task->id;
-                    $taskName = $isPersonal ? $task->name : (optional($task->client)->name . ': ' . $task->name);
-
-                    $activeTimer = [
-                        'task_id' => $taskId,
-                        'task_name' => $taskName,
-                        'duration_in_seconds' => $task->duration_in_seconds,
-                        'timer_started_at' => $task->timer_started_at->toIso8601String(),
-                    ];
-                }
-
-                // 🔥 Share $activeTimer with all views
-                $view->with('activeTimer', $activeTimer);
-            }
-        });
+        // --- THIS IS THE FIX: The old, conflicting timer composer has been removed ---
 
         /**
          * View Composer for Super Admin subscription request badge
