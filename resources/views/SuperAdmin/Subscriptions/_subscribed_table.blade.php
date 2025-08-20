@@ -34,7 +34,10 @@
                 @if($subscription = $org->subscriptions->first())
                     <tr>
                         <td>
-                            <strong>{{ $org->name }}</strong>
+                            {{-- --- THIS IS THE FIX --- --}}
+                            <a href="{{ route('superadmin.subscriptions.history', $org) }}">
+                                <strong>{{ $org->name }}</strong>
+                            </a>
                             <br>
                             <small class="text-muted">{{ $org->email }}</small>
                         </td>
@@ -52,7 +55,6 @@
                             {{ $org->created_at->format('d M Y') }}
                         </td>
                         <td>
-                            {{-- --- THIS IS THE UPDATED LOGIC --- --}}
                             @if ($date = $subscription->calculated_ends_at)
                                 @if($subscription->canceled())
                                     <span class="text-danger">Ends on {{ $date->format('d M Y') }}</span>

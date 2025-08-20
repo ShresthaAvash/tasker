@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Subscription;
-use App\Models\Plan; // <-- ADD THIS LINE
+use App\Models\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 class SuperAdminController extends Controller
@@ -14,21 +14,13 @@ class SuperAdminController extends Controller
      */
     public function dashboard()
     {
-        // --- THIS IS THE FIX ---
-        // Count all organizations of type 'O'.
         $organizationCount = User::where('type', 'O')->count();
-
-        // Count available plans from the 'plans' table.
         $subscriptionPlansCount = Plan::count();
-
-        // Count organizations that have an active or trialing subscription.
         $subscribedOrgsCount = User::where('type', 'O')
             ->whereHas('subscriptions', function ($query) {
                 $query->where('stripe_status', 'active')->orWhere('stripe_status', 'trialing');
             })
             ->count();
-
-        // --- END OF FIX ---
 
         $recentRequests = User::where('type', 'O')->where('status', 'R')->latest()->take(5)->get();
 
@@ -43,7 +35,6 @@ class SuperAdminController extends Controller
     // List all organizations
     public function index(Request $request)
     {
-        // Eager load the subscription relationship provided by Cashier
         $query = User::where('type', 'O')->with('subscriptions');
 
         if ($request->filled('search')) {
@@ -129,13 +120,13 @@ class SuperAdminController extends Controller
     
     public function subscribedOrganizations(Request $request)
     {
-        $status = $request->get('status', 'active'); // Default to the 'active' tab
+        $status = $request->get('status', 'active');
 
         $query = User::where('type', 'O')
             ->whereHas('subscriptions', function ($q) use ($status) {
                 if ($status === 'active') {
                     $q->whereNull('ends_at');
-                } else { // deactivated
+                } else {
                     $q->whereNotNull('ends_at');
                 }
             })
@@ -168,6 +159,25 @@ class SuperAdminController extends Controller
         }
 
         return view('SuperAdmin.subscriptions.subscribed', compact('organizations', 'sort_by', 'sort_order'));
+    }
+
+    // --- THIS IS THE NEW METHOD ---
+    public function subscriptionHistory(User $user)
+    {
+        // Security check: Ensure we're only viewing organizations.
+        if ($user->type !== 'O') {
+            abort(404);
+        }
+
+        // Load all subscriptions (active and canceled) with their plan details.
+        $user->load(['subscriptions' => function ($query) {
+            $query->orderBy('created_at', 'desc')->with('plan');
+        }]);
+
+        return view('SuperAdmin.subscriptions.history', [
+            'organization' => $user,
+            'subscriptions' => $user->subscriptions,
+        ]);
     }
 
     public function cancelSubscription(User $user)

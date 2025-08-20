@@ -73,7 +73,6 @@
             <div class="row justify-content-center">
                 {{-- Monthly Card --}}
                 <div class="col-lg-4 mb-4">
-                    <!-- ADD: h-100 class makes cards in a row equal height -->
                     <div class="pricing-card h-100">
                         <div class="card-body-content">
                             <h5>{{ $monthlyPlan->name }}</h5>
@@ -83,14 +82,25 @@
                             <p><strong class="fs-5">£<span id="monthly-total">0.00</span></strong> / Paid monthly</p>
                             <p class="text-muted small">(<span class="monthly-price-note"></span> / user / month)</p>
                         </div>
-                        {{-- --- THIS IS THE FIX --- --}}
-                        <a href="{{ auth()->check() ? route('subscription.checkout', ['plan' => $monthlyPlan->id]) : route('register', ['plan' => $monthlyPlan->id]) }}" class="btn btn-outline-primary btn-lg mt-3">Purchase</a>
+                        {{-- --- THIS IS THE MODIFIED BUTTON LOGIC --- --}}
+                        @auth
+                            <form action="{{ route('organization.subscription.swap') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="plan_id" value="{{ $monthlyPlan->id }}">
+                                @if(Auth::user()->subscription('default') && Auth::user()->subscription('default')->stripe_price === $monthlyPlan->stripe_price_id)
+                                    <button type="button" class="btn btn-secondary btn-lg mt-3" disabled>Current Plan</button>
+                                @else
+                                    <button type="submit" class="btn btn-outline-primary btn-lg mt-3">Switch Plan</button>
+                                @endif
+                            </form>
+                        @else
+                            <a href="{{ route('register', ['plan' => $monthlyPlan->id]) }}" class="btn btn-outline-primary btn-lg mt-3">Purchase</a>
+                        @endauth
                     </div>
                 </div>
 
                 {{-- Annual Card --}}
                 <div class="col-lg-4 mb-4">
-                    <!-- ADD: h-100 class makes cards in a row equal height -->
                     <div class="pricing-card highlight h-100">
                         <div class="card-body-content">
                             <h5>{{ $annualPlan->name }}</h5>
@@ -101,8 +111,20 @@
                             <p><strong class="fs-5">£<span id="annual-total">0.00</span></strong> / year</p>
                             <p class="text-muted small">paid annually in advance</p>
                         </div>
-                         {{-- --- THIS IS THE FIX --- --}}
-                        <a href="{{ auth()->check() ? route('subscription.checkout', ['plan' => $annualPlan->id]) : route('register', ['plan' => $annualPlan->id]) }}" class="btn btn-primary btn-lg mt-3">Purchase</a>
+                        {{-- --- THIS IS THE MODIFIED BUTTON LOGIC --- --}}
+                        @auth
+                            <form action="{{ route('organization.subscription.swap') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="plan_id" value="{{ $annualPlan->id }}">
+                                @if(Auth::user()->subscription('default') && Auth::user()->subscription('default')->stripe_price === $annualPlan->stripe_price_id)
+                                    <button type="button" class="btn btn-secondary btn-lg mt-3" disabled>Current Plan</button>
+                                @else
+                                    <button type="submit" class="btn btn-primary btn-lg mt-3">Switch Plan</button>
+                                @endif
+                            </form>
+                        @else
+                            <a href="{{ route('register', ['plan' => $annualPlan->id]) }}" class="btn btn-primary btn-lg mt-3">Purchase</a>
+                        @endauth
                     </div>
                 </div>
             </div>
@@ -118,78 +140,49 @@
 @section('page-scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Only run if both plans exist
         @if($monthlyPlan && $annualPlan)
             const baseMonthlyPrice = parseFloat("{{ $monthlyPlan->price }}");
             const baseAnnualPrice = parseFloat("{{ $annualPlan->price }}");
-
-            // Get references to all the elements
             const slider = document.getElementById('user-slider');
             const userInput = document.getElementById('user-input');
             const userCountDisplay = document.getElementById('user-count-display');
-
             const monthlyPricePerUserEl = document.getElementById('monthly-price-per-user');
             const annualPricePerUserEl = document.getElementById('annual-price-per-user');
             const monthlyTotalEl = document.getElementById('monthly-total');
             const annualTotalEl = document.getElementById('annual-total');
             const monthlyPriceNoteEl = document.querySelector('.monthly-price-note');
-
-            // --- START: Discount Logic ---
             function getDiscountRate(userCount) {
-                if (userCount <= 10) return 0; // 0% discount for 1-10 users
-                if (userCount <= 25) return 0.05; // 5% discount for 11-25 users
-                if (userCount <= 50) return 0.10; // 10% discount for 26-50 users
-                return 0.15; // 15% discount for 51+ users
+                if (userCount <= 10) return 0;
+                if (userCount <= 25) return 0.05;
+                if (userCount <= 50) return 0.10;
+                return 0.15;
             }
-            // --- END: Discount Logic ---
-
             function updatePrices() {
                 const userCount = parseInt(userInput.value);
-
-                // Sync UI elements
                 userCountDisplay.textContent = userCount;
-                if (document.activeElement !== slider) {
-                    slider.value = userCount;
-                }
-                if (document.activeElement !== userInput) {
-                    userInput.value = userCount;
-                }
-
-
-                // Calculate discounts
+                if (document.activeElement !== slider) slider.value = userCount;
+                if (document.activeElement !== userInput) userInput.value = userCount;
                 const discountRate = getDiscountRate(userCount);
                 const discountedMonthlyPrice = baseMonthlyPrice * (1 - discountRate);
                 const discountedAnnualPrice = baseAnnualPrice * (1 - discountRate);
-
-                // Calculate totals
                 const totalMonthly = userCount * discountedMonthlyPrice;
                 const totalAnnual = userCount * discountedAnnualPrice * 12;
-
-                // Update the text on the page, formatted to 2 decimal places
                 monthlyPricePerUserEl.textContent = discountedMonthlyPrice.toFixed(2);
                 annualPricePerUserEl.textContent = discountedAnnualPrice.toFixed(2);
                 monthlyTotalEl.textContent = totalMonthly.toFixed(2);
                 annualTotalEl.textContent = totalAnnual.toFixed(2);
                 monthlyPriceNoteEl.textContent = discountedMonthlyPrice.toFixed(2);
             }
-
-            // --- START: Event Listeners for two-way sync ---
             slider.addEventListener('input', () => {
                 userInput.value = slider.value;
                 updatePrices();
             });
-
             userInput.addEventListener('input', () => {
-                // Basic validation
                 if (parseInt(userInput.value) > 100) userInput.value = 100;
                 if (parseInt(userInput.value) < 1) userInput.value = 1;
-                
                 slider.value = userInput.value;
                 updatePrices();
             });
-            // --- END: Event Listeners ---
-
-            // Run on page load
             updatePrices();
         @endif
     });

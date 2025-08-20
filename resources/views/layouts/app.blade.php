@@ -92,16 +92,17 @@
             border-right: 1px solid #dee2e6 !important;
         }
 
-        /* --- SIDEBAR HIGHLIGHTING RULE REMOVED --- */
-
-        /* Style for the active TAB on content pages */
+        /* --- THIS IS THE DEFINITIVE FIX --- */
+        /* Style for the active TAB on content pages to have a solid background */
         .card-tabs .nav-tabs .nav-link.active {
-            background-color: #ffffff;
-            border-top: 3px solid #17a2b8; /* Your teal color */
-            border-left-color: #dee2e6;
-            border-right-color: #dee2e6;
-            border-bottom-color: transparent;
-            color: #17a2b8;
+            background-color: #17a2b8 !important; /* Your teal color */
+            color: #ffffff !important;
+            border-color: #17a2b8 #17a2b8 #ffffff;
+        }
+
+        /* Style for inactive tabs to ensure they look clickable */
+        .card-tabs .nav-tabs .nav-link {
+            color: #007bff; /* Standard link blue */
         }
     </style>
 @stop

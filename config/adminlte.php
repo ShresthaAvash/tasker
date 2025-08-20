@@ -229,9 +229,8 @@ return [
             'icon'    => 'fas fa-fw fa-building',
             'can'     => 'is-superadmin',
             'submenu' => [
-                [ 'text' => 'All Organizations', 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
+                [ 'text' => 'List Organizations', 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
                 [ 'text' => 'Add Organization', 'route'  => 'superadmin.organizations.create', 'icon' => 'fas fa-fw fa-plus', ],
-                // --- THIS IS THE MODIFIED PART ---
                 [
                     'text' => 'Subscribed Organizations',
                     'route'  => 'superadmin.subscriptions.subscribed',
@@ -244,7 +243,6 @@ return [
             'icon'    => 'fas fa-fw fa-tags',
             'can'     => 'is-superadmin',
             'submenu' => [
-                // --- "Subscribed Organizations" was removed from here ---
                 [
                     'text' => 'List Subscription Plans',
                     'route'  => 'superadmin.plans.index',
@@ -291,6 +289,13 @@ return [
                 [ 'text' => 'List Services', 'route'  => 'services.index', 'icon' => 'fas fa-fw fa-list', ],
                 [ 'text' => 'Add Service', 'route'  => 'services.create', 'icon' => 'fas fa-fw fa-plus', ],
             ],
+        ],
+        // --- THIS IS THE NEW MENU ITEM ---
+        [
+            'text' => 'My Subscription',
+            'route'  => 'organization.subscription.index',
+            'icon' => 'fas fa-fw fa-tags',
+            'can'  => 'is-organization',
         ],
 
          // STAFF MENU

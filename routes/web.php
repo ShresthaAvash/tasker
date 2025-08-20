@@ -62,14 +62,12 @@ Route::middleware('auth')->group(function () {
 // Super Admin routes
 Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmin')->group(function () {
     Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('superadmin.dashboard');
-
-    // --- MODIFICATION START ---
-    // The 'subscription-requests' routes have been removed.
-    // The 'active-subscriptions' route is replaced by the new 'subscribed' route.
     Route::get('/subscribed-organizations', [SuperAdminController::class, 'subscribedOrganizations'])->name('superadmin.subscriptions.subscribed');
-    // --- MODIFICATION END ---
-    
     Route::resource('organizations', SuperAdminController::class)->names('superadmin.organizations');
+
+    // --- THIS IS THE NEW ROUTE FOR VIEWING SUBSCRIPTION HISTORY ---
+    Route::get('/organizations/{user}/subscription-history', [SuperAdminController::class, 'subscriptionHistory'])->name('superadmin.subscriptions.history');
+
     Route::resource('plans', SuperAdminPlanController::class)->names('superadmin.plans');
     Route::patch('/subscriptions/{user}/cancel', [SuperAdminController::class, 'cancelSubscription'])->name('superadmin.subscriptions.cancel');
     Route::patch('/subscriptions/{user}/resume', [SuperAdminController::class, 'resumeSubscription'])->name('superadmin.subscriptions.resume');
@@ -80,7 +78,7 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
     
     Route::get('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'index'])->name('organization.subscription.index');
-    Route::post('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'store'])->name('organization.subscription.store');
+    Route::post('subscription/swap', [\App\Http\Controllers\Organization\SubscriptionController::class, 'swap'])->name('organization.subscription.swap');
     
     // Calendar
     Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
@@ -135,10 +133,8 @@ Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->grou
 
     Route::patch('tasks/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('staff.tasks.updateStatus')->where('task', '.*');
 
-    // --- NEW ROUTES START ---
     Route::post('tasks/{task}/start-timer', [StaffTaskController::class, 'startTimer'])->name('staff.tasks.startTimer')->where('task', '.*');
     Route::post('tasks/{task}/stop-timer', [StaffTaskController::class, 'stopTimer'])->name('staff.tasks.stopTimer')->where('task', '.*');
-    // --- NEW ROUTES END ---
 
     Route::post('tasks/{task}/add-manual-time', [StaffTaskController::class, 'addManualTime'])->name('staff.tasks.addManualTime')->where('task', '.*');
 });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Organization;
 
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -12,37 +13,48 @@ use Illuminate\Validation\Rule;
 class SubscriptionController extends Controller
 {
     /**
-     * Display the organization's current subscription and available plans.
+     * Display the organization's current subscription and history.
      */
     public function index()
     {
         $organization = Auth::user();
         
-        // Eager load the subscription relationship
-        $organization->load('subscription');
+        // Eager load all subscriptions with their related plan details for efficiency.
+        $organization->load('subscriptions.plan');
 
-        // Get all available subscription plans
-        $allSubscriptions = Subscription::orderBy('price')->get();
+        // Get all subscriptions for the history tab.
+        $allSubscriptions = $organization->subscriptions;
 
-        return view('Organization.subscription.index', [
-            'currentSubscription' => $organization->subscription,
-            'allSubscriptions' => $allSubscriptions,
-        ]);
+        // Get the current active subscription.
+        $currentSubscription = $allSubscriptions->whereNull('ends_at')->first();
+
+        // Get the plan from the current subscription.
+        $plan = optional($currentSubscription)->plan;
+
+        return view('Organization.subscription.index', compact('currentSubscription', 'plan', 'allSubscriptions'));
     }
-
+    
     /**
-     * Update the organization's subscription plan.
+     * --- THIS IS THE NEW METHOD FOR CHANGING PLANS ---
+     * Swap the organization's current subscription plan.
      */
-    public function store(Request $request)
+    public function swap(Request $request)
     {
         $request->validate([
-            'subscription_id' => ['required', 'integer', Rule::exists('subscriptions', 'id')],
+            'plan_id' => ['required', 'integer', Rule::exists('plans', 'id')],
         ]);
 
         $organization = Auth::user();
-        $organization->subscription_id = $request->input('subscription_id');
-        $organization->save();
+        $newPlan = Plan::find($request->input('plan_id'));
 
-        return redirect()->route('organization.subscription.index')->with('success', 'Subscription plan updated successfully!');
+        try {
+            // Use Cashier's swap method. It handles proration automatically.
+            $organization->subscription('default')->swap($newPlan->stripe_price_id);
+            
+            return redirect()->route('organization.subscription.index')->with('success', 'Subscription plan changed successfully!');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['message' => 'Error changing subscription: ' . $e->getMessage()]);
+        }
     }
 }
