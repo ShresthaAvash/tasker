@@ -3,12 +3,7 @@
 @section('title', 'Super Admin Dashboard')
 
 @section('content_header')
-    <div class="d-flex justify-content-between align-items-center">
-        <h1>Dashboard</h1>
-        <a href="{{ route('generate.report') }}" class="btn btn-primary">
-            <i class="fas fa-download mr-1"></i> Generate Report
-        </a>
-    </div>
+    <h1>Dashboard</h1>
 @stop
 
 @section('content')
@@ -21,7 +16,8 @@
                 <p>Total Organizations</p>
             </div>
             <div class="icon"><i class="fas fa-building"></i></div>
-            <a href="{{ route('superadmin.organizations.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            {{-- MODIFIED TEXT --}}
+            <a href="{{ route('superadmin.organizations.index') }}" class="small-box-footer">View Total Organizations <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
     <div class="col-lg-3 col-6">
@@ -31,7 +27,8 @@
                 <p>Subscription Plans</p>
             </div>
             <div class="icon"><i class="fas fa-tags"></i></div>
-            <a href="{{ route('superadmin.plans.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            {{-- MODIFIED TEXT --}}
+            <a href="{{ route('superadmin.plans.index') }}" class="small-box-footer">View All Subscription Plans <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
     <div class="col-lg-3 col-6">
@@ -41,18 +38,19 @@
                 <p>Subscribed Organizations</p>
             </div>
             <div class="icon"><i class="fas fa-user-check"></i></div>
-            <a href="{{ route('superadmin.subscriptions.subscribed') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            {{-- MODIFIED TEXT --}}
+            <a href="{{ route('superadmin.subscriptions.subscribed') }}" class="small-box-footer">View All Subscribed Organizations <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
     <div class="col-lg-3 col-6">
-        {{-- --- THIS IS THE MODIFIED CARD --- --}}
         <div class="small-box bg-danger">
             <div class="inner">
-                <h3>${{ number_format($estimatedMonthlyEarnings, 2) }}</h3>
-                <p>Estimated Earnings</p>
+                <h3>${{ number_format($totalEarnings, 2) }}</h3>
+                <p>Total Earnings</p>
             </div>
             <div class="icon"><i class="fas fa-dollar-sign"></i></div>
-            <a href="{{ route('superadmin.earnings') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            {{-- MODIFIED TEXT --}}
+            <a href="{{ route('superadmin.earnings') }}" class="small-box-footer">View Total Earnings <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
 </div>
@@ -62,25 +60,24 @@
     <div class="col-md-8">
         <div class="card card-info card-outline">
             <div class="card-header">
-                <h3 class="card-title">Recent Subscription Requests</h3>
+                <h3 class="card-title">Recently Joined Organizations</h3>
             </div>
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
-                    @forelse($recentRequests as $request)
+                    @forelse($recentlyJoined as $org)
                         <li class="list-group-item">
-                            <strong>{{ $request->name }}</strong> ({{ $request->email }})
-                            <span class="float-right text-muted">{{ $request->created_at->diffForHumans() }}</span>
+                            <strong>{{ $org->name }}</strong>
+                            <span class="float-right text-muted">Joined {{ $org->created_at->diffForHumans() }}</span>
                         </li>
                     @empty
                         <li class="list-group-item text-muted text-center">
-                            No new subscription requests.
+                            No new organizations have joined recently.
                         </li>
                     @endforelse
                 </ul>
             </div>
             <div class="card-footer text-center">
-                {{-- --- THIS IS THE FIX --- --}}
-                <a href="{{ route('superadmin.subscriptions.subscribed') }}">View All Subscribed Organizations</a>
+                <a href="{{ route('superadmin.organizations.index') }}">View All Organizations</a>
             </div>
         </div>
     </div>
@@ -96,7 +93,6 @@
                 <a href="{{ route('superadmin.plans.create') }}" class="btn btn-app bg-success">
                     <i class="fas fa-tags"></i> Add Subscription
                 </a>
-                {{-- --- THIS IS THE FIX --- --}}
                 <a href="{{ route('superadmin.subscriptions.subscribed') }}" class="btn btn-app bg-warning">
                     <i class="fas fa-user-check"></i> View Subscribed
                 </a>
