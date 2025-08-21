@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\AssignedTask;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class ReportController extends Controller
 {
@@ -20,8 +21,10 @@ class ReportController extends Controller
         [$startDate, $endDate] = $this->getDateRangeFromPeriod($period);
 
         $tasksQuery = AssignedTask::where('status', 'completed')
+            ->where('duration_in_seconds', '>', 0) // Only fetch tasks that have time tracked
             ->whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
-            ->with(['client', 'service', 'job', 'staff']);
+            // --- THIS IS THE FIX: The '.pivot' has been removed ---
+            ->with(['client', 'service', 'job', 'staff']); 
 
         // Fetch tasks and then filter by date in PHP to handle recurring tasks correctly
         $allCompletedTasks = $tasksQuery->get();
@@ -44,11 +47,11 @@ class ReportController extends Controller
             return false;
         });
         
-        // Sort the final collection by the updated_at timestamp to show most recent first
-        $sortedTasks = $filteredTasks->sortByDesc('updated_at');
+        // Group tasks by Client -> Service -> Job for the view
+        $groupedTasks = $this->groupTasks($filteredTasks);
 
         return view('Organization.reports.time', [
-            'tasks' => $sortedTasks,
+            'groupedTasks' => $groupedTasks->sortKeys(), // Sort clients alphabetically
             'active_period' => $period,
         ]);
     }
@@ -72,5 +75,17 @@ class ReportController extends Controller
             default:
                 return [null, null]; // No date filtering for "all time"
         }
+    }
+
+    /**
+     * Groups a collection of tasks by Client, then Service, then Job.
+     */
+    private function groupTasks(Collection $tasks): Collection
+    {
+        return $tasks->groupBy('client.name')->map(function ($clientTasks) {
+            return $clientTasks->groupBy('service.name')->map(function ($serviceTasks) {
+                return $serviceTasks->groupBy('job.name');
+            });
+        });
     }
 }

@@ -122,6 +122,14 @@
 @section('js')
 <script>
     $(document).ready(function() {
+        // --- THIS IS THE FIX FOR THE SIDEBAR ---
+        // On every page load, check if the sidebar is collapsed and expand it.
+        // This prevents it from staying closed on navigation.
+        if ($('body').hasClass('sidebar-collapse')) {
+            $('body').removeClass('sidebar-collapse');
+        }
+        // --- END OF FIX ---
+
         // ============== GLOBAL TIMER SCRIPT START ==============
 
         let globalTimerInterval;
