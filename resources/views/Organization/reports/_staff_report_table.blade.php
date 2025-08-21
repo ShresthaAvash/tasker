@@ -19,29 +19,33 @@
                 <div class="card-body">
                     @forelse($staff->services as $service)
                     <div class="service-block">
-                        <div class="service-header d-flex justify-content-between align-items-center">
-                            <span>Service: {{ $service['name'] }}</span>
+                        {{-- MODIFIED: This is now a clickable link --}}
+                        <a href="#collapse-service-{{ Str::slug($staff->staff_name . $service['name']) }}" class="service-header d-flex justify-content-between align-items-center" data-toggle="collapse" aria-expanded="true" style="text-decoration: none;">
+                            <span><i class="fas fa-chevron-down collapse-icon mr-2"></i> Service: {{ $service['name'] }}</span>
                             <span class="time-display">{{ gmdate('H:i:s', $service['total_duration']) }}</span>
-                        </div>
-                        <div class="service-body">
-                            @foreach($service['jobs'] as $job)
-                            <div class="job-block">
-                                <a href="#collapse-job-{{ Str::slug($staff->staff_name . $service['name'] . $job['name']) }}" class="job-header d-flex justify-content-between align-items-center" data-toggle="collapse" aria-expanded="true">
-                                    <span><i class="fas fa-chevron-down collapse-icon mr-2"></i> Job: {{ $job['name'] }}</span>
-                                    <span class="time-display">{{ gmdate('H:i:s', $job['total_duration']) }}</span>
-                                </a>
-                                <div id="collapse-job-{{ Str::slug($staff->staff_name . $service['name'] . $job['name']) }}" class="collapse show">
-                                    <div class="list-group list-group-flush">
-                                        @foreach($job['tasks'] as $task)
-                                        <div class="list-group-item task-list-item">
-                                            <span>{{ $task['name'] }}</span>
-                                            <span class="time-display">{{ gmdate('H:i:s', $task['duration']) }}</span>
+                        </a>
+                        {{-- MODIFIED: This div is now collapsible --}}
+                        <div id="collapse-service-{{ Str::slug($staff->staff_name . $service['name']) }}" class="collapse show">
+                            <div class="service-body">
+                                @foreach($service['jobs'] as $job)
+                                <div class="job-block">
+                                    <a href="#collapse-job-{{ Str::slug($staff->staff_name . $service['name'] . $job['name']) }}" class="job-header d-flex justify-content-between align-items-center" data-toggle="collapse" aria-expanded="true" style="text-decoration: none;">
+                                        <span><i class="fas fa-chevron-down collapse-icon mr-2"></i> Job: {{ $job['name'] }}</span>
+                                        <span class="time-display">{{ gmdate('H:i:s', $job['total_duration']) }}</span>
+                                    </a>
+                                    <div id="collapse-job-{{ Str::slug($staff->staff_name . $service['name'] . $job['name']) }}" class="collapse show">
+                                        <div class="list-group list-group-flush">
+                                            @foreach($job['tasks'] as $task)
+                                            <div class="list-group-item task-list-item">
+                                                <span>{{ $task['name'] }}</span>
+                                                <span class="time-display">{{ gmdate('H:i:s', $task['duration']) }}</span>
+                                            </div>
+                                            @endforeach
                                         </div>
-                                        @endforeach
                                     </div>
                                 </div>
+                                @endforeach
                             </div>
-                            @endforeach
                         </div>
                     </div>
                     @empty

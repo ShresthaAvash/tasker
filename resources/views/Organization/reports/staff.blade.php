@@ -41,6 +41,10 @@
         font-size: 1.2rem;
         font-weight: 600;
     }
+    /* --- THIS IS THE FIX: Keep text white on hover --- */
+    .service-header:hover {
+        color: #fff;
+    }
     .job-block {
         border-top: 1px solid #dee2e6;
     }

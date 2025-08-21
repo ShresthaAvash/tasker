@@ -19,43 +19,47 @@
                 <div class="card-body client-body">
                     @foreach($services as $serviceName => $jobs)
                     <div class="service-block">
-                        <div class="service-header d-flex justify-content-between align-items-center">
-                            <span>Service: {{ $serviceName }}</span>
+                        {{-- MODIFIED: This is now a clickable link --}}
+                        <a href="#collapse-service-{{ Str::slug($clientName.$serviceName) }}" class="service-header d-flex justify-content-between align-items-center" data-toggle="collapse" aria-expanded="true" style="text-decoration: none;">
+                            <span><i class="fas fa-chevron-down collapse-icon mr-2"></i> Service: {{ $serviceName }}</span>
                             <span class="time-display service-total-time">00:00:00</span>
-                        </div>
-                        <div class="service-body">
-                            @foreach($jobs as $jobName => $tasks)
-                            <div class="job-block">
-                                <a href="#collapse-{{ Str::slug($clientName.$serviceName.$jobName) }}" class="job-header d-flex justify-content-between align-items-center" data-toggle="collapse" aria-expanded="true">
-                                    <span><i class="fas fa-chevron-down collapse-icon mr-2"></i> Job: {{ $jobName }}</span>
-                                    <span class="time-display job-total-time">00:00:00</span>
-                                </a>
-                                <div id="collapse-{{ Str::slug($clientName.$serviceName.$jobName) }}" class="collapse show">
-                                    <div class="list-group list-group-flush">
-                                        @foreach($tasks as $task)
-                                        <div class="list-group-item task-list-item" data-task-time="{{ $task->duration_in_seconds }}">
-                                            <div class="task-details">
-                                                <strong>{{ $task->name }}</strong>
-                                                <div class="staff-list mt-2">
-                                                    @if($task->staff->isNotEmpty())
-                                                        <a href="#staff-time-{{ $task->id }}" data-toggle="collapse" class="text-secondary small"><i class="fas fa-users mr-1"></i> Assigned Staff ({{ $task->staff->count() }}) <i class="fas fa-chevron-down collapse-icon ml-1"></i></a>
-                                                        <div class="collapse mt-2 pl-3" id="staff-time-{{ $task->id }}">
-                                                            @foreach($task->staff as $staffMember)
-                                                                <div><span class="badge badge-light">{{ $staffMember->name }}:</span> <strong>{{ gmdate('H:i:s', $staffMember->pivot->duration_in_seconds) }}</strong></div>
-                                                            @endforeach
-                                                        </div>
-                                                    @else
-                                                        <span class="text-muted small">No staff assigned</span>
-                                                    @endif
+                        </a>
+                        {{-- MODIFIED: This div is now collapsible --}}
+                        <div id="collapse-service-{{ Str::slug($clientName.$serviceName) }}" class="collapse show">
+                            <div class="service-body">
+                                @foreach($jobs as $jobName => $tasks)
+                                <div class="job-block">
+                                    <a href="#collapse-{{ Str::slug($clientName.$serviceName.$jobName) }}" class="job-header d-flex justify-content-between align-items-center" data-toggle="collapse" aria-expanded="true" style="text-decoration: none;">
+                                        <span><i class="fas fa-chevron-down collapse-icon mr-2"></i> Job: {{ $jobName }}</span>
+                                        <span class="time-display job-total-time">00:00:00</span>
+                                    </a>
+                                    <div id="collapse-{{ Str::slug($clientName.$serviceName.$jobName) }}" class="collapse show">
+                                        <div class="list-group list-group-flush">
+                                            @foreach($tasks as $task)
+                                            <div class="list-group-item task-list-item" data-task-time="{{ $task->duration_in_seconds }}">
+                                                <div class="task-details">
+                                                    <strong>{{ $task->name }}</strong>
+                                                    <div class="staff-list mt-2">
+                                                        @if($task->staff->isNotEmpty())
+                                                            <a href="#staff-time-{{$task->id}}" data-toggle="collapse" class="text-secondary small" style="text-decoration: none;"><i class="fas fa-users mr-1"></i> Assigned Staff ({{ $task->staff->count() }}) <i class="fas fa-chevron-down collapse-icon ml-1"></i></a>
+                                                            <div class="collapse mt-2 pl-3" id="staff-time-{{$task->id}}">
+                                                                @foreach($task->staff as $staffMember)
+                                                                    <div><span class="badge badge-light">{{ $staffMember->name }}:</span> <strong>{{ gmdate('H:i:s', $staffMember->pivot->duration_in_seconds) }}</strong></div>
+                                                                @endforeach
+                                                            </div>
+                                                        @else
+                                                            <span class="text-muted small">No staff assigned</span>
+                                                        @endif
+                                                    </div>
                                                 </div>
+                                                <div class="time-display task-total-time">{{ gmdate('H:i:s', $task->duration_in_seconds) }}</div>
                                             </div>
-                                            <div class="time-display task-total-time">{{ gmdate('H:i:s', $task->duration_in_seconds) }}</div>
+                                            @endforeach
                                         </div>
-                                        @endforeach
                                     </div>
                                 </div>
+                                @endforeach
                             </div>
-                            @endforeach
                         </div>
                     </div>
                     @endforeach
