@@ -75,7 +75,7 @@ class TaskController extends Controller
     private function getTaskInstancesInDateRange($staffId, Carbon $startDate, Carbon $endDate, $search, $statuses)
     {
         $assignedTasksQuery = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
-            ->with(['client', 'job', 'service'])
+            ->with(['client', 'job', 'service', 'staff'])
             ->whereNotNull('start')
             ->where('start', '<=', $endDate) 
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate));
@@ -222,8 +222,13 @@ class TaskController extends Controller
             return response()->json(['error' => 'Task not found or you are not authorized.'], 404);
         }
         
-        if ($task->timer_started_at) {
-            return response()->json(['error' => 'Please stop the timer before changing the status.'], 422);
+        if ($task instanceof AssignedTask) {
+            $staffPivot = $task->staff()->where('users.id', Auth::id())->first()->pivot;
+            if ($staffPivot->timer_started_at) {
+                return response()->json(['error' => 'Please stop the timer before changing the status.'], 422);
+            }
+        } elseif ($task->timer_started_at) {
+             return response()->json(['error' => 'Please stop the timer before changing the status.'], 422);
         }
 
         $newStatus = $request->input('status');
@@ -258,79 +263,132 @@ class TaskController extends Controller
     public function startTimer(Request $request, $taskId)
     {
         $task = $this->getTask($taskId);
-        if (!$task) {
-            return response()->json(['error' => 'Task not found.'], 404);
-        }
-        if ($task->status !== 'ongoing') {
-            return response()->json(['error' => 'Task must be "ongoing" to start the timer.'], 422);
-        }
-
+        if (!$task) { return response()->json(['error' => 'Task not found.'], 404); }
+        if ($task->status !== 'ongoing') { return response()->json(['error' => 'Task must be "ongoing" to start the timer.'], 422); }
+    
         $this->stopAllRunningTimersForUser(Auth::id(), $taskId);
-
-        $task->timer_started_at = Carbon::now();
-        $task->save();
-
+    
+        $duration = 0;
+        $startedAt = now();
+    
+        if ($task instanceof AssignedTask) {
+            $staffPivot = $task->staff()->where('users.id', Auth::id())->first()->pivot;
+            $staffPivot->timer_started_at = $startedAt;
+            $staffPivot->save();
+            $duration = $staffPivot->duration_in_seconds;
+        } else { // Personal Task
+            $task->timer_started_at = $startedAt;
+            $task->save();
+            $duration = $task->duration_in_seconds;
+        }
+    
         return response()->json([
             'success' => 'Timer started successfully.',
-            'timer_started_at' => $task->timer_started_at->toIso8601String(),
-            'duration_in_seconds' => $task->duration_in_seconds,
+            'timer_started_at' => $startedAt->toIso8601String(),
+            'duration_in_seconds' => $duration,
         ]);
     }
 
     public function stopTimer(Request $request, $taskId)
     {
         $task = $this->getTask($taskId);
-        if (!$task || !$task->timer_started_at) {
-            return response()->json(['error' => 'Timer is not running for this task.'], 400);
-        }
-
-        $currentDuration = (int) $task->duration_in_seconds;
-        $startTime = $task->timer_started_at->getTimestamp();
-        $stopTime = Carbon::now()->getTimestamp();
-        $elapsed = $stopTime - $startTime;
-        
-        if ($elapsed > 0) {
-            $task->duration_in_seconds = $currentDuration + $elapsed;
-        }
-
-        $task->timer_started_at = null;
-        $task->save();
-
+        if (!$task) { return response()->json(['error' => 'Task not found.'], 400); }
+    
+        $newDurationForStaff = 0;
+    
+        DB::transaction(function () use ($task, &$newDurationForStaff) {
+            if ($task instanceof AssignedTask) {
+                $staffPivot = $task->staff()->where('users.id', Auth::id())->first()->pivot;
+                if (!$staffPivot->timer_started_at) {
+                    throw new \Exception('Timer is not running for this task.');
+                }
+    
+                $startTime = Carbon::parse($staffPivot->timer_started_at)->getTimestamp();
+                $elapsed = now()->getTimestamp() - $startTime;
+    
+                $newStaffDuration = ($staffPivot->duration_in_seconds ?? 0) + ($elapsed > 0 ? $elapsed : 0);
+    
+                $task->staff()->updateExistingPivot(Auth::id(), [
+                    'duration_in_seconds' => $newStaffDuration,
+                    'timer_started_at' => null,
+                ]);
+    
+                $totalDuration = DB::table('assigned_task_staff')
+                    ->where('assigned_task_id', $task->id)
+                    ->sum('duration_in_seconds');
+    
+                $task->duration_in_seconds = $totalDuration;
+                $task->save();
+                
+                $newDurationForStaff = $newStaffDuration;
+            } else { // Personal Task
+                if (!$task->timer_started_at) {
+                    throw new \Exception('Timer is not running for this task.');
+                }
+    
+                $startTime = $task->timer_started_at->getTimestamp();
+                $elapsed = now()->getTimestamp() - $startTime;
+                if ($elapsed > 0) {
+                    $task->duration_in_seconds = ($task->duration_in_seconds ?? 0) + $elapsed;
+                }
+                $task->timer_started_at = null;
+                $task->save();
+                $newDurationForStaff = $task->duration_in_seconds;
+            }
+        });
+    
         return response()->json([
             'success' => 'Timer stopped successfully.',
-            'new_duration' => $task->duration_in_seconds,
+            'new_duration' => $newDurationForStaff,
         ]);
     }
+    
     
     // --- THIS IS THE DEFINITIVE FIX ---
     private function stopAllRunningTimersForUser($userId, $excludeTaskId)
     {
-        $stopTime = Carbon::now()->getTimestamp();
+        $stopTime = now();
         
-        $updateTask = function ($task) use ($stopTime, $excludeTaskId) {
-            $currentTaskId = ($task instanceof Task ? 'p_' : 'a_') . $task->id;
+        // Stop personal task timers
+        Task::where('staff_id', $userId)->whereNotNull('timer_started_at')->get()->each(function ($task) use ($stopTime, $excludeTaskId) {
+            $currentTaskId = 'p_' . $task->id;
+            if (str_starts_with($excludeTaskId, $currentTaskId)) return;
 
-            // Handle both simple and recurring task IDs
-            if (str_starts_with($excludeTaskId, $currentTaskId)) {
-                return;
+            $elapsed = $stopTime->getTimestamp() - $task->timer_started_at->getTimestamp();
+            if ($elapsed > 0) {
+                $task->duration_in_seconds += $elapsed;
             }
+            $task->timer_started_at = null;
+            $task->save();
+        });
 
-            if ($task->timer_started_at) {
-                $currentDuration = (int) $task->duration_in_seconds;
-                $startTime = $task->timer_started_at->getTimestamp();
-                $elapsed = $stopTime - $startTime;
+        // Stop assigned task timers (on the pivot table)
+        $runningPivots = DB::table('assigned_task_staff')
+            ->where('user_id', $userId)
+            ->whereNotNull('timer_started_at')
+            ->get();
+
+        foreach ($runningPivots as $pivot) {
+            $currentTaskId = 'a_' . $pivot->assigned_task_id;
+            if (str_starts_with($excludeTaskId, $currentTaskId)) continue;
+
+            $startTime = Carbon::parse($pivot->timer_started_at);
+            $elapsed = $stopTime->getTimestamp() - $startTime->getTimestamp();
+
+            if ($elapsed > 0) {
+                DB::table('assigned_task_staff')
+                    ->where('assigned_task_id', $pivot->assigned_task_id)
+                    ->where('user_id', $userId)
+                    ->update([
+                        'duration_in_seconds' => DB::raw("duration_in_seconds + {$elapsed}"),
+                        'timer_started_at' => null
+                    ]);
                 
-                if ($elapsed > 0) {
-                    $task->duration_in_seconds = $currentDuration + $elapsed;
-                }
-                
-                $task->timer_started_at = null;
-                $task->save();
+                // Update the total on the parent task
+                $totalDuration = DB::table('assigned_task_staff')->where('assigned_task_id', $pivot->assigned_task_id)->sum('duration_in_seconds');
+                AssignedTask::where('id', $pivot->assigned_task_id)->update(['duration_in_seconds' => $totalDuration]);
             }
-        };
-
-        Task::where('staff_id', $userId)->whereNotNull('timer_started_at')->get()->each($updateTask);
-        AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $userId))->whereNotNull('timer_started_at')->get()->each($updateTask);
+        }
     }
 
     public function addManualTime(Request $request, $taskId)
@@ -339,32 +397,50 @@ class TaskController extends Controller
             'hours' => 'required|integer|min:0',
             'minutes' => 'required|integer|min:0|max:59',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => 'Invalid time format.'], 422);
-        }
-
+        if ($validator->fails()) { return response()->json(['error' => 'Invalid time format.'], 422); }
+    
         $task = $this->getTask($taskId);
-        if (!$task) {
-            return response()->json(['error' => 'Task not found.'], 404);
-        }
-
-        if ($task->timer_started_at) {
-            return response()->json(['error' => 'Please stop the live timer before adding manual time.'], 422);
-        }
-
+        if (!$task) { return response()->json(['error' => 'Task not found.'], 404); }
+    
         $secondsToAdd = ($request->input('hours') * 3600) + ($request->input('minutes') * 60);
-
-        if ($secondsToAdd <= 0) {
-             return response()->json(['error' => 'Please enter a positive amount of time.'], 422);
-        }
-
-        $task->duration_in_seconds = ($task->duration_in_seconds ?? 0) + $secondsToAdd;
-        $task->save();
-
+        if ($secondsToAdd <= 0) { return response()->json(['error' => 'Please enter a positive amount of time.'], 422); }
+    
+        $newDurationForStaff = 0;
+    
+        DB::transaction(function () use ($task, $secondsToAdd, &$newDurationForStaff) {
+            if ($task instanceof AssignedTask) {
+                $staffPivot = $task->staff()->where('users.id', Auth::id())->first()->pivot;
+                if ($staffPivot->timer_started_at) {
+                    throw new \Exception('Please stop the live timer before adding manual time.');
+                }
+    
+                $newStaffDuration = ($staffPivot->duration_in_seconds ?? 0) + $secondsToAdd;
+    
+                $task->staff()->updateExistingPivot(Auth::id(), [
+                    'duration_in_seconds' => $newStaffDuration,
+                ]);
+    
+                $totalDuration = DB::table('assigned_task_staff')
+                    ->where('assigned_task_id', $task->id)
+                    ->sum('duration_in_seconds');
+    
+                $task->duration_in_seconds = $totalDuration;
+                $task->save();
+    
+                $newDurationForStaff = $newStaffDuration;
+            } else { // Personal Task
+                if ($task->timer_started_at) {
+                    throw new \Exception('Please stop the live timer before adding manual time.');
+                }
+                $task->duration_in_seconds = ($task->duration_in_seconds ?? 0) + $secondsToAdd;
+                $task->save();
+                $newDurationForStaff = $task->duration_in_seconds;
+            }
+        });
+    
         return response()->json([
             'success' => 'Manual time added successfully.',
-            'new_duration' => $task->duration_in_seconds,
+            'new_duration' => $newDurationForStaff,
         ]);
     }
 }

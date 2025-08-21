@@ -51,7 +51,9 @@ class AssignedTask extends Model
 
     public function staff()
     {
-        return $this->belongsToMany(User::class, 'assigned_task_staff', 'assigned_task_id', 'user_id');
+        return $this->belongsToMany(User::class, 'assigned_task_staff', 'assigned_task_id', 'user_id')
+                    ->withPivot('duration_in_seconds', 'timer_started_at')
+                    ->withTimestamps();
     }
 
     public function template()
