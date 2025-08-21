@@ -290,7 +290,13 @@ return [
                 [ 'text' => 'Add Service', 'route'  => 'services.create', 'icon' => 'fas fa-fw fa-plus', ],
             ],
         ],
-        // --- THIS IS THE NEW MENU ITEM ---
+        // --- THIS IS THE NEW REPORTS MENU ITEM ---
+        [
+            'text' => 'Reports',
+            'route'  => 'organization.reports.time',
+            'icon' => 'fas fa-fw fa-chart-pie',
+            'can'  => 'is-organization',
+        ],
         [
             'text' => 'My Subscription',
             'route'  => 'organization.subscription.index',

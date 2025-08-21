@@ -4,9 +4,17 @@
 @section('plugins.Select2', true)
 @section('page_title', 'My Tasks')
 
+@section('content_header')
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>My Tasks</h1>
+        <a href="{{ route('staff.calendar') }}" class="btn btn-primary">
+            <i class="fas fa-calendar-alt mr-1"></i> View Calendar
+        </a>
+    </div>
+@stop
+
 @section('css')
 <style>
-    /* --- THIS IS THE NEW CSS FOR ACCORDION --- */
     .accordion .card-header {
         padding: 0;
     }
@@ -24,7 +32,7 @@
     }
 
     .accordion-toggle-link.bg-info:hover {
-        background-color: #138496 !important; /* A darker shade of info */
+        background-color: #138496 !important;
     }
 
     .accordion-toggle-link .collapse-icon {
@@ -41,13 +49,16 @@
 <div class="card" id="task-manager-card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title">Task List</h3>
-        <div class="btn-group btn-group-toggle" data-toggle="buttons">
-            <label class="btn btn-sm btn-outline-primary active" id="client-view-btn">
-                <input type="radio" name="view_type" value="client" checked> Client View
-            </label>
-            <label class="btn btn-sm btn-outline-primary" id="time-view-btn">
-                <input type="radio" name="view_type" value="time"> Time View
-            </label>
+        <div class="d-flex align-items-center">
+            <span class="mr-2 font-weight-bold">Sort by:</span>
+            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                <label class="btn btn-sm btn-outline-primary active" id="client-view-btn">
+                    <input type="radio" name="view_type" value="client" checked> Client View
+                </label>
+                <label class="btn btn-sm btn-outline-primary" id="time-view-btn">
+                    <input type="radio" name="view_type" value="time"> Time View
+                </label>
+            </div>
         </div>
     </div>
     <div class="card-body">
@@ -113,6 +124,20 @@ $(document).ready(function() {
     let debounceTimer;
     const taskManager = $('#task-manager-card');
     window.taskTimers = {};
+
+    $(document).on('click', '.view-in-calendar-btn', function(e) {
+        e.preventDefault();
+        const button = $(this);
+        const eventId = button.closest('tr').data('task-id');
+        const date = button.closest('tr').find('.task-status-select').data('instance-date');
+        let calendarUrl = button.attr('href');
+        
+        const url = new URL(calendarUrl);
+        url.searchParams.set('event_id', eventId);
+        url.searchParams.set('date', date);
+        
+        window.location.href = url.toString();
+    });
 
     $('#status-filter').select2({
         placeholder: 'Filter by Status',
@@ -189,7 +214,24 @@ $(document).ready(function() {
         });
     }
 
-    function fetchTasks(page = 1) {
+    function highlightTask(taskId) {
+        const taskRow = $(`tr[data-task-id="${taskId}"]`);
+        if (taskRow.length) {
+            taskRow.parents('.collapse').collapse('show');
+
+            setTimeout(() => {
+                taskRow.addClass('table-warning');
+                $('html, body').animate({
+                    scrollTop: taskRow.offset().top - 150
+                }, 500);
+                setTimeout(() => {
+                    taskRow.removeClass('table-warning');
+                }, 3500);
+            }, 300);
+        }
+    }
+
+    function fetchTasks(page = 1, callback = null) {
         clearTimeout(debounceTimer);
         const search = taskManager.find('#search-input').val();
         const viewType = taskManager.find('input[name="view_type"]:checked').val();
@@ -217,6 +259,9 @@ $(document).ready(function() {
             success: function(response) {
                 taskManager.find('#task-view-container').html(response);
                 initializeAllTimers();
+                if (typeof callback === 'function') {
+                    callback();
+                }
             },
             error: function(xhr) {
                 console.error(xhr);
@@ -224,10 +269,41 @@ $(document).ready(function() {
             }
         });
     }
+
+    // --- THIS IS THE DEFINITIVE FIX FOR THE LOGIC ---
+    function handleInitialLoad() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskIdToHighlight = urlParams.get('task_id');
+        const yearToLoad = urlParams.get('year');
+        const monthToLoad = urlParams.get('month');
+
+        if (taskIdToHighlight && yearToLoad && monthToLoad) {
+            // 1. Set the UI state WITHOUT triggering events that fetch data
+            $('#custom-search-switch').prop('checked', false); // Ensure custom is OFF
+            $('#dropdown-filters').show();
+            $('#custom-range-filters').hide();
+            $('#year-filter').val(yearToLoad);
+            $('#month-filter').val(monthToLoad);
+            
+            // 2. Now, explicitly fetch the data with the correct parameters
+            fetchTasks(1, () => {
+                highlightTask(taskIdToHighlight);
+            });
+
+            // 3. Clean up the URL
+            if (history.replaceState) {
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+            }
+        } else {
+            // This is a normal page load, fetch with default filters
+            fetchTasks(1);
+        }
+    }
     
-    initializeAllTimers();
+    handleInitialLoad(); // Run the initial load logic
     
-    taskManager.on('click', '#client-view-btn, #time-view-btn', () => setTimeout(fetchTasks, 50));
+    taskManager.on('click', '#client-view-btn, #time-view-btn', () => setTimeout(() => fetchTasks(1), 50));
     
     taskManager.on('change', '#custom-search-switch', function() {
         $('#dropdown-filters').toggle(!this.checked);
@@ -247,6 +323,7 @@ $(document).ready(function() {
         $('#custom-search-switch').prop('checked', false).trigger('change');
         $('#year-filter').val(now.getFullYear());
         $('#month-filter').val(now.getMonth() + 1);
+        fetchTasks(1);
     });
 
     taskManager.on('click', '.pagination a', function(e) {

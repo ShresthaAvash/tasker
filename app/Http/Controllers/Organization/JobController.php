@@ -22,7 +22,15 @@ class JobController extends Controller
         }
 
         $request->validate(['name' => 'required|string|max:255']);
-        $service->jobs()->create($request->all());
+        $job = $service->jobs()->create($request->all());
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Job added successfully!',
+                'job' => $job->load('tasks') // Send back the new job with an empty tasks array
+            ]);
+        }
 
         return redirect()->route('services.show', $service->id)->with('success', 'Job added successfully.');
     }
@@ -43,8 +51,6 @@ class JobController extends Controller
                             ->orderBy('name')
                             ->get();
                             
-        // --- THIS IS THE FIX ---
-        // We now fetch the designations so the task modal can use them.
         $designations = StaffDesignation::where('organization_id', Auth::id())->orderBy('name')->get();
 
         return view('Organization.jobs.edit', compact('job', 'staffMembers', 'designations'));
@@ -66,6 +72,14 @@ class JobController extends Controller
 
         $job->update($request->all());
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Job updated successfully.',
+                'job' => $job
+            ]);
+        }
+
         return redirect()->route('jobs.edit', $job->id)->with('success', 'Job updated successfully.');
     }
 
@@ -81,6 +95,10 @@ class JobController extends Controller
         $serviceId = $job->service_id;
         $job->delete();
 
+        if (request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Job deleted successfully.']);
+        }
+
         return redirect()->route('services.show', $serviceId)->with('success', 'Job deleted successfully.');
     }
 
@@ -94,7 +112,6 @@ class JobController extends Controller
             abort(403);
         }
 
-        // --- THIS IS THE FIX: Status changed from 'active' to 'ongoing' ---
         $tasksUpdated = $job->tasks()
             ->where('status', 'not_started')
             ->whereNotNull('staff_id')
