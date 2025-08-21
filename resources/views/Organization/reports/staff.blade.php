@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Client Report')
+@section('title', 'Staff Report')
 
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center d-print-none">
-        <h1>Client Report</h1>
+        <h1>Staff Report</h1>
         <button onclick="window.print();" class="btn btn-primary">
             <i class="fas fa-print"></i> Print Report
         </button>
@@ -13,19 +13,20 @@
 
 @section('css')
 <style>
-    .client-block .card-header {
-        background-color: #6c757d;
+    /* --- THIS IS THE MODIFIED STYLE --- */
+    .staff-block .card-header {
+        background-color: #6c757d; /* Dark Grey Header */
         color: #fff;
         padding: 0;
     }
-    .client-block .btn-link {
+    .staff-block .btn-link {
         color: #fff;
-        text-decoration: none;
+        text-decoration: none !important;
         font-size: 1.25rem;
         font-weight: 600;
         padding: 1rem 1.25rem;
     }
-    .client-block .btn-link:hover {
+    .staff-block .btn-link:hover {
         text-decoration: none;
     }
     .service-block {
@@ -34,17 +35,17 @@
         margin-bottom: 1.5rem;
     }
     .service-header {
-        background-color: #17a2b8;
+        background-color: #17a2b8; /* Teal Header */
         color: #fff;
         padding: 1rem 1.25rem;
-        font-size: 1.25rem;
+        font-size: 1.2rem;
         font-weight: 600;
     }
     .job-block {
         border-top: 1px solid #dee2e6;
     }
     .job-header {
-        background-color: #f8f9fa;
+        background-color: #f8f9fa; /* Light Grey Header */
         padding: .75rem 1.25rem;
         font-weight: bold;
     }
@@ -54,13 +55,6 @@
         align-items: center;
         padding: .75rem 1.25rem;
         border-top: 1px solid #e9ecef;
-    }
-    .task-details {
-        flex-grow: 1;
-    }
-    .staff-list .badge {
-        font-size: 90%;
-        margin-right: 5px;
     }
     .time-display {
         min-width: 100px;
@@ -74,8 +68,8 @@
     a[aria-expanded="true"] .collapse-icon {
         transform: rotate(180deg);
     }
-    @media print {
-        .client-header, .service-header {
+    @media  print {
+        .staff-header, .service-header {
             -webkit-print-color-adjust: exact; 
             color-adjust: exact;
         }
@@ -103,7 +97,7 @@
     <div class="card-body">
         <div class="row mb-3 align-items-center d-print-none">
             <div class="col-md-5">
-                <input type="text" id="search-input" class="form-control" placeholder="Search by Client Name..." value="{{ $search ?? '' }}">
+                <input type="text" id="search-input" class="form-control" placeholder="Search by Staff Name..." value="{{ $search ?? '' }}">
             </div>
             <div class="col-md-5">
                 <div id="custom-range-filters" class="row" style="display: {{ $active_period === 'custom' ? '' : 'none' }};">
@@ -114,7 +108,7 @@
         </div>
 
         <div id="report-container">
-            @include('Organization.reports._client_report_table')
+            @include('Organization.reports._staff_report_table')
         </div>
     </div>
 </div>
@@ -136,13 +130,9 @@ $(document).ready(function() {
             $('#report-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
 
             $.ajax({
-                url: "{{ route('organization.reports.time') }}",
+                url: "{{ route('organization.reports.staff') }}",
                 data: { period, search, start_date: startDate, end_date: endDate },
-                success: (data) => {
-                    $('#report-container').html(data);
-                    // Re-run total calculations after content is loaded
-                    $('#report-container').trigger('content-loaded');
-                },
+                success: (data) => $('#report-container').html(data),
                 error: () => $('#report-container').html('<p class="text-danger text-center">Failed to load data.</p>')
             });
         }, 300);
@@ -159,32 +149,6 @@ $(document).ready(function() {
     });
 
     $('#search-input, #start-date-filter, #end-date-filter').on('keyup change', fetchData);
-
-    $(document).on('content-loaded', '#report-container', function() {
-        function formatTime(totalSeconds) {
-            const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
-            const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
-            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-            return `${hours}:${minutes}:${seconds}`;
-        }
-        $('.client-block').each(function() {
-            let clientTotal = 0;
-            $(this).find('.service-block').each(function() {
-                let serviceTotal = 0;
-                $(this).find('.job-block').each(function() {
-                    let jobTotal = 0;
-                    $(this).find('.task-list-item').each(function() {
-                        jobTotal += parseInt($(this).data('task-time')) || 0;
-                    });
-                    $(this).find('.job-total-time').text(formatTime(jobTotal));
-                    serviceTotal += jobTotal;
-                });
-                $(this).find('.service-total-time').text(formatTime(serviceTotal));
-                clientTotal += serviceTotal;
-            });
-            $(this).find('.client-total-time').text(formatTime(clientTotal));
-        });
-    }).trigger('content-loaded');
 });
 </script>
 @stop

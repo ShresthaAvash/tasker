@@ -290,12 +290,23 @@ return [
                 [ 'text' => 'Add Service', 'route'  => 'services.create', 'icon' => 'fas fa-fw fa-plus', ],
             ],
         ],
-        // --- THIS IS THE NEW REPORTS MENU ITEM ---
+        // --- THIS IS THE MODIFIED REPORTS MENU ITEM ---
         [
-            'text' => 'Reports',
-            'route'  => 'organization.reports.time',
-            'icon' => 'fas fa-fw fa-chart-pie',
-            'can'  => 'is-organization',
+            'text'    => 'Reports',
+            'icon'    => 'fas fa-fw fa-chart-pie',
+            'can'     => 'is-organization',
+            'submenu' => [
+                [
+                    'text' => 'Client Report',
+                    'route'  => 'organization.reports.time',
+                    'icon' => 'fas fa-fw fa-user-tie',
+                ],
+                [
+                    'text' => 'Staff Report',
+                    'route'  => 'organization.reports.staff',
+                    'icon' => 'fas fa-fw fa-users-cog',
+                ],
+            ],
         ],
         [
             'text' => 'My Subscription',
@@ -384,4 +395,3 @@ return [
 
     'livewire' => false
 ];
-

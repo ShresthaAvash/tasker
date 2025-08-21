@@ -71,6 +71,9 @@ Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmi
 Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organization')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
     Route::get('reports/time', [OrganizationReportController::class, 'timeReport'])->name('organization.reports.time');
+    
+    // --- THIS IS THE NEW STAFF REPORT ROUTE ---
+    Route::get('reports/staff', [OrganizationReportController::class, 'staffReport'])->name('organization.reports.staff');
 
     // --- THIS IS THE DEFINITIVE FIX for subscription routing ---
     Route::get('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'index'])->name('organization.subscription.index');
