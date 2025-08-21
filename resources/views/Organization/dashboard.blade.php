@@ -3,12 +3,8 @@
 @section('title', 'Dashboard')
 
 @section('content_header')
-    <div class="d-flex justify-content-between align-items-center">
-        <h1>Dashboard</h1>
-        <a href="{{ route('generate.report') }}" class="btn btn-primary">
-            <i class="fas fa-download mr-1"></i> Generate Report
-        </a>
-    </div>
+    {{-- MODIFIED: The div and button have been removed --}}
+    <h1>Dashboard</h1>
 @stop
 
 @section('content')
@@ -18,7 +14,6 @@
     <div class="col-lg-3 col-6"><div class="small-box bg-info"><div class="inner"><h3>{{ $clientCount }}</h3><p>Active Clients</p></div><div class="icon"><i class="fas fa-users"></i></div><a href="{{ route('clients.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a></div></div>
     <div class="col-lg-3 col-6"><div class="small-box bg-success"><div class="inner"><h3>{{ $staffCount }}</h3><p>Staff Members</p></div><div class="icon"><i class="fas fa-user-tie"></i></div><a href="{{ route('staff.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a></div></div>
     <div class="col-lg-3 col-6"><div class="small-box bg-danger"><div class="inner"><h3>{{ $serviceCount }}</h3><p>Services Offered</p></div><div class="icon"><i class="fas fa-concierge-bell"></i></div><a href="{{ route('services.index') }}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a></div></div>
-    {{-- --- THIS IS THE MODIFIED INFO BOX --- --}}
     <div class="col-lg-3 col-6">
         <div class="small-box bg-purple">
             <div class="inner">
@@ -76,7 +71,6 @@
                 <a href="{{ route('clients.create') }}" class="btn btn-app bg-info"><i class="fas fa-users"></i> Add Client</a>
                 <a href="{{ route('staff.create') }}" class="btn btn-app bg-success"><i class="fas fa-user-tie"></i> Add Staff</a>
                 <a href="{{ route('services.create') }}" class="btn btn-app bg-danger"><i class="fas fa-concierge-bell"></i> Add Service</a>
-                {{-- --- THIS IS THE MODIFIED QUICK ACTION BUTTON --- --}}
                 <a href="{{ route('pricing') }}" class="btn btn-app bg-purple"><i class="fas fa-tags"></i> Change Plan</a>
             </div>
         </div>

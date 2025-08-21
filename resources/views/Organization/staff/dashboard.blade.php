@@ -5,8 +5,6 @@
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
         <h1>Dashboard</h1>
-        <a href="{{ route('generate.report') }}" class="btn btn-primary">
-            <i class="fas fa-download mr-1"></i> Generate Report
         </a>
     </div>
 @stop

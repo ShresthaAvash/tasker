@@ -15,7 +15,7 @@ use App\Http\Controllers\Organization\CalendarController;
 use App\Http\Controllers\SubscriptionPendingController;
 use App\Http\Controllers\Staff\TaskController as StaffTaskController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\ReportController; // <-- Ensure this is here
+// REMOVED: The ReportController is no longer used.
 use App\Http\Controllers\SubscriptionController; // Add this
 use App\Http\Controllers\SuperAdmin\PlanController as SuperAdminPlanController;
 use Illuminate\Support\Facades\Auth;
@@ -55,8 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/subscription/store', [SubscriptionController::class, 'store'])->name('subscription.store');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     
-    // --- THIS IS THE NEW UNIFIED REPORT ROUTE ---
-    Route::get('/generate-report', ReportController::class)->name('generate.report');
+    // --- THIS ROUTE HAS BEEN REMOVED ---
 });
 
 // Super Admin routes
@@ -70,6 +69,8 @@ Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmi
     // The 'subscription-requests' routes have been removed.
     // The 'active-subscriptions' route is replaced by the new 'subscribed' route.
     Route::get('/subscribed-organizations', [SuperAdminController::class, 'subscribedOrganizations'])->name('superadmin.subscriptions.subscribed');
+    // --- MODIFICATION END ---
+    
     Route::resource('organizations', SuperAdminController::class)->names('superadmin.organizations');
 
     // --- THIS IS THE NEW ROUTE FOR VIEWING SUBSCRIPTION HISTORY ---
@@ -85,7 +86,7 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
     
     Route::get('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'index'])->name('organization.subscription.index');
-    Route::post('subscription/swap', [\App\Http\Controllers\Organization\SubscriptionController::class, 'swap'])->name('organization.subscription.swap');
+    Route::post('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'store'])->name('organization.subscription.store');
     
     // Calendar
     Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
@@ -140,8 +141,10 @@ Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->grou
 
     Route::patch('tasks/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('staff.tasks.updateStatus')->where('task', '.*');
 
+    // --- NEW ROUTES START ---
     Route::post('tasks/{task}/start-timer', [StaffTaskController::class, 'startTimer'])->name('staff.tasks.startTimer')->where('task', '.*');
     Route::post('tasks/{task}/stop-timer', [StaffTaskController::class, 'stopTimer'])->name('staff.tasks.stopTimer')->where('task', '.*');
+    // --- NEW ROUTES END ---
 
     Route::post('tasks/{task}/add-manual-time', [StaffTaskController::class, 'addManualTime'])->name('staff.tasks.addManualTime')->where('task', '.*');
 });

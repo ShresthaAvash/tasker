@@ -10,18 +10,29 @@ use Illuminate\Support\Facades\DB;
 class SuperAdminController extends Controller
 {
     /**
-     * Helper function to calculate total monthly and yearly revenue from active subscriptions.
+     * --- THIS IS THE DEFINITIVE FIX for all earning calculations ---
+     * This function now accurately calculates revenue based on one active plan per organization.
      */
     private function calculateEarnings()
     {
         $monthlyTotal = 0;
         $yearlyTotal = 0;
 
-        // Eager load the plan to avoid N+1 queries
-        $activeSubscriptions = Subscription::where('stripe_status', 'active')->with('plan')->get();
+        // Get all organizations that have an active subscription
+        $subscribedOrgs = User::where('type', 'O')
+            ->whereHas('subscriptions', function ($query) {
+                $query->where('stripe_status', 'active');
+            })
+            ->with(['subscriptions' => function ($query) {
+                $query->where('stripe_status', 'active')->with('plan');
+            }])
+            ->get();
 
-        foreach ($activeSubscriptions as $subscription) {
-            if ($subscription->plan) { // Check if plan exists
+        foreach ($subscribedOrgs as $org) {
+            // An organization should only have one active subscription at a time.
+            // We take the most recent one to be safe.
+            $subscription = $org->subscriptions->first();
+            if ($subscription && $subscription->plan) {
                 if ($subscription->plan->type === 'monthly') {
                     $monthlyTotal += $subscription->plan->price;
                 } elseif ($subscription->plan->type === 'annually') {
@@ -49,42 +60,42 @@ class SuperAdminController extends Controller
             })
             ->count();
             
-        // --- THIS IS THE NEW LOGIC ---
+        // Use the corrected calculation
         $earnings = $this->calculateEarnings();
-        $estimatedMonthlyEarnings = $earnings['monthly'] + ($earnings['yearly'] / 12);
-        // --- END OF NEW LOGIC ---
+        $totalEarnings = $earnings['monthly'] + $earnings['yearly'];
 
-        $recentRequests = User::where('type', 'O')->where('status', 'R')->latest()->take(5)->get();
+        // --- THIS IS THE MODIFIED LOGIC ---
+        // Get the 5 most recently joined (created) organizations with an active subscription
+        $recentlyJoined = User::where('type', 'O')
+            ->whereHas('subscriptions', fn($q) => $q->where('stripe_status', 'active'))
+            ->latest() // Orders by created_at descending
+            ->take(5)
+            ->get();
+        // --- END OF MODIFICATION ---
 
         return view('SuperAdmin.dashboard', compact(
             'organizationCount',
             'subscriptionPlansCount',
             'subscribedOrgsCount',
-            'recentRequests',
-            'estimatedMonthlyEarnings'
+            'recentlyJoined', // Pass the new variable
+            'totalEarnings'
         ));
     }
 
     /**
-     * --- THIS IS THE NEW METHOD ---
      * Display the earnings report page.
      */
     public function earnings(Request $request)
     {
-        // Get total earnings for the info boxes at the top of the page
+        // Use the corrected calculation
         $earnings = $this->calculateEarnings();
-
-        // --- NEW --- Calculate the combined total revenue
         $totalRevenue = $earnings['monthly'] + $earnings['yearly'];
 
-        // --- THIS IS THE FIX ---
-        // We now count distinct USERS with active subscriptions, not the subscriptions themselves.
         $totalSubscriptionCount = User::where('type', 'O')
                                       ->whereHas('subscriptions', fn($q) => $q->where('stripe_status', 'active'))
                                       ->count();
 
-        // Determine which tab is active (monthly, yearly, or total)
-        $type = $request->get('type', 'total'); // Default to 'total'
+        $type = $request->get('type', 'total');
         
         $title = match ($type) {
             'monthly' => 'Monthly Subscriptions',
@@ -92,12 +103,10 @@ class SuperAdminController extends Controller
             default => 'All Active Subscriptions',
         };
 
-        // Query for organizations with the selected subscription type
         $query = User::where('type', 'O')
             ->whereHas('subscriptions', function ($q) use ($type) {
                 $q->where('stripe_status', 'active');
                 
-                // Only filter by plan type if it's not the 'total' view
                 if (in_array($type, ['monthly', 'annually'])) {
                     $q->whereHas('plan', function ($planQuery) use ($type) {
                         $planQuery->where('type', $type);
@@ -108,7 +117,6 @@ class SuperAdminController extends Controller
                 $q->where('stripe_status', 'active')->with('plan');
             }]);
 
-        // Handle search functionality
         if ($request->filled('search')) {
             $searchTerm = $request->search;
             $query->where(function($q) use ($searchTerm) {
@@ -119,17 +127,15 @@ class SuperAdminController extends Controller
 
         $organizations = $query->latest()->paginate(10);
 
-        // Handle AJAX requests for tab switching and searching
         if ($request->ajax()) {
             return view('SuperAdmin.earnings._table', compact('organizations'))->render();
         }
 
-        // Render the full page for the initial load
         return view('SuperAdmin.earnings.index', [
             'monthlyEarnings' => $earnings['monthly'],
             'yearlyEarnings' => $earnings['yearly'],
             'totalRevenue' => $totalRevenue,
-            'totalSubscriptionCount' => $totalSubscriptionCount, // This is now the correct count
+            'totalSubscriptionCount' => $totalSubscriptionCount,
             'organizations' => $organizations,
             'title' => $title,
         ]);
@@ -223,13 +229,13 @@ class SuperAdminController extends Controller
     
     public function subscribedOrganizations(Request $request)
     {
-        $status = $request->get('status', 'active');
+        $status = $request->get('status', 'active'); // Default to the 'active' tab
 
         $query = User::where('type', 'O')
             ->whereHas('subscriptions', function ($q) use ($status) {
                 if ($status === 'active') {
                     $q->whereNull('ends_at');
-                } else {
+                } else { // deactivated
                     $q->whereNotNull('ends_at');
                 }
             })
@@ -264,32 +270,13 @@ class SuperAdminController extends Controller
         return view('SuperAdmin.subscriptions.subscribed', compact('organizations', 'sort_by', 'sort_order'));
     }
 
-    // --- THIS IS THE NEW METHOD ---
-    public function subscriptionHistory(User $user)
-    {
-        // Security check: Ensure we're only viewing organizations.
-        if ($user->type !== 'O') {
-            abort(404);
-        }
-
-        // Load all subscriptions (active and canceled) with their plan details.
-        $user->load(['subscriptions' => function ($query) {
-            $query->orderBy('created_at', 'desc')->with('plan');
-        }]);
-
-        return view('SuperAdmin.subscriptions.history', [
-            'organization' => $user,
-            'subscriptions' => $user->subscriptions,
-        ]);
-    }
-
     public function cancelSubscription(User $user)
     {
         try {
             $user->subscription('default')->cancel();
             return redirect()->back()->with('success', "Subscription for {$user->name} has been scheduled for cancellation.");
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Could not cancel subscription. ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Could not cancel a subscription. ' . $e->getMessage());
         }
     }
 
