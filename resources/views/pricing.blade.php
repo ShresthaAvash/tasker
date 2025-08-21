@@ -22,48 +22,12 @@
     }
     .price { font-size: 3rem; font-weight: 700; }
     .slider-container { max-width: 500px; }
-    /* <!-- START: New Styles for the user input box --> */
-    .user-input-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 1rem;
-        font-size: 1.25rem;
-    }
-    .user-input {
-        width: 100px;
-        height: 60px;
-        font-size: 2.5rem;
-        font-weight: bold;
-        text-align: center;
-        border: 2px solid #ccc;
-        border-radius: 8px;
-    }
-    /* <!-- END: New Styles --> */
 </style>
 @endsection
 
 @section('content')
 <div class="pricing-section">
     <div class="container text-center">
-        <h2>Affordable, simple pricing</h2>
-        <p class="lead mb-5">
-            Tasker costs a flat fee per user. If you choose to be billed annually, you will receive a 20% discount.
-            <br>Discounts are applied for additional users.
-        </p>
-
-        <!-- START: Modified user selection UI -->
-        <div class="slider-container mx-auto mb-4">
-            <label for="user-slider" class="form-label">Users: <span id="user-count-display">1</span></label>
-            <input type="range" class="form-range" min="1" max="100" step="1" id="user-slider" value="1">
-        </div>
-        <div class="user-input-container mb-5">
-            <span>SHOW ME PRICES FOR</span>
-            <input type="number" id="user-input" class="user-input" value="1" min="1" max="100">
-            <span>USERS</span>
-        </div>
-        <!-- END: Modified user selection UI -->
-
         @php
             $monthlyPlan = $subscriptions->firstWhere('type', 'monthly');
             $annualPlan = $subscriptions->firstWhere('type', 'annually');
