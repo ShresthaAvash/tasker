@@ -13,6 +13,7 @@ use App\Models\AssignedTask;
 use Carbon\Carbon;
 use JeroenNoten\LaravelAdminLte\Events\BuildingMenu;
 use App\Http\View\Composers\GlobalComposer; // <-- NEW
+use Laravel\Cashier\Cashier; // <-- ADD THIS
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
         Paginator::useBootstrapFour();
+        
+        // Cashier::routes(); // <-- THIS LINE HAS BEEN REMOVED
 
         // --- THIS IS THE FIX: The old, conflicting timer composer has been removed ---
 

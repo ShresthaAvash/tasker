@@ -137,7 +137,8 @@
                 </div>
             @endif
 
-            <form id="payment-form" action="{{ route('subscription.store') }}" method="POST">
+            {{-- --- THIS IS THE DEFINITIVE FIX: The action is now dynamic --- --}}
+            <form id="payment-form" action="{{ $formActionRoute }}" method="POST">
                 @csrf
                 <input type="hidden" name="plan_id" value="{{ $plan->id }}">
 

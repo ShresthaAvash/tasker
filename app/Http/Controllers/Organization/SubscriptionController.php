@@ -9,52 +9,59 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Laravel\Cashier\Exceptions\IncompletePayment;
 
 class SubscriptionController extends Controller
 {
-    /**
-     * Display the organization's current subscription and history.
-     */
     public function index()
     {
         $organization = Auth::user();
-        
-        // Eager load all subscriptions with their related plan details for efficiency.
         $organization->load('subscriptions.plan');
 
-        // Get all subscriptions for the history tab.
-        $allSubscriptions = $organization->subscriptions;
-
-        // Get the current active subscription.
+        // --- THIS IS THE DEFINITIVE FIX FOR HISTORY ---
+        // We get ALL subscriptions, including those that have ended.
+        $allSubscriptions = $organization->subscriptions()->with('plan')->get();
+        
         $currentSubscription = $allSubscriptions->whereNull('ends_at')->first();
-
-        // Get the plan from the current subscription.
         $plan = optional($currentSubscription)->plan;
 
         return view('Organization.subscription.index', compact('currentSubscription', 'plan', 'allSubscriptions'));
     }
-    
-    /**
-     * --- THIS IS THE NEW METHOD FOR CHANGING PLANS ---
-     * Swap the organization's current subscription plan.
-     */
-    public function swap(Request $request)
+
+    public function showChangePlanForm(Request $request)
+    {
+        $request->validate(['plan' => 'required|exists:plans,id']);
+        $plan = Plan::findOrFail($request->query('plan'));
+        $user = Auth::user();
+        $intent = $user->createSetupIntent();
+        
+        $formActionRoute = route('organization.subscription.change.process');
+
+        return view('subscription.checkout', compact('plan', 'intent', 'user', 'formActionRoute'));
+    }
+
+    public function processChangePlan(Request $request)
     {
         $request->validate([
-            'plan_id' => ['required', 'integer', Rule::exists('plans', 'id')],
+            'plan_id' => 'required|exists:plans,id',
+            'payment_method' => 'required|string',
         ]);
 
-        $organization = Auth::user();
-        $newPlan = Plan::find($request->input('plan_id'));
+        $plan = Plan::find($request->plan_id);
+        $user = $request->user();
 
         try {
-            // Use Cashier's swap method. It handles proration automatically.
-            $organization->subscription('default')->swap($newPlan->stripe_price_id);
-            
-            return redirect()->route('organization.subscription.index')->with('success', 'Subscription plan changed successfully!');
-
+            $user->updateDefaultPaymentMethod($request->payment_method);
+            $user->subscription('default')->swapAndInvoice($plan->stripe_price_id);
+        } catch (IncompletePayment $exception) {
+            return redirect()->route(
+                'cashier.payment',
+                [$exception->payment->id, 'redirect' => route('organization.subscription.index')]
+            );
         } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['message' => 'Error changing subscription: ' . $e->getMessage()]);
+            return back()->withErrors(['message' => 'Error changing subscription: ' . $e->getMessage()]);
         }
+
+        return redirect()->route('organization.subscription.index')->with('success', 'Subscription plan changed successfully!');
     }
 }

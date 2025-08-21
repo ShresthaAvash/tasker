@@ -3,59 +3,48 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plan;
-use App\Models\Subscription;
-use App\Models\User; // ADD THIS LINE
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Notification; // ADD THIS LINE
-use App\Notifications\OrganizationSubscribed; // ADD THIS LINE
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\OrganizationSubscribed;
 
 class SubscriptionController extends Controller
 {
-    /**
-     * Show the subscription checkout page.
-     */
     public function checkout(Request $request)
-{
-    $plan = Plan::findOrFail($request->query('plan')); // <-- You changed this, which is good!
-    $user = Auth::user();
+    {
+        $plan = Plan::findOrFail($request->query('plan'));
+        $user = Auth::user();
+        $intent = $user->createSetupIntent();
 
-    $intent = $user->createSetupIntent();
+        // This variable tells the form where to submit for initial signup
+        $formActionRoute = route('subscription.store');
 
-    // You are correctly passing 'plan' and 'intent' here
-    return view('subscription.checkout', compact('plan', 'intent','user'));
-}
+        return view('subscription.checkout', compact('plan', 'intent','user', 'formActionRoute'));
+    }
 
-    /**
-     * Process the subscription payment.
-     */
    public function store(Request $request)
     {
         $request->validate([
-            'plan_id' => 'required|exists:plans,id', // <-- Changed to plans
+            'plan_id' => 'required|exists:plans,id',
             'payment_method' => 'required|string',
         ]);
 
-        $plan = Plan::find($request->plan_id); // <-- Changed to Plan
+        $plan = Plan::find($request->plan_id);
         $user = $request->user();
 
         try {
-            // Create the subscription
             $user->newSubscription('default', $plan->stripe_price_id)
                 ->create($request->payment_method);
 
-            // Update the user's status to Active
             $user->status = 'A';
-            $user->organization_id = $user->id; // Set organization ID
+            $user->organization_id = $user->id;
             $user->save();
             
-            // --- THIS IS THE NEW NOTIFICATION LOGIC ---
             $superAdmins = User::where('type', 'S')->get();
             if ($superAdmins->isNotEmpty()) {
                 Notification::send($superAdmins, new OrganizationSubscribed($user, $plan));
             }
-            // --- END OF NEW LOGIC ---
-
         } catch (\Exception $e) {
             return back()->withErrors(['message' => 'Error creating subscription: ' . $e->getMessage()]);
         }

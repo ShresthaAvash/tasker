@@ -15,11 +15,11 @@ use App\Http\Controllers\Organization\CalendarController;
 use App\Http\Controllers\SubscriptionPendingController;
 use App\Http\Controllers\Staff\TaskController as StaffTaskController;
 use App\Http\Controllers\NotificationController;
-// REMOVED: The ReportController is no longer used.
-use App\Http\Controllers\SubscriptionController; // Add this
+use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SuperAdmin\PlanController as SuperAdminPlanController;
 use App\Http\Controllers\Organization\ReportController as OrganizationReportController;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Cashier\Http\Controllers\WebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,11 +30,10 @@ use Illuminate\Support\Facades\Auth;
 Route::get('/', [LandingPageController::class, 'index'])->name('landing');
 Route::get('/pricing', [LandingPageController::class, 'pricing'])->name('pricing');
 
-// ADD THIS NEW ROUTE FOR THE PENDING PAGE
 Route::get('/subscription/pending', [SubscriptionPendingController::class, 'index'])->name('subscription.pending');
-// ADD THIS NEW ROUTE FOR THE EXPIRED PAGE
 Route::get('/subscription/expired', [SubscriptionPendingController::class, 'expired'])->name('subscription.expired');
 
+Route::post('stripe/webhook', [WebhookController::class, 'handleWebhook']);
 
 Route::get('/dashboard', function () {
     if (Auth::check()) {
@@ -51,32 +50,18 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/profile/activity-log', [ProfileController::class, 'showActivityLog'])->name('profile.activity_log');
-    // New Subscription Routes
     Route::get('/subscription/checkout', [SubscriptionController::class, 'checkout'])->name('subscription.checkout');
     Route::post('/subscription/store', [SubscriptionController::class, 'store'])->name('subscription.store');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    
-    // --- THIS ROUTE HAS BEEN REMOVED ---
 });
 
 // Super Admin routes
 Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmin')->group(function () {
     Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('superadmin.dashboard');
-
-    // --- THIS IS THE NEW EARNINGS ROUTE ---
     Route::get('/earnings', [SuperAdminController::class, 'earnings'])->name('superadmin.earnings');
-
-    // --- MODIFICATION START ---
-    // The 'subscription-requests' routes have been removed.
-    // The 'active-subscriptions' route is replaced by the new 'subscribed' route.
     Route::get('/subscribed-organizations', [SuperAdminController::class, 'subscribedOrganizations'])->name('superadmin.subscriptions.subscribed');
-    // --- MODIFICATION END ---
-    
     Route::resource('organizations', SuperAdminController::class)->names('superadmin.organizations');
-
-    // --- THIS IS THE NEW ROUTE FOR VIEWING SUBSCRIPTION HISTORY ---
     Route::get('/organizations/{user}/subscription-history', [SuperAdminController::class, 'subscriptionHistory'])->name('superadmin.subscriptions.history');
-
     Route::resource('plans', SuperAdminPlanController::class)->names('superadmin.plans');
     Route::patch('/subscriptions/{user}/cancel', [SuperAdminController::class, 'cancelSubscription'])->name('superadmin.subscriptions.cancel');
     Route::patch('/subscriptions/{user}/resume', [SuperAdminController::class, 'resumeSubscription'])->name('superadmin.subscriptions.resume');
@@ -85,12 +70,12 @@ Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmi
 // Organization routes
 Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organization')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
-    
-    // --- THIS IS THE NEW ROUTE FOR THE TIME REPORT ---
     Route::get('reports/time', [OrganizationReportController::class, 'timeReport'])->name('organization.reports.time');
 
+    // --- THIS IS THE DEFINITIVE FIX for subscription routing ---
     Route::get('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'index'])->name('organization.subscription.index');
-    Route::post('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'store'])->name('organization.subscription.store');
+    Route::get('subscription/change', [\App\Http\Controllers\Organization\SubscriptionController::class, 'showChangePlanForm'])->name('organization.subscription.change');
+    Route::post('subscription/change', [\App\Http\Controllers\Organization\SubscriptionController::class, 'processChangePlan'])->name('organization.subscription.change.process');
     
     // Calendar
     Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
@@ -144,12 +129,8 @@ Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->grou
     Route::get('tasks', [StaffTaskController::class, 'index'])->name('staff.tasks.index');
 
     Route::patch('tasks/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('staff.tasks.updateStatus')->where('task', '.*');
-
-    // --- NEW ROUTES START ---
     Route::post('tasks/{task}/start-timer', [StaffTaskController::class, 'startTimer'])->name('staff.tasks.startTimer')->where('task', '.*');
     Route::post('tasks/{task}/stop-timer', [StaffTaskController::class, 'stopTimer'])->name('staff.tasks.stopTimer')->where('task', '.*');
-    // --- NEW ROUTES END ---
-
     Route::post('tasks/{task}/add-manual-time', [StaffTaskController::class, 'addManualTime'])->name('staff.tasks.addManualTime')->where('task', '.*');
 });
 

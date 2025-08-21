@@ -18,8 +18,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'isStaff' => \App\Http\Middleware\IsStaff::class, 
             'checkUserStatus' => \App\Http\Middleware\CheckUserStatus::class, // <-- ADD THIS LINE
         ]);
+
+        // --- THIS IS THE DEFINITIVE FIX ---
+        // Exclude the Stripe webhook route from CSRF protection.
+        $middleware->validateCsrfTokens(except: [
+            'stripe/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })
     ->create();
+### END OF EDITED FILE tasker\bootstrap\app.php ###
