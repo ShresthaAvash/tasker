@@ -1,25 +1,16 @@
 @extends('layouts.app')
 
 @section('title', 'Services')
+@section('plugins.Select2', true)
 
 @section('content_header')
     <h1>Services</h1>
 @stop
 
 @section('content')
-<div class="card card-info card-outline card-tabs">
-    <div class="card-header p-0 pt-1 border-bottom-0">
-        <ul class="nav nav-tabs" id="service-status-tabs" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" id="active-services-tab" data-status="A" data-toggle="pill" href="#services-content" role="tab">Active Services</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="suspended-services-tab" data-status="I" data-toggle="pill" href="#services-content" role="tab">Suspended Services</a>
-            </li>
-        </ul>
-    </div>
+<div class="card card-info card-outline">
     <div class="card-header">
-        <h3 class="card-title" id="card-title">All Active Services</h3>
+        <h3 class="card-title">All Services</h3>
         <div class="card-tools">
             <a href="{{ route('services.create') }}" class="btn btn-info btn-sm">Add New Service</a>
         </div>
@@ -29,9 +20,15 @@
             <div class="alert alert-success" id="success-alert">{{ session('success') }}</div>
         @endif
         
-        <div class="mb-3">
-            <div class="input-group">
+        <div class="row mb-3">
+            <div class="col-md-8">
                 <input type="text" name="search" id="search-input" class="form-control" placeholder="Search by service name..." value="{{ request('search') }}">
+            </div>
+            <div class="col-md-4">
+                 <select name="statuses[]" id="status-filter" class="form-control" multiple="multiple">
+                    <option value="A">Active</option>
+                    <option value="I">Inactive</option>
+                </select>
             </div>
         </div>
 
@@ -40,9 +37,6 @@
         </div>
     </div>
 </div>
-
-@include('Organization.services._job_modal')
-
 @stop
 
 @section('js')
@@ -50,7 +44,11 @@
 $(document).ready(function() {
     let debounceTimer;
 
-    function fetch_services_data(page, sort_by, sort_order, search, status) {
+    $('#status-filter').select2({
+        placeholder: 'Filter by Status (All)'
+    });
+
+    function fetch_services_data(page, sort_by, sort_order, search, statuses) {
         $('#services-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
         $.ajax({
             url: "{{ route('services.index') }}",
@@ -59,7 +57,7 @@ $(document).ready(function() {
                 sort_by: sort_by, 
                 sort_order: sort_order, 
                 search: search,
-                status: status 
+                statuses: statuses 
             },
             success: function(data) {
                 $('#services-table-container').html(data);
@@ -67,61 +65,35 @@ $(document).ready(function() {
         });
     }
 
-    function getCurrentStatus() {
-        return $('#service-status-tabs .nav-link.active').data('status') || 'A';
+    function trigger_fetch() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function() {
+            const search = $('#search-input').val();
+            const statuses = $('#status-filter').val();
+            const sort_by = $('#sort_by').val() || 'created_at';
+            const sort_order = $('#sort_order').val() || 'desc';
+            fetch_services_data(1, sort_by, sort_order, search, statuses);
+        }, 300);
     }
 
-    // Tab switching
-    $('#service-status-tabs a[data-toggle="pill"]').on('shown.bs.tab', function (e) {
-        const status = $(e.target).data('status');
-        const title = status === 'A' ? 'All Active Services' : 'All Suspended Services';
-        $('#card-title').text(title);
-        fetch_services_data(1, 'created_at', 'desc', $('#search-input').val(), status);
-    });
+    // Initial load
+    trigger_fetch();
 
-    $('#search-input').on('keyup', function() {
-        clearTimeout(debounceTimer);
-        const search = $(this).val();
-        debounceTimer = setTimeout(function() {
-            fetch_services_data(1, $('#sort_by').val(), $('#sort_order').val(), search, getCurrentStatus());
-        }, 300);
-    });
+    $('#search-input, #status-filter').on('keyup change', trigger_fetch);
 
     const container = '#services-table-container';
 
     $(document).on('click', `${container} .sort-link`, function(e) {
         e.preventDefault();
-        fetch_services_data(1, $(this).data('sortby'), $(this).data('sortorder'), $('#search-input').val(), getCurrentStatus());
+        $('#sort_by').val($(this).data('sortby'));
+        $('#sort_order').val($(this).data('sortorder'));
+        trigger_fetch();
     });
 
     $(document).on('click', `${container} .pagination a`, function(e) {
         e.preventDefault();
         const page = $(this).attr('href').split('page=')[1];
-        fetch_services_data(page, $('#sort_by').val(), $('#sort_order').val(), $('#search-input').val(), getCurrentStatus());
-    });
-
-    $(document).on('keyup', '.job-search-input', function() {
-        var searchTerm = $(this).val().toLowerCase();
-        $(this).closest('.dropdown-menu').find('.job-link').each(function() {
-            var jobName = $(this).text().toLowerCase();
-            $(this).toggle(jobName.indexOf(searchTerm) > -1);
-        });
-    });
-    
-    $(document).on('click', '.job-search-input', function(e) {
-        e.stopPropagation();
-    });
-
-    $('#jobModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget);
-        var serviceId = button.data('service-id');
-        var modal = $(this);
-
-        modal.find('.modal-title').text('Add New Job');
-        var actionUrl = '/organization/services/' + serviceId + '/jobs';
-        modal.find('form').attr('action', actionUrl);
-        modal.find('input[name="_method"]').val('POST');
-        modal.find('form')[0].reset();
+        fetch_services_data(page, $('#sort_by').val(), $('#sort_order').val(), $('#search-input').val(), $('#status-filter').val());
     });
 
     setTimeout(function() { $('#success-alert').fadeOut('slow'); }, 5000);

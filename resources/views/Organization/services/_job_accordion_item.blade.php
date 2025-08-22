@@ -1,4 +1,3 @@
-
 <div class="card card-outline card-secondary mb-3" id="job-card-{{ $job->id }}" data-job='@json($job)'>
     <div class="card-header" id="heading-{{ $job->id }}">
         <a href="#collapse-{{ $job->id }}" data-toggle="collapse" aria-expanded="true" aria-controls="collapse-{{ $job->id }}" class="d-block text-dark">
@@ -31,27 +30,15 @@
             <table class="table table-hover task-list-table">
                 <tbody id="tasks-in-job-{{ $job->id }}">
                     @forelse($job->tasks as $task)
-                        {{-- The clickable row that shows the task name --}}
-                        <tr class="task-row" data-toggle="collapse" data-target="#task-actions-{{ $task->id }}" aria-expanded="false" aria-controls="task-actions-{{ $task->id }}" id="task-row-{{ $task->id }}">
+                        <tr class="task-row" id="task-row-{{ $task->id }}">
                             <td class="task-name-cell pl-0">{{ $task->name }}</td>
-                            <td class="text-right" style="width: 50px;">
-                                <i class="fas fa-chevron-down collapse-icon-task"></i>
-                            </td>
-                        </tr>
-                        {{-- The hidden row that contains the action buttons --}}
-                        <tr class="task-actions-row">
-                            <td colspan="2">
-                                <div class="collapse" id="task-actions-{{ $task->id }}" data-parent="#tasks-in-job-{{ $job->id }}">
-                                    <div class="task-actions-content">
-                                        {{-- --- THIS IS THE FIX: The inline onclick="..." attributes have been removed --- --}}
-                                        <button class="btn btn-sm btn-light border text-warning" data-toggle="modal" data-target="#taskModal" data-action="edit" data-task='@json($task)'>
-                                            <i class="fas fa-edit"></i> Edit
-                                        </button>
-                                        <button class="btn btn-sm btn-light border text-danger delete-task-btn ml-2" data-task-id="{{ $task->id }}">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    </div>
-                                </div>
+                            <td class="text-right">
+                                <button class="btn btn-sm btn-light border text-warning" data-toggle="modal" data-target="#taskModal" data-action="edit" data-task='@json($task)'>
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-light border text-danger delete-task-btn ml-2" data-task-id="{{ $task->id }}">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
                             </td>
                         </tr>
                     @empty

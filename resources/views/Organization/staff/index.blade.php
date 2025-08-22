@@ -57,10 +57,8 @@ $(document).ready(function() {
     let debounceTimer;
 
     $('#status-filter').select2({
-        placeholder: 'Filter by Status'
+        placeholder: 'Filter by Status (All)'
     });
-    // Set default value to Active and trigger the initial load
-    $('#status-filter').val(['A']).trigger('change.select2');
 
     function fetch_staff_data(page, sort_by, sort_order, search, designation_id, statuses) {
         $('#staff-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
@@ -93,9 +91,11 @@ $(document).ready(function() {
             fetch_staff_data(1, sort_by, sort_order, search, designation_id, statuses);
         }, 300);
     }
+    
+    // Initial load
+    trigger_fetch();
 
-    $('#search-input').on('keyup', trigger_fetch);
-    $('#designation-filter, #status-filter').on('change', trigger_fetch);
+    $('#search-input, #designation-filter, #status-filter').on('keyup change', trigger_fetch);
 
     $(document).on('click', '#staff-table-container .sort-link', function(e) {
         e.preventDefault();

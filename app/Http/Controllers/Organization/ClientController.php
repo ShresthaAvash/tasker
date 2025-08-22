@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Notifications\ClientTaskAssigned;
+use App\Notifications\MessageFromOrganization;
+use App\Notifications\MessageSentToClients;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -29,9 +32,10 @@ class ClientController extends Controller
         $query = User::where('type', 'C')
             ->where('organization_id', Auth::id());
 
-        $status = $request->get('status', 'A');
-        if (in_array($status, ['A', 'I'])) {
-            $query->where('status', $status);
+        // --- THIS IS THE FIX: Filter by an array of statuses if provided ---
+        $statuses = $request->get('statuses');
+        if (!empty($statuses) && is_array($statuses)) {
+            $query->whereIn('status', $statuses);
         }
 
         if ($request->filled('search')) {
@@ -164,7 +168,8 @@ class ClientController extends Controller
         $client->status = $client->status === 'A' ? 'I' : 'A';
         $client->save();
 
-        $message = $client->status === 'A' ? 'Client has been activated.' : 'Client has been suspended.';
+        // --- THIS IS THE FIX: Updated wording ---
+        $message = $client->status === 'A' ? 'Client has been activated.' : 'Client has been made inactive.';
 
         return redirect()->back()->with('success', $message);
     }
@@ -287,14 +292,16 @@ class ClientController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
             'document_file' => 'required|file|mimes:jpg,png,pdf,docx|max:10240',
         ]);
 
         $file = $request->file('document_file');
-        $filePath = $file->store('client_documents', 'public');
+        $filePath = $file->store('client_documents/' . $client->id, 'public');
 
         $client->documents()->create([
             'name' => $request->name,
+            'description' => $request->description,
             'file_path' => $filePath,
             'file_type' => $file->getClientOriginalExtension(),
             'file_size' => $file->getSize(),
@@ -491,5 +498,40 @@ class ClientController extends Controller
                 'name' => $service->name,
             ]
         ]);
+    }
+
+    public function sendMessage(Request $request)
+    {
+        $request->validate([
+            'client_ids' => 'required|array|min:1',
+            'client_ids.*' => 'exists:users,id',
+            'subject' => 'required|string|max:255',
+            'message' => 'required|string|max:5000',
+        ]);
+
+        $organization = Auth::user();
+        $clients = User::whereIn('id', $request->client_ids)
+            ->where('organization_id', $organization->id) // Security check
+            ->get();
+
+        if ($clients->isEmpty()) {
+            return back()->with('error', 'No valid clients were selected.');
+        }
+
+        Notification::send($clients, new MessageFromOrganization(
+            $organization,
+            $request->subject,
+            $request->message
+        ));
+
+        // Send a confirmation notification to the organization
+        $organization->notify(new MessageSentToClients(
+            $organization,
+            $request->subject,
+            $request->message,
+            $clients
+        ));
+
+        return back()->with('success', 'Message sent successfully to ' . $clients->count() . ' client(s).');
     }
 }

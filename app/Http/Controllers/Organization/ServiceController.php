@@ -17,10 +17,10 @@ class ServiceController extends Controller
     {
         $query = Service::where('organization_id', Auth::id())->with('jobs');
 
-        // MODIFIED: Filter by status, default to Active ('A')
-        $status = $request->get('status', 'A');
-        if (in_array($status, ['A', 'I'])) {
-            $query->where('status', $status);
+        // --- THIS IS THE FIX: Filter by an array of statuses if provided ---
+        $statuses = $request->get('statuses');
+        if (!empty($statuses) && is_array($statuses)) {
+            $query->whereIn('status', $statuses);
         }
 
         // Search
@@ -43,8 +43,6 @@ class ServiceController extends Controller
         
         return view('Organization.services.index', compact('services', 'sort_by', 'sort_order'));
     }
-
-    // REMOVED: The suspended() method is no longer needed.
     
     /**
      * Show the form for creating a new resource.
@@ -130,7 +128,7 @@ class ServiceController extends Controller
     }
     
     /**
-     * Toggle the status of a service between Active and Suspended.
+     * Toggle the status of a service between Active and Inactive.
      */
     public function toggleStatus(Service $service)
     {
@@ -141,7 +139,8 @@ class ServiceController extends Controller
         $service->status = $service->status === 'A' ? 'I' : 'A';
         $service->save();
 
-        $message = $service->status === 'A' ? 'Service has been activated.' : 'Service has been suspended.';
+        // --- THIS IS THE FIX: Updated wording ---
+        $message = $service->status === 'A' ? 'Service has been activated.' : 'Service has been made inactive.';
 
         return redirect()->back()->with('success', $message);
     }

@@ -229,7 +229,7 @@ return [
             'icon'    => 'fas fa-fw fa-building',
             'can'     => 'is-superadmin',
             'submenu' => [
-                [ 'text' => 'List Organizations', 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
+                [ 'text' => 'All Organizations', 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
                 [ 'text' => 'Add Organization', 'route'  => 'superadmin.organizations.create', 'icon' => 'fas fa-fw fa-plus', ],
                 [
                     'text' => 'Subscribed Organizations',
@@ -342,6 +342,26 @@ return [
                 ],
             ],
             'active' => ['staff/tasks*']
+        ],
+
+        // CLIENT MENU
+        [
+            'text' => 'Dashboard',
+            'route'  => 'client.dashboard',
+            'icon' => 'fas fa-fw fa-tachometer-alt',
+            'can'  => 'is-client',
+        ],
+        [
+            'text' => 'Documents',
+            'route'  => 'client.documents.index',
+            'icon' => 'fas fa-fw fa-file-alt',
+            'can'  => 'is-client',
+        ],
+        [
+            'text' => 'My Reports',
+            'route'  => 'client.reports.index',
+            'icon' => 'fas fa-fw fa-chart-pie',
+            'can'  => 'is-client',
         ],
     ],
 

@@ -13,7 +13,7 @@
                 @if ($organization->status === 'A')
                     <span class="badge bg-success">Active</span>
                 @else
-                    <span class="badge bg-danger">Suspended</span>
+                    <span class="badge bg-danger">Inactive</span>
                 @endif
             </p>
         </div>

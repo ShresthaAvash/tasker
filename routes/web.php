@@ -18,6 +18,9 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SuperAdmin\PlanController as SuperAdminPlanController;
 use App\Http\Controllers\Organization\ReportController as OrganizationReportController;
+use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
+use App\Http\Controllers\Client\DocumentController as ClientDocumentController;
+use App\Http\Controllers\Client\ReportController as ClientReportController;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Cashier\Http\Controllers\WebhookController;
 
@@ -41,6 +44,7 @@ Route::get('/dashboard', function () {
         if ($userType === 'S') return redirect()->route('superadmin.dashboard');
         if ($userType === 'O') return redirect()->route('organization.dashboard');
         if ($userType === 'T') return redirect()->route('staff.dashboard');
+        if ($userType === 'C') return redirect()->route('client.dashboard');
     }
     return redirect()->route('login');
 })->middleware(['auth', 'checkUserStatus'])->name('dashboard');
@@ -52,7 +56,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile/activity-log', [ProfileController::class, 'showActivityLog'])->name('profile.activity_log');
     Route::get('/subscription/checkout', [SubscriptionController::class, 'checkout'])->name('subscription.checkout');
     Route::post('/subscription/store', [SubscriptionController::class, 'store'])->name('subscription.store');
+    
+    // Notification Routes
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+    Route::post('/notifications/{id}/unread', [NotificationController::class, 'markAsUnread'])->name('notifications.markAsUnread');
 });
 
 // Super Admin routes
@@ -86,6 +94,7 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
     
     // Client Management
+    Route::post('clients/send-message', [ClientController::class, 'sendMessage'])->name('clients.sendMessage');
     Route::get('clients/suspended', [ClientController::class, 'suspended'])->name('clients.suspended');
     Route::patch('clients/{client}/status', [ClientController::class, 'toggleStatus'])->name('clients.toggleStatus');
     Route::resource('clients', ClientController::class);
@@ -135,6 +144,18 @@ Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->grou
     Route::post('tasks/{task}/start-timer', [StaffTaskController::class, 'startTimer'])->name('staff.tasks.startTimer')->where('task', '.*');
     Route::post('tasks/{task}/stop-timer', [StaffTaskController::class, 'stopTimer'])->name('staff.tasks.stopTimer')->where('task', '.*');
     Route::post('tasks/{task}/add-manual-time', [StaffTaskController::class, 'addManualTime'])->name('staff.tasks.addManualTime')->where('task', '.*');
+});
+
+// Client Portal Routes
+Route::middleware(['auth', 'isClient', 'checkUserStatus'])->prefix('client')->name('client.')->group(function () {
+    Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/documents', [ClientDocumentController::class, 'index'])->name('documents.index');
+    Route::post('/documents', [ClientDocumentController::class, 'store'])->name('documents.store');
+    Route::get('/documents/{document}/download', [ClientDocumentController::class, 'download'])->name('documents.download');
+    Route::delete('/documents/{document}', [ClientDocumentController::class, 'destroy'])->name('documents.destroy');
+
+    Route::get('/reports', [ClientReportController::class, 'index'])->name('reports.index');
 });
 
 require __DIR__.'/auth.php';

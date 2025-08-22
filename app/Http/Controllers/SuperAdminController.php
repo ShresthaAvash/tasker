@@ -145,15 +145,33 @@ class SuperAdminController extends Controller
     public function index(Request $request)
     {
         $query = User::where('type', 'O')->with('subscriptions');
-
-        if ($request->filled('search')) {
-            $query->where('name', 'like', "%{$request->search}%")
-                ->orWhere('email', 'like', "%{$request->search}%");
+        
+        $statuses = $request->get('statuses');
+        if (!empty($statuses) && is_array($statuses)) {
+            $query->whereIn('status', $statuses);
         }
 
-        $organizations = $query->orderBy('name')->paginate(10);
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('email', 'like', '%' . $request->search . '%');
+            });
+        }
+        
+        $sort_by = $request->get('sort_by', 'created_at');
+        $sort_order = $request->get('sort_order', 'desc');
+        
+        if (in_array($sort_by, ['name', 'email', 'status', 'created_at'])) {
+            $query->orderBy($sort_by, $sort_order);
+        }
 
-        return view('SuperAdmin.index', compact('organizations'));
+        $organizations = $query->paginate(10);
+
+        if ($request->ajax()) {
+            return view('SuperAdmin._organizations_table', compact('organizations', 'sort_by', 'sort_order'))->render();
+        }
+
+        return view('SuperAdmin.index', compact('organizations', 'sort_by', 'sort_order'));
     }
     
     // Show create form
@@ -217,14 +235,16 @@ class SuperAdminController extends Controller
         return redirect()->route('superadmin.organizations.index')->with('success', 'Organization updated successfully.');
     }
 
-    // Toggle status (active/suspended)
+    // Toggle status (active/inactive)
     public function destroy($id)
     {
         $organization = User::where('type', 'O')->findOrFail($id);
         $organization->status = $organization->status === 'A' ? 'I' : 'A';
         $organization->save();
 
-        return redirect()->route('superadmin.organizations.index')->with('success', 'Organization status updated.');
+        $message = $organization->status === 'A' ? "Organization '{$organization->name}' has been activated." : "Organization '{$organization->name}' has been made inactive.";
+
+        return redirect()->route('superadmin.organizations.index')->with('success', $message);
     }
     
     public function subscribedOrganizations(Request $request)

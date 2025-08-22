@@ -2,8 +2,6 @@
 <input type="hidden" id="sort_by" value="{{ $sort_by }}">
 <input type="hidden" id="sort_order" value="{{ $sort_order }}">
 
-{{-- --- THIS IS THE FIX --- --}}
-{{-- We remove 'table-bordered' for a cleaner look inside the card --}}
 <table class="table table-hover table-striped">
     <thead>
         <tr>
@@ -45,11 +43,11 @@
             <td>
                 <a href="{{ route('staff.edit', $member->id) }}" class="btn btn-xs btn-warning">Edit</a>
                 
-                <form action="{{ route('staff.toggleStatus', $member->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to {{ $member->status === 'A' ? 'suspend' : 'activate' }} this staff member?');">
+                <form action="{{ route('staff.toggleStatus', $member->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to {{ $member->status === 'A' ? 'deactivate' : 'activate' }} this staff member?');">
                     @csrf
                     @method('PATCH')
                     <button type="submit" class="btn btn-xs {{ $member->status === 'A' ? 'btn-secondary' : 'btn-success' }}">
-                        {{ $member->status === 'A' ? 'Suspend' : 'Activate' }}
+                        {{ $member->status === 'A' ? 'Deactivate' : 'Activate' }}
                     </button>
                 </form>
 

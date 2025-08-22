@@ -43,6 +43,8 @@ class AuthServiceProvider extends ServiceProvider
             return in_array($user->type, ['A', 'T']);
         });
 
-        // --- END OF FIX ---
+        Gate::define('is-client', function (User $user) {
+            return $user->type === 'C';
+        });
     }
 }

@@ -26,4 +26,13 @@ class Job extends Model
     {
         return $this->hasMany(Task::class)->orderBy('created_at');
     }
+
+    /**
+     * --- THIS IS THE FIX ---
+     * A job can have many assigned tasks instantiated for clients.
+     */
+    public function assignedTasks()
+    {
+        return $this->hasMany(AssignedTask::class);
+    }
 }

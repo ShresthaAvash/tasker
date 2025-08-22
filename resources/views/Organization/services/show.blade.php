@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('title', 'Build Service')
@@ -58,29 +57,10 @@
         border-top: none;
     }
     
-    .task-row {
-        cursor: pointer;
-    }
     .task-row:hover td {
         background-color: #f8f9fa;
     }
-    .task-actions-row td {
-        border-top: none !important;
-        padding: 0 !important;
-    }
-    .task-actions-content {
-        padding: 0.75rem 1.25rem;
-        text-align: right;
-        background-color: #fdfdfd;
-    }
-    .collapse-icon-task {
-        transition: transform 0.3s ease;
-        color: #6c757d;
-    }
-    .task-row[aria-expanded="true"] .collapse-icon-task {
-        transform: rotate(180deg);
-    }
-    .card-tools .btn, .task-actions-content .btn {
+    .card-tools .btn {
         margin-left: 0.5rem;
     }
 
@@ -343,17 +323,11 @@ $(document).ready(function() {
         $.ajax({
             url: '/organization/tasks/' + taskId, type: 'DELETE',
             success: (response) => {
-                $('#task-row-' + taskId).next('.task-actions-row').remove();
                 $('#task-row-' + taskId).remove();
                 showAlert(response.message);
             },
             error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
         });
-    });
-
-    // When a task collapse is shown, hide all others within the same job
-    $('.job-accordion').on('show.bs.collapse', '.collapse', function () {
-        $(this).closest('tbody').find('.collapse.show').not(this).collapse('hide');
     });
 
 });

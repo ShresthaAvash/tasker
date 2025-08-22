@@ -15,35 +15,48 @@
 {{-- This section adds all custom items to the top-right of the navigation bar --}}
 @section('content_top_nav_right')
 
-    {{-- MODIFIED: Added a unique ID to the list item for precise CSS targeting --}}
     <li class="nav-item dropdown" id="notification-bell">
         <a class="nav-link" data-toggle="dropdown" href="#">
             <i class="far fa-bell"></i>
             @if(Auth::check() && Auth::user()->unreadNotifications->count())
-                <span class="badge badge-danger navbar-badge">{{ Auth::user()->unreadNotifications->count() }}</span>
+                <span class="badge badge-danger navbar-badge" id="notification-badge-count">{{ Auth::user()->unreadNotifications->count() }}</span>
             @endif
         </a>
         <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
             @if(Auth::check())
-                <span class="dropdown-item dropdown-header">{{ Auth::user()->unreadNotifications->count() }} New Notifications</span>
+                <span class="dropdown-item dropdown-header"><span id="notification-header-count">{{ Auth::user()->unreadNotifications->count() }}</span> New Notifications</span>
                 <div class="dropdown-divider"></div>
                 
-                @forelse(Auth::user()->unreadNotifications->take(5) as $notification)
-                    {{-- MODIFIED: The structure inside the link is improved for better layout --}}
-                    <a href="{{ route('notifications.index') }}" class="dropdown-item">
+                @forelse(Auth::user()->notifications()->take(5)->get() as $notification)
+                    @php
+                        $isMessageSent = $notification->type === 'App\\Notifications\\MessageSentToClients';
+                    @endphp
+                    <div class="dropdown-item notification-item {{ $notification->read_at ? '' : 'bg-light font-weight-bold' }}"
+                         data-id="{{ $notification->id }}" 
+                         data-type="{{ class_basename($notification->type) }}"
+                         data-info="{{ json_encode($notification->data) }}"
+                         data-full-time="{{ $notification->created_at->format('d M Y, h:i A') }}"
+                         data-read="{{ $notification->read_at ? 'true' : 'false' }}"
+                         data-recipients="{{ $isMessageSent ? $notification->data['recipients'] : '' }}"
+                         style="cursor: pointer;">
+                        
                         <div class="notification-text">
-                            @if (isset($notification->data['organization_name']))
-                                <i class="fas fa-user-plus text-success mr-2"></i>
+                            @if($notification->type === 'App\\Notifications\\MessageFromOrganization')
+                                <i class="fas fa-envelope text-primary mr-2"></i>
+                                <strong>{{ $notification->data['subject'] }}</strong> from {{ $notification->data['organization_name'] }}
+                            @elseif($isMessageSent)
+                                <i class="fas fa-paper-plane text-success mr-2"></i>
+                                Message Sent: <strong>{{ $notification->data['subject'] }}</strong>
                             @else
                                 <i class="fas fa-tasks text-info mr-2"></i>
+                                {{ $notification->data['message'] }}
                             @endif
-                            {{ $notification->data['message'] }}
                         </div>
-                        <span class="text-nowrap text-muted text-sm">{{ $notification->created_at->diffForHumans(null, true) }}</span>
-                    </a>
+                        <span class="text-nowrap text-muted text-sm">{{ $notification->created_at->diffForHumans() }}</span>
+                    </div>
                     <div class="dropdown-divider"></div>
                 @empty
-                    <span class="dropdown-item text-muted text-center">No new notifications</span>
+                    <span class="dropdown-item text-muted text-center">No notifications</span>
                     <div class="dropdown-divider"></div>
                 @endforelse
 
@@ -51,69 +64,40 @@
             @endif
         </div>
     </li>
-
-    {{-- --- THIS IS THE FIX: The entire old timer placeholder has been removed --- --}}
 @endsection
 
 @section('css')
     <style>
-        /*
-         * Increase the root font size to scale up the entire UI.
-         * Default is 16px. 16px * 1.25 = 20px.
-         * This makes the entire layout look like it's at 125% zoom by default.
-        */
-        html {
-            font-size: 20px !important;
-        }
-
-        /* Force the main sidebar and the top brand link to have a pure white background */
-        .main-sidebar, .brand-link {
-            background-color: #ffffff !important;
-        }
+        /* Base styles from previous step */
+        html { font-size: 20px !important; }
+        .main-sidebar, .brand-link { background-color: #ffffff !important; }
+        .brand-link .brand-text { color: #343a40 !important; }
+        .main-sidebar { border-right: 1px solid #dee2e6 !important; }
+        .card-tabs .nav-tabs .nav-link.active { background-color: #17a2b8 !important; color: #ffffff !important; border-color: #17a2b8 #17a2b8 #ffffff; }
+        .card-tabs .nav-tabs .nav-link { color: #007bff; }
         
-        /* Ensure the "Tasker" text is dark and readable on the white background */
-        .brand-link .brand-text {
-            color: #343a40 !important;
-        }
+        #notification-bell .dropdown-menu { min-width: 450px !important; position: absolute !important; left: auto !important; right: 0 !important; }
+        .notification-item { display: flex !important; justify-content: space-between !important; align-items: center !important; white-space: normal !important; padding-top: 10px; padding-bottom: 10px; }
+        .notification-text { flex-grow: 1; padding-right: 15px; }
 
-        /* Add a subtle vertical line to the right of the sidebar for separation */
-        .main-sidebar {
-            border-right: 1px solid #dee2e6 !important;
+        /* --- NEW MODAL STYLES --- */
+        #notificationDetailModal .modal-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
         }
-
-        /* --- THIS IS THE DEFINITIVE FIX --- */
-        /* Style for the active TAB on content pages to have a solid background */
-        .card-tabs .nav-tabs .nav-link.active {
-            background-color: #17a2b8 !important; /* Your teal color */
-            color: #ffffff !important;
-            border-color: #17a2b8 #17a2b8 #ffffff;
+        #notificationDetailModal .modal-title {
+            font-weight: 600;
         }
-
-        /* Style for inactive tabs to ensure they look clickable */
-        .card-tabs .nav-tabs .nav-link {
-            color: #007bff; /* Standard link blue */
+        #notificationDetailModal .modal-body {
+            background-color: #fff;
         }
-        
-        /* --- THIS IS THE DEFINITIVE FIX --- */
-        #notification-bell .dropdown-menu {
-            min-width: 450px !important; /* Makes the box wider to fit the text */
-            position: absolute !important;
-            left: auto !important;
-            right: 0 !important;
-        }
-
-        #notification-bell .dropdown-item {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            white-space: normal !important; /* Allows long text to wrap gracefully */
-            padding-top: 10px;
-            padding-bottom: 10px;
-        }
-
-        #notification-bell .notification-text {
-            flex-grow: 1;
-            padding-right: 15px; /* Adds space between the message and the timestamp */
+        #notification-modal-message {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            max-height: 40vh;
+            overflow-y: auto;
         }
     </style>
 @stop
@@ -122,18 +106,12 @@
 @section('js')
 <script>
     $(document).ready(function() {
-        // --- THIS IS THE FIX FOR THE SIDEBAR ---
-        // On every page load, check if the sidebar is collapsed and expand it.
-        // This prevents it from staying closed on navigation.
         if ($('body').hasClass('sidebar-collapse')) {
             $('body').removeClass('sidebar-collapse');
         }
-        // --- END OF FIX ---
 
         // ============== GLOBAL TIMER SCRIPT START ==============
-
         let globalTimerInterval;
-
         function formatTime(totalSeconds) {
             if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
             const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
@@ -141,59 +119,29 @@
             const seconds = (totalSeconds % 60).toString().padStart(2, '0');
             return `${hours}:${minutes}:${seconds}`;
         }
-
         function renderGlobalTracker() {
             $('#global-live-tracker').remove();
-
             const timerData = JSON.parse(localStorage.getItem('runningTimer'));
-
-            if (!timerData) {
-                if (globalTimerInterval) clearInterval(globalTimerInterval);
-                return;
-            }
-
-            const trackerHtml = `
-                <div id="global-live-tracker"
-                     class="alert alert-info d-flex justify-content-between align-items-center p-2 mb-4 shadow-sm"
-                     style="position: sticky; top: 10px; z-index: 1050; display: none;"
-                     role="alert">
-                    <div>
-                        <i class="fas fa-stopwatch fa-spin mr-2"></i>
-                        <span class="font-weight-bold">Tracking:</span>
-                        <span class="mx-2">${timerData.taskName}</span>
-                        <span id="global-live-tracker-display" class="badge badge-dark" style="font-size: 1.1em; min-width: 80px;">00:00:00</span>
-                    </div>
-                    <button id="global-live-tracker-stop-btn" data-task-id="${timerData.taskId}" class="btn btn-danger btn-sm">
-                        <i class="fas fa-stop"></i> Stop Timer
-                    </button>
-                </div>
-            `;
-
+            if (!timerData) { if (globalTimerInterval) clearInterval(globalTimerInterval); return; }
+            const trackerHtml = `<div id="global-live-tracker" class="alert alert-info d-flex justify-content-between align-items-center p-2 mb-4 shadow-sm" style="position: sticky; top: 10px; z-index: 1050; display: none;" role="alert"><div><i class="fas fa-stopwatch fa-spin mr-2"></i><span class="font-weight-bold">Tracking:</span><span class="mx-2">${timerData.taskName}</span><span id="global-live-tracker-display" class="badge badge-dark" style="font-size: 1.1em; min-width: 80px;">00:00:00</span></div><button id="global-live-tracker-stop-btn" data-task-id="${timerData.taskId}" class="btn btn-danger btn-sm"><i class="fas fa-stop"></i> Stop Timer</button></div>`;
             $('.content-wrapper .content').prepend(trackerHtml);
             $('#global-live-tracker').fadeIn();
-
             const duration = parseInt(timerData.duration, 10) || 0;
             const startTime = new Date(timerData.startedAt).getTime();
             const display = $('#global-live-tracker-display');
-
             if (globalTimerInterval) clearInterval(globalTimerInterval);
-
             const updateDisplay = () => {
                 const now = new Date().getTime();
                 const elapsed = Math.floor((now - startTime) / 1000);
                 display.text(formatTime(duration + elapsed));
             };
-
             updateDisplay();
             globalTimerInterval = setInterval(updateDisplay, 1000);
         }
-
         $(document).on('click', '#global-live-tracker-stop-btn', function() {
             const button = $(this);
             const taskId = button.data('task-id');
-            
             button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Stopping...');
-
             $.ajax({
                 type: 'POST',
                 url: `/staff/tasks/${taskId}/stop-timer`,
@@ -202,10 +150,7 @@
                     localStorage.removeItem('runningTimer');
                     if (globalTimerInterval) clearInterval(globalTimerInterval);
                     $('#global-live-tracker').fadeOut(400, () => $(this).remove());
-                    
-                    if (window.location.pathname.includes('/staff/tasks')) {
-                        window.location.reload();
-                    }
+                    if (window.location.pathname.includes('/staff/tasks')) { window.location.reload(); }
                 },
                 error: function(xhr) {
                     alert('Error: Could not stop the timer. Please refresh the page.');
@@ -213,11 +158,98 @@
                 }
             });
         });
-
         renderGlobalTracker();
         window.renderGlobalTracker = renderGlobalTracker;
-
         // ============== GLOBAL TIMER SCRIPT END ==============
+        
+        // ============== NEW NOTIFICATION SCRIPT START ==============
+        const notificationModalHTML = `
+            <div class="modal fade" id="notificationDetailModal" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="notification-modal-subject"></h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>From:</strong> <span id="notification-modal-from"></span></p>
+                            <p><strong>Date:</strong> <span id="notification-modal-time"></span></p>
+                            <div id="notification-modal-recipients-wrapper" style="display:none;">
+                                <p><strong>Sent To:</strong> <span id="notification-modal-recipients"></span></p>
+                            </div>
+                            <hr>
+                            <p id="notification-modal-message"></p>
+                        </div>
+                        <div class="modal-footer justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" id="mark-unread-btn">Mark as Unread</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        $('body').append(notificationModalHTML);
+
+        let currentNotificationId = null;
+
+        $('#notification-bell').on('click', '.notification-item', function() {
+            const item = $(this);
+            currentNotificationId = item.data('id');
+            const type = item.data('type');
+            const info = item.data('info');
+            const fullTime = item.data('full-time');
+            const recipients = item.data('recipients');
+            let isRead = item.data('read') === 'true';
+
+            if (!isRead) {
+                $.post(`/notifications/${currentNotificationId}/read`, { _token: '{{ csrf_token() }}' })
+                    .done(function() {
+                        item.removeClass('bg-light font-weight-bold').data('read', 'true');
+                        let count = parseInt($('#notification-badge-count').text()) - 1;
+                        $('#notification-badge-count').text(count > 0 ? count : '');
+                        $('#notification-header-count').text(count > 0 ? count : 0);
+                        if (count <= 0) $('#notification-badge-count').hide();
+                    });
+            }
+
+            // Populate and show modal
+            if (type === 'MessageFromOrganization') {
+                $('#notification-modal-subject').text(info.subject);
+                $('#notification-modal-from').text(info.organization_name);
+                $('#notification-modal-message').text(info.message);
+                $('#notification-modal-recipients-wrapper').hide();
+
+            } else if (type === 'MessageSentToClients') {
+                $('#notification-modal-subject').text(info.subject);
+                $('#notification-modal-from').text('System Confirmation');
+                $('#notification-modal-message').text(info.full_message);
+                $('#notification-modal-recipients').text(recipients);
+                $('#notification-modal-recipients-wrapper').show();
+
+            } else {
+                 $('#notification-modal-subject').text('System Notification');
+                 $('#notification-modal-from').text('System');
+                 $('#notification-modal-message').text(info.message);
+                 $('#notification-modal-recipients-wrapper').hide();
+            }
+            $('#notification-modal-time').text(fullTime);
+            
+            $('#notificationDetailModal').modal('show');
+        });
+
+        $('#mark-unread-btn').on('click', function() {
+            if (!currentNotificationId) return;
+            $.post(`/notifications/${currentNotificationId}/unread`, { _token: '{{ csrf_token() }}' })
+                .done(function(response) {
+                    // Update UI
+                    $(`.notification-item[data-id="${currentNotificationId}"]`).addClass('bg-light font-weight-bold').data('read', 'false');
+                    $('#notification-badge-count').text(response.unreadCount).show();
+                    $('#notification-header-count').text(response.unreadCount);
+                    $('#notificationDetailModal').modal('hide');
+                });
+        });
+        // ============== NEW NOTIFICATION SCRIPT END ==============
     });
 </script>
 

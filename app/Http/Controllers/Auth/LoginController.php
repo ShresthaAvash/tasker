@@ -23,6 +23,8 @@ class LoginController extends Controller
         return route('superadmin.dashboard');
     } elseif (auth()->user()->type === 'O') {
         return route('organization.dashboard');
+    } elseif (auth()->user()->type === 'C') {
+        return route('client.dashboard');
     }
     return route('dashboard'); // fallback if type is not defined
 }

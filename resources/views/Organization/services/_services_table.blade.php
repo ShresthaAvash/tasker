@@ -2,8 +2,6 @@
 <input type="hidden" id="sort_by" value="{{ $sort_by }}">
 <input type="hidden" id="sort_order" value="{{ $sort_order }}">
 
-{{-- --- THIS IS THE FIX --- --}}
-{{-- We remove 'table-bordered' for a cleaner look inside the card --}}
 <table class="table table-hover table-striped">
     <thead>
         <tr>
@@ -31,34 +29,13 @@
                 <p class="text-muted small">{{ Str::limit($service->description, 60) }}</p>
             </td>
             
-            <td>
-                <div class="dropdown">
-                    <button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        {{ $service->jobs->count() }} Jobs
-                    </button>
-                    <div class="dropdown-menu">
-                        <input type="text" class="form-control form-control-sm dropdown-item job-search-input" placeholder="Search jobs...">
-                        <div class="dropdown-divider"></div>
-                        <div style="max-height: 200px; overflow-y: auto;">
-                            @forelse($service->jobs as $job)
-                                <a class="dropdown-item job-link" href="{{ route('jobs.edit', $job) }}">{{ $job->name }}</a>
-                            @empty
-                                <span class="dropdown-item-text text-muted">No jobs yet</span>
-                            @endforelse
-                        </div>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item bg-success text-white" href="#" data-toggle="modal" data-target="#jobModal" data-service-id="{{ $service->id }}">
-                            <i class="fas fa-plus"></i> Add New Job
-                        </a>
-                    </div>
-                </div>
-            </td>
+            <td>{{ $service->jobs->count() }}</td>
             
             <td>
                 @if($service->status == 'A')
                     <span class="badge badge-success">Active</span>
                 @else
-                    <span class="badge badge-danger">Suspended</span>
+                    <span class="badge badge-danger">Inactive</span>
                 @endif
             </td>
             <td>
@@ -66,7 +43,7 @@
                 
                 <form action="{{ route('services.toggleStatus', $service->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure?');">
                     @csrf @method('PATCH')
-                    <button type="submit" class="btn btn-xs {{ $service->status === 'A' ? 'btn-secondary' : 'btn-success' }}">{{ $service->status === 'A' ? 'Suspend' : 'Activate' }}</button>
+                    <button type="submit" class="btn btn-xs {{ $service->status === 'A' ? 'btn-secondary' : 'btn-success' }}">{{ $service->status === 'A' ? 'Deactivate' : 'Activate' }}</button>
                 </form>
 
                 <form action="{{ route('services.destroy', $service->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this service and all its jobs & tasks?');">

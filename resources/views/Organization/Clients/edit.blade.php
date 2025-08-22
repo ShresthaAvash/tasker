@@ -32,19 +32,21 @@
     #createServiceModal .job-header { background-color: #f8f9fa; padding: 0.75rem 1.25rem; border-bottom: 1px solid #e9ecef; }
     #createServiceModal .task-item { border-top: 1px solid #f1f1f1; padding: 0.75rem 1.25rem; }
 
-    /* --- THIS IS THE NEW CSS FOR ANIMATIONS AND ICONS --- */
-    .collapsing {
-        transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    a[data-toggle="collapse"] .collapse-icon {
-        transition: transform 0.3s ease-in-out;
-    }
-    a[data-toggle="collapse"][aria-expanded="true"] .collapse-icon {
-        transform: rotate(-180deg);
-    }
-    .custom-control-label::before, .custom-control-label::after {
-        cursor: pointer;
-    }
+    .collapsing { transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+    a[data-toggle="collapse"] .collapse-icon { transition: transform 0.3s ease-in-out; }
+    a[data-toggle="collapse"][aria-expanded="true"] .collapse-icon { transform: rotate(-180deg); }
+    .custom-control-label::before, .custom-control-label::after { cursor: pointer; }
+
+    /* --- THIS IS THE NEW CSS FOR THE DOCUMENT "CHAT" --- */
+    .document-thread { list-style-type: none; padding: 0; }
+    .document-entry { display: flex; margin-bottom: 1.5rem; max-width: 80%; }
+    .document-entry .document-bubble { background-color: #e9ecef; border-radius: 12px; padding: 1rem; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .document-entry.is-organization { margin-left: auto; flex-direction: row-reverse; }
+    .document-entry.is-organization .document-bubble { background-color: #cce5ff; }
+    .document-entry .uploader-name { font-weight: bold; margin-bottom: 0.25rem; }
+    .document-entry .document-name { font-size: 1.1rem; font-weight: 500; }
+    .document-entry .document-meta { font-size: 0.8rem; color: #6c757d; }
+
 </style>
 @stop
 
@@ -125,17 +127,25 @@
             
             <!-- Documents Tab -->
             <div class="tab-pane fade" id="documents-tab" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3"><h4 class="card-title mb-0">Client Documents</h4><button class="btn btn-sm btn-success" data-toggle="modal" data-target="#documentModal"><i class="fas fa-upload"></i> Upload New Document</button></div>
-                <table class="table table-hover">
-                    <thead><tr><th>Name</th><th>Uploaded By</th><th>Uploaded At</th><th>Type</th><th>Size</th><th style="width: 220px;">Actions</th></tr></thead>
-                    <tbody>
-                        @forelse($client->documents as $document)
-                            <tr><td>{{ $document->name }}</td><td>{{ $document->uploader->name ?? 'N/A' }}</td><td>{{ $document->created_at->format('d M Y') }}</td><td><span class="badge badge-secondary">{{ strtoupper($document->file_type) }}</span></td><td>{{ number_format($document->file_size / 1024, 2) }} KB</td><td><a href="{{ asset('storage/' . $document->file_path) }}" class="btn btn-xs btn-secondary" target="_blank">View</a><a href="{{ route('clients.documents.download', $document) }}" class="btn btn-xs btn-info">Download</a><form action="{{ route('clients.documents.destroy', $document) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this document?');">@csrf @method('DELETE')<button type="submit" class="btn btn-xs btn-danger">Delete</button></form></td></tr>
-                        @empty
-                            <tr><td colspan="6" class="text-center">No documents have been uploaded yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                <div class="d-flex justify-content-between align-items-center mb-3"><h4 class="card-title mb-0">Document Exchange</h4><button class="btn btn-sm btn-success" data-toggle="modal" data-target="#documentModal"><i class="fas fa-upload"></i> Upload Document for Client</button></div>
+                <ul class="document-thread">
+                    @forelse($client->documents as $document)
+                        <li class="document-entry {{ $document->uploader->type === 'C' ? 'is-client' : 'is-organization' }}">
+                            <div class="document-bubble">
+                                <p class="uploader-name">{{ $document->uploader->name }}</p>
+                                <p class="document-name mb-1"><i class="fas fa-file-alt mr-2"></i>{{ $document->name }}</p>
+                                @if($document->description)
+                                    <p class="mb-2"><em>{{ $document->description }}</em></p>
+                                @endif
+                                <p class="document-meta mb-2">{{ $document->created_at->format('d M Y, h:i A') }} | {{ strtoupper($document->file_type) }} | {{ number_format($document->file_size / 1024, 1) }} KB</p>
+                                <a href="{{ route('clients.documents.download', $document) }}" class="btn btn-xs btn-secondary"><i class="fas fa-download"></i> Download</a>
+                                <form action="{{ route('clients.documents.destroy', $document) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this document?');">@csrf @method('DELETE')<button type="submit" class="btn btn-xs btn-danger"><i class="fas fa-trash"></i> Delete</button></form>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="text-center text-muted p-4">No documents have been shared yet.</li>
+                    @endforelse
+                </ul>
             </div>
 
             <!-- Services Tab -->
@@ -189,7 +199,7 @@
 <!-- Modals -->
 <div class="modal fade" id="contactModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="contactForm" method="POST" action="{{ route('clients.contacts.store', $client) }}">@csrf<input type="hidden" id="contact-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="contactModalLabel">Add Contact</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Name</label><input type="text" id="contact-name" name="name" class="form-control" required></div><div class="form-group"><label>Email</label><input type="email" id="contact-email" name="email" class="form-control" required></div><div class="form-group"><label>Phone (Optional)</label><input type="text" id="contact-phone" name="phone" class="form-control"></div><div class="form-group"><label>Position</label><input type="text" id="contact-position" name="position" class="form-control"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-info">Save</button></div></form></div></div></div>
 <div class="modal fade" id="noteModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="noteForm" method="POST" action="{{ route('clients.notes.store', $client) }}">@csrf<input type="hidden" id="note-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="noteModalLabel">Add Note</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Title</label><input type="text" id="note-title" name="title" class="form-control" required></div><div class="form-group"><label>Content</label><textarea id="note-content" name="content" class="form-control" rows="4" required></textarea></div><div class="form-group"><label>Date</label><input type="date" id="note-date" name="note_date" class="form-control" required></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-info">Save</button></div></form></div></div></div>
-<div class="modal fade" id="documentModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="documentForm" method="POST" action="{{ route('clients.documents.store', $client) }}" enctype="multipart/form-data">@csrf<div class="modal-header"><h5 class="modal-title">Upload Document</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Document Name</label><input type="text" name="name" class="form-control" required placeholder="e.g., Signed Contract"></div><div class="form-group"><label>File</label><input type="file" name="document_file" class="form-control-file" required><small class="form-text text-muted">Allowed types: PDF, DOCX, PNG, JPG. Max size: 10MB.</small></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-info">Upload</button></div></form></div></div></div>
+<div class="modal fade" id="documentModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="documentForm" method="POST" action="{{ route('clients.documents.store', $client) }}" enctype="multipart/form-data">@csrf<div class="modal-header"><h5 class="modal-title">Upload Document</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Document Name</label><input type="text" name="name" class="form-control" required placeholder="e.g., Signed Contract"></div><div class="form-group"><label>Description / Message (Optional)</label><textarea name="description" class="form-control" rows="3" placeholder="Add any context or notes for this document..."></textarea></div><div class="form-group"><label>File</label><input type="file" name="document_file" class="form-control-file" required><small class="form-text text-muted">Allowed types: PDF, DOCX, PNG, JPG. Max size: 10MB.</small></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-info">Upload</button></div></form></div></div></div>
 
 @include('Organization.services._task_modal', ['designations' => $designations])
 

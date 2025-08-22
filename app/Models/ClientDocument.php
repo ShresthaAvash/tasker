@@ -13,6 +13,7 @@ class ClientDocument extends Model
         'client_id',
         'uploaded_by_id',
         'name',
+        'description', // <-- ADD THIS LINE
         'file_path',
         'file_type',
         'file_size',

@@ -2,11 +2,10 @@
 <input type="hidden" id="sort_by" value="{{ $sort_by }}">
 <input type="hidden" id="sort_order" value="{{ $sort_order }}">
 
-{{-- --- THIS IS THE FIX --- --}}
-{{-- We remove 'table-bordered' for a cleaner look inside the card --}}
 <table class="table table-hover table-striped">
     <thead>
         <tr>
+            <th style="width: 10px;"><input type="checkbox" id="master-checkbox"></th>
             <th>
                 <a href="#" class="sort-link" data-sortby="name" data-sortorder="{{ $sort_by == 'name' && $sort_order == 'asc' ? 'desc' : 'asc' }}">
                     Name
@@ -38,8 +37,9 @@
     <tbody>
         @forelse($clients as $client)
         <tr>
+            <td><input type="checkbox" class="client-checkbox" data-id="{{ $client->id }}" data-name="{{ $client->name }}"></td>
             <td>
-                <a href="{{ route('clients.show', $client->id) }}">{{ $client->name }}</a>
+                {{ $client->name }}
             </td>
             <td>{{ $client->email }}</td>
             <td>{{ $client->phone ?? 'N/A' }}</td>
@@ -47,18 +47,18 @@
                 @if($client->status == 'A')
                     <span class="badge badge-success">Active</span>
                 @else
-                    <span class="badge badge-danger">Suspended</span>
+                    <span class="badge badge-danger">Inactive</span>
                 @endif
             </td>
             <td>{{ $client->created_at->format('d M Y') }}</td>
             <td>
                 <a href="{{ route('clients.edit', $client->id) }}" class="btn btn-xs btn-warning">Edit</a>
                 
-                <form action="{{ route('clients.toggleStatus', $client->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to {{ $client->status === 'A' ? 'suspend' : 'activate' }} this client?');">
+                <form action="{{ route('clients.toggleStatus', $client->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to {{ $client->status === 'A' ? 'deactivate' : 'activate' }} this client?');">
                     @csrf
                     @method('PATCH')
                     <button type="submit" class="btn btn-xs {{ $client->status === 'A' ? 'btn-secondary' : 'btn-info' }}">
-                        {{ $client->status === 'A' ? 'Suspend' : 'Activate' }}
+                        {{ $client->status === 'A' ? 'Deactivate' : 'Activate' }}
                     </button>
                 </form>
 
@@ -70,11 +70,10 @@
             </td>
         </tr>
         @empty
-        <tr><td colspan="6" class="text-center">No clients found.</td></tr>
+        <tr><td colspan="7" class="text-center">No clients found.</td></tr>
         @endforelse
     </tbody>
 </table>
 <div class="mt-3 d-flex justify-content-center">
-    {{-- This renders the pagination links, which are handled by the JS --}}
     {{ $clients->appends(request()->query())->links() }}
 </div>

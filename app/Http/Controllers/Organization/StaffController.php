@@ -69,7 +69,8 @@ class StaffController extends Controller
         $staff->status = $staff->status === 'A' ? 'I' : 'A';
         $staff->save();
 
-        $message = $staff->status === 'A' ? 'Staff member has been activated.' : 'Staff member has been suspended.';
+        // --- THIS IS THE FIX: Updated wording ---
+        $message = $staff->status === 'A' ? 'Staff member has been activated.' : 'Staff member has been made inactive.';
 
         return redirect()->back()->with('success', $message);
     }

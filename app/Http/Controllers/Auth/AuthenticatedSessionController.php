@@ -50,6 +50,10 @@ class AuthenticatedSessionController extends Controller
         if ($user->type === 'O') {
             return redirect()->route('organization.dashboard');
         }
+
+        if ($user->type === 'C') {
+            return redirect()->route('client.dashboard');
+        }
         
         return redirect()->intended(route('dashboard', absolute: false));
     }
