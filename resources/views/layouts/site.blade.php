@@ -9,24 +9,27 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,600&display=swap" rel="stylesheet" />
 
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
     <!-- Scripts & Styles -->
-    {{-- REMOVED Bootstrap CDN link --}}
-    {{-- @vite will now handle ALL CSS and JS --}}
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
     {{-- Custom Styles for the landing page --}}
     <style>
-        .navbar { background-color: #343a40; }
-        .navbar-brand { font-weight: bold; }
-        .navbar-dark .navbar-nav .nav-link { color: rgba(255,255,255,.75); }
-        .navbar-dark .navbar-nav .nav-link:hover { color: #fff; }
-        .footer { background-color: #f8f9fa; padding: 2rem 0; }
+        .navbar { background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.04); padding: 1rem 0; }
+        .navbar-brand { font-weight: bold; color: #343a40 !important; }
+        .navbar .nav-link { color: #495057; font-weight: 500; }
+        .navbar .nav-link:hover { color: #0d6efd; }
+        .footer { background-color: #343a40; color: #f8f9fa; padding: 3rem 0; }
+        .footer a { color: #f8f9fa; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
     </style>
 
     @yield('page-styles')
 </head>
 <body class="antialiased">
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
             <a class="navbar-brand" href="{{ route('landing') }}">TASKER</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -34,22 +37,18 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('pricing') }}">Pricing</a>
+                    </li>
                     @auth
-                        {{-- Show Dashboard, Profile and Logout for logged-in users --}}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <a class="nav-link" href="{{ route('logout') }}"
-                                   onclick="event.preventDefault(); this.closest('form').submit();">
-                                    Logout
-                                </a>
-                            </form>
+                            {{-- --- THIS IS THE MODIFIED LINE --- --}}
+                            <a class="nav-link text-primary fw-bold ms-2" href="{{ route('dashboard') }}">Dashboard</a>
                         </li>
                     @else
-                        {{-- Show Login and Sign Up for guests --}}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('login') }}">Login</a>
                         </li>
@@ -65,7 +64,7 @@
 
     <footer class="footer">
         <div class="container text-center">
-            <span class="text-muted">© {{ date('Y') }} Tasker. All Rights Reserved.</span>
+            <p class="mb-0">© {{ date('Y') }} Tasker. All Rights Reserved.</p>
         </div>
     </footer>
 

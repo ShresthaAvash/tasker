@@ -70,20 +70,21 @@
             </div>
 
             <div class="login-box">
-                {{-- Session Status for things like password resets --}}
                 <x-auth-session-status class="mb-4" :status="session('status')" />
 
-                {{-- --- THIS IS THE FIX: Display the error message --- --}}
                 @if (session('error'))
                     <div class="mb-4 font-medium text-sm text-red-600 bg-red-100 p-3 rounded-md">
                         {{ session('error') }}
                     </div>
                 @endif
-                {{-- --- END OF FIX --- --}}
 
-<form method="POST" action="{{ route('login') }}">
-                    {{-- THIS IS THE CRUCIAL LINE --}}
+                <form method="POST" action="{{ route('login') }}">
                     @csrf
+                    
+                    {{-- --- THIS IS THE NEW HIDDEN INPUT --- --}}
+                    @if (request()->has('plan'))
+                        <input type="hidden" name="plan_id" value="{{ request()->query('plan') }}">
+                    @endif
 
                     <!-- Email Address -->
                     <div>
@@ -124,7 +125,6 @@
                             </p>
                         @endif
 
-                        {{-- --- THIS IS THE MODIFIED LINK --- --}}
                         <p>
                             <a href="{{ route('pricing') }}" class="underline text-sm text-gray-600 hover:text-gray-900">
                                 New User? View Pricing Plans

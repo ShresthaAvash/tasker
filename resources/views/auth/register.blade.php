@@ -68,15 +68,11 @@
             </div>
 
             <div class="register-box">
-    <form method="POST" action="{{ route('register') }}">
-        @csrf
-        
-        <!--
-        THE URL has '?plan=1', so we should use request('plan'), not request('plan_id').
-        This ensures the value from the URL is correctly placed in the form.
-        -->
-                    <!-- ADD THIS HIDDEN INPUT -->
-                     <input type="hidden" name="plan_id" value="{{ request()->query('plan') }}">
+                <form method="POST" action="{{ route('register') }}">
+                    @csrf
+                    
+                    <input type="hidden" name="plan_id" value="{{ request()->query('plan') }}">
+                    
                     <!-- Name -->
                     <div>
                         <x-input-label for="name" :value="__('Name')" />
@@ -105,9 +101,11 @@
                         <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
                     </div>
 
-                    <div class="flex items-center justify-end mt-4">
-                        {{-- --- THIS IS THE FIX --- --}}
-                        {{-- The "Already registered?" link has been removed. --}}
+                    <div class="flex items-center justify-between mt-4">
+                        {{-- --- THIS IS THE MODIFIED LINK --- --}}
+                        <a class="underline text-sm text-gray-600 hover:text-gray-900" href="{{ route('login', ['plan' => request()->query('plan')]) }}">
+                            {{ __('Already registered?') }}
+                        </a>
 
                         <x-primary-button class="ms-4 register-button">
                             {{ __('Register') }}
@@ -118,3 +116,4 @@
         </div>
     </body>
 </html>
+

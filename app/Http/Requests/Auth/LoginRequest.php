@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User; // <-- ADD THIS LINE
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +42,19 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
+        // --- THIS IS THE DEFINITIVE FIX ---
+        // First, check if a user with the given email actually exists.
+        $user = User::where('email', $this->input('email'))->first();
+
+        // If no user is found, throw a specific validation error.
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'email' => __('This account has not yet been registered or subscribed to a plan.'),
+            ]);
+        }
+        // --- END OF FIX ---
+
+        // If the user exists, then proceed with the authentication attempt.
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
