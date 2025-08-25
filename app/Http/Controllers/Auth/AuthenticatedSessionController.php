@@ -30,29 +30,23 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
 
-        // --- THIS IS THE NEW LOGIC ---
-        // If the user is an Organization and has never subscribed, block them.
+        // --- THIS IS THE DEFINITIVE FIX ---
         if ($user->type === 'O' && !$user->subscribed('default')) {
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            return redirect('/login')->with('error', 'You have not subscribed to a plan. Please register and subscribe.');
+            // If a plan was selected before logging in, go straight to checkout.
+            if ($request->filled('plan_id')) {
+                return redirect()->route('subscription.checkout', ['plan' => $request->plan_id]);
+            }
+            // Otherwise, show them the pricing page to choose a plan.
+            return redirect()->route('pricing')->with('info', 'Please choose a subscription plan to continue.');
         }
-        // --- END OF NEW LOGIC ---
+        // --- END OF FIX ---
 
         if ($user->type === 'S') {
-            // --- THIS IS THE FIX ---
-            // We change from directly returning a view to redirecting to the correct route.
             return redirect()->route('superadmin.dashboard');
         }
 
         if ($user->type === 'O') {
             return redirect()->route('organization.dashboard');
-        }
-
-        if ($user->type === 'C') {
-            return redirect()->route('client.dashboard');
         }
         
         return redirect()->intended(route('dashboard', absolute: false));

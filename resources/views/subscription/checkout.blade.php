@@ -37,6 +37,7 @@
         font-size: 3rem;
         font-weight: 700;
         color: #111827;
+        flex-shrink: 0; /* Prevents the price from shrinking */
     }
 
     .payment-form {
@@ -106,10 +107,14 @@
                 </div>
                 <h4 class="card-title mb-4">Order Summary</h4>
                 
+                {{-- --- THIS IS THE MODIFIED SECTION --- --}}
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">{{ $plan->name }}</h5>
+                    {{-- Added me-3 class to create a margin on the right --}}
+                    <h5 class="mb-0 me-3">{{ $plan->name }}</h5> 
                     <span class="price">£{{ number_format($plan->price, 2) }}</span>
                 </div>
+                {{-- --- END OF MODIFICATION --- --}}
+
                 <p class="text-muted">{{ $plan->description }}</p>
                 
                 <hr class="my-4">
@@ -137,7 +142,6 @@
                 </div>
             @endif
 
-            {{-- --- THIS IS THE DEFINITIVE FIX: The action is now dynamic --- --}}
             <form id="payment-form" action="{{ $formActionRoute }}" method="POST">
                 @csrf
                 <input type="hidden" name="plan_id" value="{{ $plan->id }}">
@@ -198,7 +202,6 @@
         }
     };
     
-    // Create an instance of the card Element inside a wrapper.
     const cardWrapper = document.getElementById('card-element');
     const cardElement = elements.create('card', { style: cardStyle });
     cardElement.mount(cardWrapper);
