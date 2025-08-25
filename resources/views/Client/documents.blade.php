@@ -7,6 +7,7 @@
 @stop
 
 @section('css')
+@parent {{-- THIS LINE INHERITS THE PARENT LAYOUT'S CSS --}}
 <style>
 .document-thread {
     list-style-type: none;

@@ -67,6 +67,7 @@
 @endsection
 
 @section('css')
+@parent
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
     <style>
         .fc .fc-daygrid-day.fc-day-today { background-color: rgba(255, 229, 100, 0.2); }

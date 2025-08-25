@@ -4,6 +4,7 @@
 <h1>Edit Job: {{ $job->name }}</h1>
 @stop
 @section('css')
+@parent
 <style>
 .border-left-info {
 border-left: 3px solid #17a2b8 !important;
@@ -218,4 +219,4 @@ alert('Failed to assign staff. Please try again.');
 
 });
 </script>
-@sto
+@stop

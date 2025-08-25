@@ -7,6 +7,7 @@
 @stop
 
 @section('css')
+@parent
 <style>
     /*
      * Final styles for a spacious, professional, and clean UI.

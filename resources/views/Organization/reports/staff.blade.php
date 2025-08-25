@@ -2,117 +2,53 @@
 
 @section('title', 'Staff Report')
 
-@section('content_header')
-    <div class="d-flex justify-content-between align-items-center d-print-none">
-        <h1>Staff Report</h1>
-        <button onclick="window.print();" class="btn btn-primary">
-            <i class="fas fa-print"></i> Print Report
-        </button>
-    </div>
+@section('css')
+    @parent {{-- This inherits the base styles from the layout --}}
+    <style>
+        .period-buttons .btn.active {
+            background-color: #17a2b8 !important;
+            border-color: #17a2b8 !important;
+            color: white;
+        }
+        .total-time-badge {
+            font-size: 1em;
+        }
+    </style>
 @stop
 
-@section('css')
-<style>
-    /* --- THIS IS THE MODIFIED STYLE --- */
-    .staff-block .card-header {
-        background-color: #6c757d; /* Dark Grey Header */
-        color: #fff;
-        padding: 0;
-    }
-    .staff-block .btn-link {
-        color: #fff;
-        text-decoration: none !important;
-        font-size: 1.25rem;
-        font-weight: 600;
-        padding: 1rem 1.25rem;
-    }
-    .staff-block .btn-link:hover {
-        text-decoration: none;
-    }
-    .service-block {
-        border: 1px solid #17a2b8;
-        border-radius: .25rem;
-        margin-bottom: 1.5rem;
-    }
-    .service-header {
-        background-color: #17a2b8; /* Teal Header */
-        color: #fff;
-        padding: 1rem 1.25rem;
-        font-size: 1.2rem;
-        font-weight: 600;
-    }
-    /* --- THIS IS THE FIX: Keep text white on hover --- */
-    .service-header:hover {
-        color: #fff;
-    }
-    .job-block {
-        border-top: 1px solid #dee2e6;
-    }
-    .job-header {
-        background-color: #f8f9fa; /* Light Grey Header */
-        padding: .75rem 1.25rem;
-        font-weight: bold;
-    }
-    .task-list-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: .75rem 1.25rem;
-        border-top: 1px solid #e9ecef;
-    }
-    .time-display {
-        min-width: 100px;
-        text-align: right;
-        font-weight: bold;
-        font-size: 1.1rem;
-    }
-    .collapse-icon {
-        transition: transform 0.2s ease-in-out;
-    }
-    a[aria-expanded="true"] .collapse-icon {
-        transform: rotate(180deg);
-    }
-    @media  print {
-        .staff-header, .service-header {
-            -webkit-print-color-adjust: exact; 
-            color-adjust: exact;
-        }
-        .job-header {
-            background-color: #f8f9fa !important;
-            -webkit-print-color-adjust: exact;
-            color-adjust: exact;
-        }
-    }
-</style>
+@section('content_header')
+     <div class="d-flex justify-content-between align-items-center">
+        <h1>Staff Report</h1>
+        <button class="btn btn-primary" onclick="window.print();"><i class="fas fa-print"></i> Print Report</button>
+    </div>
 @stop
 
 @section('content')
-<div class="card card-info card-outline card-tabs">
-    <div class="card-header p-0 pt-1 border-bottom-0 d-print-none">
-        <ul class="nav nav-tabs" id="report-tabs" role="tablist">
-            <li class="nav-item"><a class="nav-link {{ $active_period == 'day' ? 'active' : '' }}" data-period="day" href="#">Today</a></li>
-            <li class="nav-item"><a class="nav-link {{ $active_period == 'week' ? 'active' : '' }}" data-period="week" href="#">This Week</a></li>
-            <li class="nav-item"><a class="nav-link {{ $active_period == 'month' ? 'active' : '' }}" data-period="month" href="#">This Month</a></li>
-            <li class="nav-item"><a class="nav-link {{ $active_period == 'year' ? 'active' : '' }}" data-period="year" href="#">This Year</a></li>
-            <li class="nav-item"><a class="nav-link {{ $active_period == 'all' ? 'active' : '' }}" data-period="all" href="#">All Time</a></li>
-            <li class="nav-item"><a class="nav-link {{ $active_period == 'custom' ? 'active' : '' }}" data-period="custom" href="#">Custom</a></li>
-        </ul>
-    </div>
+<div class="card card-info card-outline">
     <div class="card-body">
-        <div class="row mb-3 align-items-center d-print-none">
-            <div class="col-md-5">
-                <input type="text" id="search-input" class="form-control" placeholder="Search by Staff Name..." value="{{ $search ?? '' }}">
+        <div class="row mb-4 align-items-center bg-light p-3 rounded">
+            <div class="col-md-4">
+                <input type="text" id="search-input" class="form-control" placeholder="Search by Staff Name...">
             </div>
-            <div class="col-md-5">
-                <div id="custom-range-filters" class="row" style="display: {{ $active_period === 'custom' ? '' : 'none' }};">
-                    <div class="col"><input type="date" id="start-date-filter" class="form-control" value="{{ request('start_date', now()->startOfMonth()->format('Y-m-d')) }}"></div>
-                    <div class="col"><input type="date" id="end-date-filter" class="form-control" value="{{ request('end_date', now()->endOfMonth()->format('Y-m-d')) }}"></div>
+            <div class="col-md-8 d-flex justify-content-end align-items-center">
+                <div class="btn-group btn-group-toggle period-buttons mr-3" data-toggle="buttons">
+                    <label class="btn btn-outline-secondary" data-period="day"><input type="radio" name="period" value="day"> Day</label>
+                    <label class="btn btn-outline-secondary" data-period="week"><input type="radio" name="period" value="week"> Week</label>
+                    <label class="btn btn-outline-secondary active" data-period="month"><input type="radio" name="period" value="month" checked> Month</label>
+                    <label class="btn btn-outline-secondary" data-period="year"><input type="radio" name="period" value="year"> Year</label>
+                    <label class="btn btn-outline-secondary" data-period="all"><input type="radio" name="period" value="all"> All Time</label>
                 </div>
+                <div id="custom-range-picker" style="display: none;">
+                     <input type="date" id="start-date" class="form-control d-inline-block" style="width: auto;">
+                     <span class="mx-1">to</span>
+                     <input type="date" id="end-date" class="form-control d-inline-block" style="width: auto;">
+                </div>
+                 <button class="btn btn-secondary ml-2" id="custom-period-btn">Custom</button>
             </div>
         </div>
 
-        <div id="report-container">
-            @include('Organization.reports._staff_report_table')
+        <div id="staff-report-table-container">
+            @include('Organization.reports._staff_report_table', ['reportData' => $reportData])
         </div>
     </div>
 </div>
@@ -123,36 +59,70 @@
 $(document).ready(function() {
     let debounceTimer;
 
-    function fetchData() {
+    function formatTime(totalSeconds) {
+        if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        return `${hours}h ${minutes}m`;
+    }
+    window.formatTime = formatTime;
+
+    function fetch_report_data() {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            const period = $('#report-tabs .nav-link.active').data('period') || 'month';
-            const search = $('#search-input').val();
-            const startDate = $('#start-date-filter').val();
-            const endDate = $('#end-date-filter').val();
+        debounceTimer = setTimeout(function() {
+            $('#staff-report-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
             
-            $('#report-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
+            let data = {
+                search: $('#search-input').val(),
+                period: $('.period-buttons .active').data('period') || 'month'
+            };
+
+            if (data.period === 'custom') {
+                data.start_date = $('#start-date').val();
+                data.end_date = $('#end-date').val();
+            }
 
             $.ajax({
                 url: "{{ route('organization.reports.staff') }}",
-                data: { period, search, start_date: startDate, end_date: endDate },
-                success: (data) => $('#report-container').html(data),
-                error: () => $('#report-container').html('<p class="text-danger text-center">Failed to load data.</p>')
+                data: data,
+                success: function(response) {
+                    $('#staff-report-table-container').html(response);
+                },
+                error: function() {
+                    $('#staff-report-table-container').html('<p class="text-danger text-center">Failed to load report data.</p>');
+                }
             });
-        }, 300);
+        }, 500);
     }
-
-    $('#report-tabs a').on('click', function (e) {
-        e.preventDefault();
-        $(this).tab('show');
-        const period = $(this).data('period');
-        $('#custom-range-filters').toggle(period === 'custom');
-        if (period !== 'custom') {
-            fetchData();
-        }
+    
+    $('.period-buttons label').on('click', function() {
+        $('#custom-range-picker').hide();
+        setTimeout(fetch_report_data, 50);
+    });
+    
+    $('#custom-period-btn').on('click', function() {
+        $('.period-buttons label').removeClass('active');
+        $(this).addClass('active');
+        $('#custom-range-picker').show();
     });
 
-    $('#search-input, #start-date-filter, #end-date-filter').on('keyup change', fetchData);
+    $('#start-date, #end-date').on('change', function() {
+        const start = $('#start-date').val();
+        const end = $('#end-date').val();
+        if(start && end) {
+            $('.period-buttons .btn').removeClass('active');
+            $('#custom-period-btn').addClass('active');
+            $('.period-buttons label').removeClass('active');
+            
+            let periodData = $('.period-buttons .active');
+            periodData.data('period', 'custom');
+
+            fetch_report_data();
+        }
+    });
+    
+    $('#search-input').on('keyup', fetch_report_data);
+
 });
 </script>
 @stop

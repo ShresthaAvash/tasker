@@ -9,6 +9,7 @@
 @stop
 
 @section('css')
+@parent
 <style>
     /* Theme Overrides */
     .card-info.card-tabs .card-header { background-color: #17a2b8; border-bottom: none; }

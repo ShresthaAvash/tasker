@@ -14,6 +14,7 @@
 @stop
 
 @section('css')
+@parent {{-- THIS LINE INHERITS THE PARENT LAYOUT'S CSS --}}
 <style>
     .accordion .card-header {
         padding: 0;
