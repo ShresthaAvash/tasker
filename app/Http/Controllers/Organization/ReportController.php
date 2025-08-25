@@ -18,17 +18,35 @@ class ReportController extends Controller
     public function timeReport(Request $request)
     {
         $organizationId = Auth::id();
-        $period = $request->input('period', 'month');
         $search = $request->input('search');
 
-        [$startDate, $endDate] = $this->getDateRangeFromPeriod(
-            $period,
-            $request->input('start_date'),
-            $request->input('end_date')
-        );
+        // --- NEW FILTER LOGIC ---
+        $useCustomRange = $request->get('use_custom_range') === 'true';
+        $statuses = $request->input('statuses');
+        if (empty($statuses) || !is_array($statuses)) {
+            $statuses = ['ongoing', 'completed']; // Default to both if nothing is selected
+        }
 
-        $tasksQuery = AssignedTask::where('status', 'completed')
-            ->where('duration_in_seconds', '>', 0)
+        $startDate = null;
+        $endDate = null;
+
+        if ($useCustomRange) {
+            $startDate = $request->filled('start_date') ? Carbon::parse($request->start_date)->startOfDay() : now()->startOfMonth();
+            $endDate = $request->filled('end_date') ? Carbon::parse($request->end_date)->endOfDay() : now()->endOfMonth();
+        } else {
+            $year = $request->get('year', now()->year);
+            $month = $request->get('month', 'all');
+            if ($month !== 'all' && $month !== null) {
+                 $startDate = Carbon::create($year, (int)$month, 1)->startOfMonth();
+                 $endDate = Carbon::create($year, (int)$month, 1)->endOfMonth();
+            } else {
+                 $startDate = Carbon::create($year)->startOfYear();
+                 $endDate = Carbon::create($year)->endOfYear();
+            }
+        }
+        // --- END NEW FILTER LOGIC ---
+
+        $tasksQuery = AssignedTask::whereIn('status', $statuses)
             ->whereHas('client', function ($q) use ($organizationId, $search) {
                 $q->where('organization_id', $organizationId);
                 if ($search) {
@@ -37,21 +55,47 @@ class ReportController extends Controller
             })
             ->with(['client', 'service', 'job', 'staff']);
 
-        $allCompletedTasks = $tasksQuery->get();
+        // Date filtering logic
+        if ($startDate && $endDate) {
+            $tasksQuery->where(function ($query) use ($startDate, $endDate) {
+                // Tasks completed within the period
+                $query->where(function ($q) use ($startDate, $endDate) {
+                    $q->where('status', 'completed')
+                    ->whereBetween('updated_at', [$startDate, $endDate]);
+                })
+                // Or tasks that were ongoing during any part of the period
+                ->orWhere(function ($q) use ($startDate, $endDate) {
+                    $q->where('status', 'ongoing')
+                    ->where('start', '<=', $endDate)
+                    ->where(function($subQuery) use ($startDate) {
+                        $subQuery->whereNull('end')->orWhere('end', '>=', $startDate);
+                    });
+                });
+            });
+        }
 
-        $filteredTasks = $this->filterTasksByDate($allCompletedTasks, $startDate, $endDate);
-        $groupedTasks = $this->groupTasksByClient($filteredTasks);
+        $tasks = $tasksQuery->get();
+        $groupedTasks = $this->groupTasksByClient($tasks);
 
         if ($request->ajax()) {
             return view('Organization.reports._client_report_table', [
-                'groupedTasks' => $groupedTasks->sortKeys(),
+                'groupedTasks' => $groupedTasks,
             ])->render();
+        }
+        
+        $years = range(now()->year - 4, now()->year + 2);
+        $months = [ 'all' => 'All Months' ];
+        foreach(range(1,12) as $month) {
+            $months[$month] = Carbon::create(null, $month)->format('F');
         }
 
         return view('Organization.reports.time', [
-            'groupedTasks' => $groupedTasks->sortKeys(),
-            'active_period' => $period,
+            'groupedTasks' => $groupedTasks,
             'search' => $search,
+            'years' => $years,
+            'months' => $months,
+            'currentYear' => now()->year,
+            'currentMonth' => now()->month,
         ]);
     }
 
@@ -182,4 +226,4 @@ class ReportController extends Controller
         }
         return $reportData;
     }
-}   
+}

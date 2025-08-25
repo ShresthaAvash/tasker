@@ -36,6 +36,10 @@
     a[data-toggle="collapse"] .collapse-icon { transition: transform 0.3s ease-in-out; }
     a[data-toggle="collapse"][aria-expanded="true"] .collapse-icon { transform: rotate(-180deg); }
     .custom-control-label::before, .custom-control-label::after { cursor: pointer; }
+    
+    /* Accordion Header Hover Effects */
+    .service-header-link:hover { background-color: #d1ecf1 !important; }
+    .job-header-link:hover { background-color: #e9ecef !important; }
 
     /* --- THIS IS THE NEW CSS FOR THE DOCUMENT "CHAT" --- */
     .document-thread { list-style-type: none; padding: 0; }
@@ -256,9 +260,7 @@
 @section('js')
 <script>
 $(document).ready(function() {
-
-    // Contact, Note, and Document Modal JS (unchanged)
-    // ...
+    // ... (rest of the existing script for contacts, notes, etc.)
 
     const serviceSelectionStep = $('#service-selection-step');
     const jobConfigStep = $('#job-config-step');
@@ -299,7 +301,7 @@ $(document).ready(function() {
                             startDateInputHtml = `
                                 <div style="width: 210px;">
                                     <label class="d-block small text-muted mb-0">Start Date (Required)</label>
-                                    <input type="datetime-local" class="form-control form-control-sm" name="task_start_dates[${task.id}]" value="${assignedStartDate}" required>
+                                    <input type="datetime-local" class="form-control form-control-sm task-start-date" name="task_start_dates[${task.id}]" value="${assignedStartDate}">
                                 </div>`;
                         }
                         
@@ -331,7 +333,7 @@ $(document).ready(function() {
                 
                 jobsHtml += `
                     <div class="card mb-2">
-                        <a href="#collapse_job_${job.id}" class="card-header bg-light d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="false" style="text-decoration: none; padding: 0.75rem 1.25rem;">
+                        <a href="#collapse_job_${job.id}" class="card-header job-header-link bg-light d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" style="text-decoration: none; padding: 0.75rem 1.25rem;">
                             <div class="custom-control custom-checkbox d-inline-block mr-3" onclick="event.stopPropagation();">
                                 <input type="checkbox" class="custom-control-input job-master-checkbox" id="job_master_${job.id}" data-job-id="${job.id}" data-service-id="${serviceId}">
                                 <label class="custom-control-label" for="job_master_${job.id}">&nbsp;</label>
@@ -339,7 +341,7 @@ $(document).ready(function() {
                             <span class="flex-grow-1">${job.name}</span>
                             <i class="fas fa-chevron-down collapse-icon"></i>
                         </a>
-                        <div id="collapse_job_${job.id}" class="collapse">
+                        <div id="collapse_job_${job.id}" class="collapse show">
                             <ul class="list-group list-group-flush">${taskHtml}</ul>
                         </div>
                     </div>`;
@@ -347,7 +349,7 @@ $(document).ready(function() {
 
             const serviceHtml = `
                 <div class="card mb-3 shadow-sm">
-                    <a href="#collapse_service_${serviceId}" class="card-header d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" style="background-color: #e3f2fd; text-decoration: none; padding: 1rem 1.25rem;">
+                    <a href="#collapse_service_${serviceId}" class="card-header service-header-link d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" style="background-color: #e3f2fd; text-decoration: none; padding: 1rem 1.25rem;">
                         <div class="custom-control custom-checkbox d-inline-block mr-3" onclick="event.stopPropagation();">
                             <input type="checkbox" class="custom-control-input service-master-checkbox" id="service_master_${serviceId}" data-service-id="${serviceId}">
                             <label class="custom-control-label" for="service_master_${serviceId}">&nbsp;</label>
@@ -364,6 +366,19 @@ $(document).ready(function() {
         
         $('.staff-select').each(function() {
             $(this).select2({ placeholder: 'Assign Staff', data: allStaffData, width: '100%' }).val(JSON.parse($(this).attr('data-assigned-staff') || '[]')).trigger('change');
+        });
+
+        function toggleRequiredForDate(checkbox) {
+            const isChecked = $(checkbox).is(':checked');
+            const listItem = $(checkbox).closest('li.list-group-item');
+            const startDateInput = listItem.find('input.task-start-date');
+            if (startDateInput.length > 0) {
+                startDateInput.prop('required', isChecked);
+            }
+        }
+
+        $('.task-checkbox').each(function() {
+            toggleRequiredForDate(this);
         });
 
         $('.job-master-checkbox, .service-master-checkbox').each(function() {
@@ -409,12 +424,22 @@ $(document).ready(function() {
         updateParentCheckboxState($(`#service_master_${$(this).data('service-id')}`));
     });
 
+    function toggleRequiredForDate(checkbox) {
+        const isChecked = $(checkbox).is(':checked');
+        const listItem = $(checkbox).closest('li.list-group-item');
+        const startDateInput = listItem.find('input.task-start-date');
+        if (startDateInput.length > 0) {
+            startDateInput.prop('required', isChecked);
+        }
+    }
+
     jobsContainer.on('change', '.task-checkbox', function() {
+        toggleRequiredForDate(this);
         const jobId = $(this).data('job-id');
         updateParentCheckboxState($(`#job_master_${jobId}`));
         updateParentCheckboxState($(`#service_master_${$(this).data('service-id')}`));
     });
-
+    
     let jobCounter = 0;
     
     $('#add-new-job-btn').on('click', function() {

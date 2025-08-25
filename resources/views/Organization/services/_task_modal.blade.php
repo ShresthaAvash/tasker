@@ -22,8 +22,6 @@
 <label for="task-description" class="font-weight-normal">Description <small class="text-muted">(Optional)</small></label>
 <textarea id="task-description" name="description" class="form-control" rows="3" placeholder="Add any details or instructions about the task..."></textarea>
 </div>
-code
-Code
 <!-- Scheduling Section -->
                 <h6 class="font-weight-bold mt-4">Scheduling & Recurrence</h6>
                 <hr class="mt-1 mb-3">
