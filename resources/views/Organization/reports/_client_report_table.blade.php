@@ -1,5 +1,14 @@
 <div class="accordion" id="clientReportAccordion">
-    @php $clientIndex = 0; @endphp
+    @php
+    function formatToHms($seconds) {
+        if ($seconds < 0) $seconds = 0;
+        $h = floor($seconds / 3600);
+        $m = floor(($seconds % 3600) / 60);
+        $s = $seconds % 60;
+        return sprintf('%02d:%02d:%02d', $h, $m, $s);
+    }
+    $clientIndex = 0;
+    @endphp
     @forelse($groupedTasks as $clientName => $services)
         @php
             $clientTotalDuration = 0;
@@ -9,45 +18,81 @@
                 }
             }
         @endphp
-        <div class="card mb-2">
-            <div class="card-header" id="heading-client-{{ $clientIndex }}">
-                <h2 class="mb-0 d-flex justify-content-between">
-                    <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#collapse-client-{{ $clientIndex }}">
-                        <strong>{{ $clientName }}</strong>
-                    </button>
-                    <span class="badge badge-info p-2 total-time-badge">
-                        Total Time: {{ floor($clientTotalDuration / 3600) }}h {{ floor(($clientTotalDuration % 3600) / 60) }}m
-                    </span>
-                </h2>
+        <!-- Client Card -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header p-0 report-header-client" id="heading-client-{{ $clientIndex }}">
+                <a href="#collapse-client-{{ $clientIndex }}" class="d-flex justify-content-between align-items-center p-3 font-weight-bold" data-toggle="collapse" aria-expanded="true">
+                    <span><i class="fas fa-user-tie mr-2"></i> Client: {{ $clientName }}</span>
+                    <span class="total-time-display">{{ formatToHms($clientTotalDuration) }}</span>
+                </a>
             </div>
             <div id="collapse-client-{{ $clientIndex }}" class="collapse show" data-parent="#clientReportAccordion">
-                <div class="card-body">
+                <div class="card-body p-2">
                     @foreach($services as $serviceName => $jobs)
-                        <h5>{{ $serviceName }}</h5>
-                        <table class="table table-sm table-bordered mb-4">
-                            <thead class="thead-light">
-                                <tr>
-                                    <th>Job</th>
-                                    <th>Task</th>
-                                    <th>Assigned Staff</th>
-                                    <th>Status</th>
-                                    <th class="text-right">Time Logged</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($jobs as $jobName => $tasks)
-                                    @foreach($tasks as $task)
-                                    <tr>
-                                        <td>{{ $jobName }}</td>
-                                        <td>{{ $task->name }}</td>
-                                        <td>{{ $task->staff->pluck('name')->implode(', ') }}</td>
-                                        <td><span class="badge badge-{{ $task->status == 'completed' ? 'success' : 'primary' }}">{{ ucfirst($task->status) }}</span></td>
-                                        <td class="text-right">{{ floor($task->duration_in_seconds / 3600) }}h {{ floor(($task->duration_in_seconds % 3600) / 60) }}m</td>
-                                    </tr>
+                        @php
+                            $serviceTotalDuration = 0;
+                            foreach ($jobs as $tasks) {
+                                $serviceTotalDuration += $tasks->sum('duration_in_seconds');
+                            }
+                        @endphp
+                        <!-- Service Card -->
+                        <div class="card shadow-sm mb-2">
+                             <div class="card-header p-0 report-header-service" id="heading-service-{{ $clientIndex }}-{{ $loop->index }}">
+                                <a href="#collapse-service-{{ $clientIndex }}-{{ $loop->index }}" class="d-flex justify-content-between align-items-center p-3" data-toggle="collapse" aria-expanded="true">
+                                    <span><i class="fas fa-concierge-bell mr-2"></i> Service: {{ $serviceName }}</span>
+                                    <span class="total-time-display">{{ formatToHms($serviceTotalDuration) }}</span>
+                                </a>
+                            </div>
+                            <div id="collapse-service-{{ $clientIndex }}-{{ $loop->index }}" class="collapse show">
+                                <div class="card-body p-2">
+                                    @foreach($jobs as $jobName => $tasks)
+                                        <!-- Job Card -->
+                                         <div class="card mb-2">
+                                            <div class="card-header p-0 report-header-job" id="heading-job-{{ $clientIndex }}-{{ $loop->parent->index }}-{{ $loop->index }}">
+                                                 <a href="#collapse-job-{{ $clientIndex }}-{{ $loop->parent->index }}-{{ $loop->index }}" class="d-flex justify-content-between align-items-center p-3" data-toggle="collapse" aria-expanded="true">
+                                                    <span><i class="fas fa-briefcase mr-2"></i> Job: {{ $jobName }}</span>
+                                                    <span class="total-time-display">{{ formatToHms($tasks->sum('duration_in_seconds')) }}</span>
+                                                </a>
+                                            </div>
+                                            <div id="collapse-job-{{ $clientIndex }}-{{ $loop->parent->index }}-{{ $loop->index }}" class="collapse show">
+                                                <ul class="list-group list-group-flush">
+                                                    @foreach($tasks as $task)
+                                                        <!-- Task Item -->
+                                                         <li class="list-group-item">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <strong>{{ $task->name }}</strong>
+                                                                    @if($task->staff->isNotEmpty())
+                                                                    <a href="#staff-breakdown-{{ $task->id }}" data-toggle="collapse" class="d-block text-muted small">
+                                                                        Assigned Staff ({{ $task->staff->count() }}) <i class="fas fa-chevron-down fa-xs collapse-icon"></i>
+                                                                    </a>
+                                                                    @endif
+                                                                </div>
+                                                                <span class="font-weight-bold">{{ formatToHms($task->duration_in_seconds) }}</span>
+                                                            </div>
+                                                            @if($task->staff->isNotEmpty())
+                                                            <div class="collapse staff-breakdown mt-2" id="staff-breakdown-{{ $task->id }}">
+                                                                <ul class="list-unstyled p-2">
+                                                                    @foreach($task->staff as $staffMember)
+                                                                        @if($staffMember->pivot->duration_in_seconds > 0)
+                                                                            <li class="d-flex justify-content-between border-bottom py-1">
+                                                                                <span class="text-muted">{{ $staffMember->name }}</span>
+                                                                                <span class="text-muted">{{ formatToHms($staffMember->pivot->duration_in_seconds) }}</span>
+                                                                            </li>
+                                                                        @endif
+                                                                    @endforeach
+                                                                </ul>
+                                                            </div>
+                                                            @endif
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        </div>
                                     @endforeach
-                                @endforeach
-                            </tbody>
-                        </table>
+                                </div>
+                            </div>
+                        </div>
                     @endforeach
                 </div>
             </div>

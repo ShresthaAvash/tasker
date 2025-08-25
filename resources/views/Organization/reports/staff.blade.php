@@ -1,49 +1,51 @@
 @extends('layouts.app')
 
 @section('title', 'Staff Report')
+@section('plugins.Select2', true)
 
 @section('css')
-    @parent {{-- This inherits the base styles from the layout --}}
+    @parent
     <style>
-        .period-buttons .btn.active {
-            background-color: #17a2b8 !important;
-            border-color: #17a2b8 !important;
-            color: white;
-        }
-        .total-time-badge {
-            font-size: 1em;
-        }
+        .card-header a { text-decoration: none !important; display: block; }
+        .report-header-staff { background-color: #6c757d; color: white; }
+        .report-header-staff a, .report-header-staff .total-time-display { color: white !important; }
+        .report-header-service { background-color: #17a2b8; color: white; }
+        .report-header-service a, .report-header-service .total-time-display { color: white !important; }
+        .report-header-job { background-color: #e9ecef; color: #343a40; }
+        .report-header-job .total-time-display { color: #343a40 !important; }
+        .total-time-display { font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 1.1rem; }
+        .collapse-icon { transition: transform 0.2s ease-in-out; }
+        a[aria-expanded="false"] .collapse-icon { transform: rotate(-90deg); }
+        .list-group-item strong { font-weight: 500; }
     </style>
 @stop
 
 @section('content_header')
      <div class="d-flex justify-content-between align-items-center">
         <h1>Staff Report</h1>
-        <button class="btn btn-primary" onclick="window.print();"><i class="fas fa-print"></i> Print Report</button>
+        <button class="btn btn-primary d-print-none" onclick="window.print();"><i class="fas fa-print"></i> Print Report</button>
     </div>
 @stop
 
 @section('content')
 <div class="card card-info card-outline">
     <div class="card-body">
-        <div class="row mb-4 align-items-center bg-light p-3 rounded">
+        <div class="row mb-4 align-items-center bg-light p-3 rounded d-print-none">
+            <div class="col-md-3"><input type="text" id="search-input" class="form-control" placeholder="Search by Staff Name..." value="{{ $search ?? '' }}"></div>
+            <div class="col-md-3"><select id="status-filter" class="form-control" multiple="multiple"></select></div>
             <div class="col-md-4">
-                <input type="text" id="search-input" class="form-control" placeholder="Search by Staff Name...">
+                <div id="dropdown-filters" class="row">
+                    <div class="col"><select id="year-filter" class="form-control">@foreach($years as $year)<option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>{{ $year }}</option>@endforeach</select></div>
+                    <div class="col"><select id="month-filter" class="form-control">@foreach($months as $num => $name)<option value="{{ $num }}" {{ $num == $currentMonth ? 'selected' : '' }}>{{ $name }}</option>@endforeach</select></div>
+                </div>
+                <div id="custom-range-filters" class="row" style="display: none;">
+                    <div class="col"><input type="date" id="start-date-filter" class="form-control" value="{{ $startDate->format('Y-m-d') }}"></div>
+                    <div class="col"><input type="date" id="end-date-filter" class="form-control" value="{{ $endDate->format('Y-m-d') }}"></div>
+                </div>
             </div>
-            <div class="col-md-8 d-flex justify-content-end align-items-center">
-                <div class="btn-group btn-group-toggle period-buttons mr-3" data-toggle="buttons">
-                    <label class="btn btn-outline-secondary" data-period="day"><input type="radio" name="period" value="day"> Day</label>
-                    <label class="btn btn-outline-secondary" data-period="week"><input type="radio" name="period" value="week"> Week</label>
-                    <label class="btn btn-outline-secondary active" data-period="month"><input type="radio" name="period" value="month" checked> Month</label>
-                    <label class="btn btn-outline-secondary" data-period="year"><input type="radio" name="period" value="year"> Year</label>
-                    <label class="btn btn-outline-secondary" data-period="all"><input type="radio" name="period" value="all"> All Time</label>
-                </div>
-                <div id="custom-range-picker" style="display: none;">
-                     <input type="date" id="start-date" class="form-control d-inline-block" style="width: auto;">
-                     <span class="mx-1">to</span>
-                     <input type="date" id="end-date" class="form-control d-inline-block" style="width: auto;">
-                </div>
-                 <button class="btn btn-secondary ml-2" id="custom-period-btn">Custom</button>
+            <div class="col-md-2 d-flex justify-content-end align-items-center">
+                 <div class="custom-control custom-switch mr-3 pt-1"><input type="checkbox" class="custom-control-input" id="custom-range-switch" {{ $use_custom_range ? 'checked' : '' }}><label class="custom-control-label" for="custom-range-switch">Custom</label></div>
+                <button class="btn btn-secondary" id="reset-filters">Reset</button>
             </div>
         </div>
 
@@ -58,71 +60,47 @@
 <script>
 $(document).ready(function() {
     let debounceTimer;
+    const statuses = @json($statuses);
 
-    function formatTime(totalSeconds) {
-        if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        return `${hours}h ${minutes}m`;
-    }
-    window.formatTime = formatTime;
+    $('#status-filter').select2({
+        placeholder: 'Filter by Status (default all)',
+        data: [ { id: 'ongoing', text: 'Ongoing' }, { id: 'completed', text: 'Completed' } ]
+    }).val(statuses).trigger('change');
 
     function fetch_report_data() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(function() {
             $('#staff-report-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
-            
             let data = {
-                search: $('#search-input').val(),
-                period: $('.period-buttons .active').data('period') || 'month'
+                search: $('#search-input').val(), statuses: $('#status-filter').val(),
+                use_custom_range: $('#custom-range-switch').is(':checked').toString(),
+                start_date: $('#start-date-filter').val(), end_date: $('#end-date-filter').val(),
+                year: $('#year-filter').val(), month: $('#month-filter').val()
             };
-
-            if (data.period === 'custom') {
-                data.start_date = $('#start-date').val();
-                data.end_date = $('#end-date').val();
-            }
-
             $.ajax({
-                url: "{{ route('organization.reports.staff') }}",
-                data: data,
-                success: function(response) {
-                    $('#staff-report-table-container').html(response);
-                },
-                error: function() {
-                    $('#staff-report-table-container').html('<p class="text-danger text-center">Failed to load report data.</p>');
-                }
+                url: "{{ route('organization.reports.staff') }}", data: data,
+                success: (response) => $('#staff-report-table-container').html(response),
+                error: () => $('#staff-report-table-container').html('<p class="text-danger text-center">Failed to load data.</p>')
             });
         }, 500);
     }
     
-    $('.period-buttons label').on('click', function() {
-        $('#custom-range-picker').hide();
-        setTimeout(fetch_report_data, 50);
-    });
+    $('#custom-range-switch').on('change', function() {
+        $('#dropdown-filters').toggle(!this.checked);
+        $('#custom-range-filters').toggle(this.checked);
+        fetch_report_data();
+    }).trigger('change');
     
-    $('#custom-period-btn').on('click', function() {
-        $('.period-buttons label').removeClass('active');
-        $(this).addClass('active');
-        $('#custom-range-picker').show();
+    $('#reset-filters').on('click', function() {
+        const today = new Date();
+        $('#search-input').val('');
+        $('#status-filter').val(null).trigger('change');
+        $('#custom-range-switch').prop('checked', false).trigger('change');
+        $('#year-filter').val(today.getFullYear());
+        $('#month-filter').val(today.getMonth() + 1).trigger('change');
     });
 
-    $('#start-date, #end-date').on('change', function() {
-        const start = $('#start-date').val();
-        const end = $('#end-date').val();
-        if(start && end) {
-            $('.period-buttons .btn').removeClass('active');
-            $('#custom-period-btn').addClass('active');
-            $('.period-buttons label').removeClass('active');
-            
-            let periodData = $('.period-buttons .active');
-            periodData.data('period', 'custom');
-
-            fetch_report_data();
-        }
-    });
-    
-    $('#search-input').on('keyup', fetch_report_data);
-
+    $('#search-input, #status-filter, #year-filter, #month-filter, #start-date-filter, #end-date-filter').on('keyup change', fetch_report_data);
 });
 </script>
 @stop
