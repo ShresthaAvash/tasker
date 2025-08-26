@@ -348,6 +348,12 @@ return [
             ],
             'active' => ['staff/tasks*']
         ],
+        [
+            'text' => 'Documents',
+            'route'  => 'staff.documents.index',
+            'icon' => 'fas fa-fw fa-file-alt',
+            'can'  => 'is-staff',
+        ],
 
         // CLIENT MENU
         [

@@ -133,17 +133,23 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
 });
 
 // Staff routes
-Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'staffDashboard'])->name('staff.dashboard');
-    Route::get('calendar', [CalendarController::class, 'index'])->name('staff.calendar');
-    Route::get('calendar/events', [CalendarController::class, 'fetchEvents'])->name('staff.calendar.events');
-    Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('staff.calendar.ajax');
-    Route::get('tasks', [StaffTaskController::class, 'index'])->name('staff.tasks.index');
+Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->name('staff.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'staffDashboard'])->name('dashboard');
+    Route::get('calendar', [CalendarController::class, 'index'])->name('calendar');
+    Route::get('calendar/events', [CalendarController::class, 'fetchEvents'])->name('calendar.events');
+    Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('calendar.ajax');
+    Route::get('tasks', [StaffTaskController::class, 'index'])->name('tasks.index');
 
-    Route::patch('tasks/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('staff.tasks.updateStatus')->where('task', '.*');
-    Route::post('tasks/{task}/start-timer', [StaffTaskController::class, 'startTimer'])->name('staff.tasks.startTimer')->where('task', '.*');
-    Route::post('tasks/{task}/stop-timer', [StaffTaskController::class, 'stopTimer'])->name('staff.tasks.stopTimer')->where('task', '.*');
-    Route::post('tasks/{task}/add-manual-time', [StaffTaskController::class, 'addManualTime'])->name('staff.tasks.addManualTime')->where('task', '.*');
+    Route::patch('tasks/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('tasks.updateStatus')->where('task', '.*');
+    Route::post('tasks/{task}/start-timer', [StaffTaskController::class, 'startTimer'])->name('tasks.startTimer')->where('task', '.*');
+    Route::post('tasks/{task}/stop-timer', [StaffTaskController::class, 'stopTimer'])->name('tasks.stopTimer')->where('task', '.*');
+    Route::post('tasks/{task}/add-manual-time', [StaffTaskController::class, 'addManualTime'])->name('tasks.addManualTime')->where('task', '.*');
+
+    // NEW DOCUMENT ROUTES FOR STAFF
+    Route::get('/documents', [\App\Http\Controllers\Staff\DocumentController::class, 'index'])->name('documents.index');
+    Route::post('/documents/{client}', [\App\Http\Controllers\Staff\DocumentController::class, 'store'])->name('documents.store');
+    Route::get('/documents/{document}/download', [\App\Http\Controllers\Staff\DocumentController::class, 'download'])->name('documents.download');
+    Route::delete('/documents/{document}', [\App\Http\Controllers\Staff\DocumentController::class, 'destroy'])->name('documents.destroy');
 });
 
 // Client Portal Routes
