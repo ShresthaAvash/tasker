@@ -7,9 +7,18 @@
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
         <h1>My Calendar</h1>
-        <a href="{{ route('staff.tasks.index') }}" class="btn btn-primary">
-            <i class="fas fa-tasks mr-1"></i> View Task List
-        </a>
+        <div class="d-flex align-items-center">
+            {{-- --- THIS IS THE NEW NAVIGATION --- --}}
+            <div class="form-inline mr-3">
+                <label for="month-select" class="mr-2 font-weight-normal">Go to:</label>
+                <select id="month-select" class="form-control form-control-sm"></select>
+                <select id="year-select" class="form-control form-control-sm ml-2"></select>
+            </div>
+            {{-- --- END OF NEW NAVIGATION --- --}}
+            <a href="{{ route('staff.tasks.index') }}" class="btn btn-primary">
+                <i class="fas fa-tasks mr-1"></i> View Task List
+            </a>
+        </div>
     </div>
 @stop
 
@@ -116,6 +125,27 @@
         const dateToGoTo = urlParams.get('date');
         let highlighted = false;
 
+        // --- NEW: Dropdown elements and population ---
+        const monthSelect = document.getElementById('month-select');
+        const yearSelect = document.getElementById('year-select');
+
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        months.forEach((month, index) => {
+            const option = document.createElement('option');
+            option.value = index; // Month is 0-indexed in JS Date
+            option.textContent = month;
+            monthSelect.appendChild(option);
+        });
+
+        const currentYear = new Date().getFullYear();
+        for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            yearSelect.appendChild(option);
+        }
+        // --- END: Dropdown population ---
+
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             initialDate: dateToGoTo || new Date(),
@@ -127,6 +157,14 @@
             events: '{{ route("staff.calendar.events") }}',
             editable: true,
             height: '100%',
+            
+            // --- NEW: This event keeps dropdowns in sync with calendar navigation ---
+            datesSet: function(info) {
+                const currentDate = info.view.currentStart;
+                // Set dropdowns without triggering their change events
+                monthSelect.value = currentDate.getMonth();
+                yearSelect.value = currentDate.getFullYear();
+            },
 
             eventDidMount: function(info) {
                 if (!highlighted && info.event.id === eventIdToHighlight) {
@@ -161,12 +199,11 @@
                 const actualEnd = currentEvent.extendedProps.actualEnd;
                 modalEnd.textContent = actualEnd ? new Date(actualEnd).toLocaleString() : 'Not set';
                 
-                // --- THIS IS THE DEFINITIVE FIX ---
                 const taskListPageUrl = "{{ route('staff.tasks.index') }}";
                 const eventId = currentEvent.id;
-                const eventDate = currentEvent.start; // Get the full Date object
+                const eventDate = currentEvent.start; 
                 const eventYear = eventDate.getFullYear();
-                const eventMonth = eventDate.getMonth() + 1; // getMonth() is 0-indexed
+                const eventMonth = eventDate.getMonth() + 1;
 
                 const viewUrl = new URL(taskListPageUrl);
                 viewUrl.searchParams.append('task_id', eventId);
@@ -208,6 +245,17 @@
         });
 
         calendar.render();
+        
+        // --- NEW: Event listeners for the new dropdowns ---
+        function navigateCalendar() {
+            const year = parseInt(yearSelect.value, 10);
+            const month = parseInt(monthSelect.value, 10);
+            const newDate = new Date(year, month, 1);
+            calendar.gotoDate(newDate);
+        }
+        monthSelect.addEventListener('change', navigateCalendar);
+        yearSelect.addEventListener('change', navigateCalendar);
+        // --- END: Dropdown event listeners ---
 
         document.querySelectorAll('.color-swatch').forEach(swatch => {
             swatch.addEventListener('click', function() {
