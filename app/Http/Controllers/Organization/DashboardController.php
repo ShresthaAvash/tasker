@@ -134,6 +134,15 @@ class DashboardController extends Controller
         $completedAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'completed')->count();
         $completedTaskCount = $completedPersonalCount + $completedAssignedCount;
         
+        // Count ongoing tasks
+        $ongoingPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'ongoing')->count();
+        $ongoingAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'ongoing')->count();
+        $ongoingTaskCount = $ongoingPersonalCount + $ongoingAssignedCount;
+
+        // Data for Pie Chart
+        $chartLabels = ['Ongoing Tasks', 'Completed Tasks'];
+        $chartData = [$ongoingTaskCount, $completedTaskCount];
+
         // Fetch Upcoming Personal tasks
         $personalTasks = Task::where('staff_id', $staffId)
             ->whereNull('job_id')
@@ -168,6 +177,6 @@ class DashboardController extends Controller
         $allTasks = $personalTasks->concat($assignedTasks);
         $upcomingTasks = $allTasks->sortBy('start')->take(10);
         
-        return view('Organization.staff.dashboard', compact('activeTaskCount', 'completedTaskCount', 'upcomingTasks'));
+        return view('Organization.staff.dashboard', compact('activeTaskCount', 'completedTaskCount', 'upcomingTasks', 'chartLabels', 'chartData'));
     }
 }

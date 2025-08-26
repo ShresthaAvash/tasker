@@ -9,67 +9,41 @@
 @section('css')
 @parent
 <style>
-    /*
-     * Final styles for a spacious, professional, and clean UI.
-     */
+    /* Styles for the accordion and task lists */
     .job-accordion .card {
-        border: 1px solid #dee2e6;
+        border: none;
         box-shadow: none;
     }
-
     .job-accordion .card-header {
-        padding: 0;
         cursor: pointer;
         background-color: #f8f9fa;
-        transition: background-color 0.2s ease-in-out;
         border-bottom: 1px solid #dee2e6;
-    }
-
-    .job-accordion .card-header:hover {
-        background-color: #f1f1f1;
-    }
-
-    .job-accordion .card-header a {
-        display: block;
-        padding: 1rem 1.25rem;
-        color: inherit;
-        text-decoration: none;
     }
 
     .job-accordion .collapse-icon {
         transition: transform 0.3s ease;
-        font-size: 0.9rem;
     }
 
-    .job-accordion a[aria-expanded="true"] .collapse-icon {
-        transform: rotate(180deg);
+    .job-accordion a[aria-expanded="false"] .collapse-icon {
+        transform: rotate(-180deg);
     }
 
-    /* Styles for the task list inside the accordion */
     .task-list-table {
         margin-bottom: 0;
     }
     .task-list-table td {
         vertical-align: middle;
-        padding: 1rem 1.25rem;
+        padding: 0.75rem;
         border-top: 1px solid #f1f1f1;
     }
     .task-list-table tr:first-child td {
         border-top: none;
     }
-    
     .task-row:hover td {
         background-color: #f8f9fa;
     }
-    .card-tools .btn {
-        margin-left: 0.5rem;
-    }
 
-    .border-left-info {
-        border-left: 3px solid #17a2b8 !important;
-    }
-
-    /* Modern Modal Styles */
+    /* Styles for modals */
     #taskModal .modal-body {
         background-color: #f8f9fa;
     }
@@ -90,7 +64,6 @@
         opacity: 0.8;
     }
 
-    /* Larger, Modern Toggle Switch */
     .custom-switch.custom-switch-lg .custom-control-label {
         padding-left: 3rem;
         padding-bottom: 1.5rem;
@@ -122,7 +95,7 @@
 @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
 
 {{-- Main Service Card --}}
-<div class="card">
+<div class="card card-primary card-outline">
     <div class="card-header">
         <h3 class="card-title">Service Details</h3>
         <div class="card-tools">
@@ -137,7 +110,7 @@
 </div>
 
 {{-- Jobs Section --}}
-<div class="card">
+<div class="card card-primary card-outline">
     <div class="card-header">
         <h3 class="card-title">Jobs</h3>
         <div class="card-tools">
@@ -178,15 +151,12 @@ $(document).ready(function() {
     }
 
     // --- JOB EDIT & DELETE BUTTONS ---
-    // Handle opening the modal via a delegated event
-    $(document).on('click', '[data-action="edit"][data-target="#jobModal"]', function(e) {
-        e.stopPropagation(); // Prevent accordion from toggling
-        
+    $('#jobsAccordion').on('click', '[data-action="edit"][data-target="#jobModal"]', function(e) {
+        e.stopPropagation();
         var button = $(this);
         var job = button.data('job');
         var modal = $('#jobModal');
         var form = modal.find('form');
-
         form[0].reset();
         form.off('submit');
 
@@ -203,10 +173,11 @@ $(document).ready(function() {
                 success: function(response) {
                     $('#job-title-' + job.id).text(response.job.name);
                     var card = $('#job-card-' + job.id);
-                    var currentData = card.data('job');
+                    var editButton = card.find('.job-actions [data-action="edit"]');
+                    var currentData = editButton.data('job');
                     currentData.name = response.job.name;
                     currentData.description = response.job.description;
-                    card.data('job', currentData);
+                    editButton.data('job', currentData);
                     modal.modal('hide');
                     showAlert(response.message);
                 },
@@ -215,8 +186,25 @@ $(document).ready(function() {
         });
         modal.modal('show');
     });
+    
+    $('#jobModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        if (button.data('action') === 'edit') return;
+        var modal = $(this);
+        var form = modal.find('form');
+        form[0].reset();
+        form.off('submit');
+        modal.find('.modal-title').text('Add New Job');
+        form.on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '{{ route("services.jobs.store", $service) }}', type: 'POST', data: $(this).serialize(),
+                success: (response) => location.reload(),
+                error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
+            });
+        });
+    });
 
-    // Handle Job Deletion
     $(document).on('click', '.delete-job-btn', function(e) {
         e.preventDefault(); e.stopPropagation();
         if (!confirm('Are you sure you want to delete this job and all its tasks? This action cannot be undone.')) return;
@@ -224,43 +212,23 @@ $(document).ready(function() {
         $.ajax({
             url: '/organization/jobs/' + jobId, type: 'DELETE',
             success: (response) => {
-                $('#job-card-' + jobId).fadeOut(300, function() { $(this).remove(); });
+                $('#job-card-' + jobId).fadeOut(300, function() { 
+                    $(this).remove();
+                    if ($('#jobsAccordion').children().length === 0) {
+                        $('#jobsAccordion').html('<p id="no-jobs-message" class="text-center text-muted">No jobs yet. Click "Add Job" to get started.</p>');
+                    }
+                });
                 showAlert(response.message);
             },
             error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
         });
     });
 
-    // Job Modal (for "Add Job" button)
-    $('#jobModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget);
-        var action = button.data('action');
-        if (action === 'edit') return; // Handled by delegated click event above
-
-        var modal = $(this);
-        var form = modal.find('form');
-        form[0].reset();
-        form.off('submit');
-        modal.find('.modal-title').text('Add New Job');
-
-        form.on('submit', function(e) {
-            e.preventDefault();
-            $.ajax({
-                url: '{{ route("services.jobs.store", $service) }}',
-                type: 'POST',
-                data: $(this).serialize(),
-                success: (response) => location.reload(),
-                error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
-            });
-        });
-    });
-
-    // Task Modal Logic (with stopPropagation fix)
+    // --- TASK MODAL & DELETE ---
     $('#taskModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
-        if (button.length === 0) return; // Prevent errors on programmatic show
+        if (button.length === 0) return;
         event.stopPropagation();
-
         var action = button.data('action');
         var modal = $(this);
         var form = modal.find('form');
@@ -283,14 +251,8 @@ $(document).ready(function() {
             form.on('submit', function(e) {
                 e.preventDefault();
                 $.ajax({
-                    url: '/organization/tasks/' + task.id,
-                    type: 'PUT',
-                    data: $(this).serialize(),
-                    success: function(response) {
-                        $('#task-row-' + task.id + ' .task-name-cell').text(response.task.name);
-                        modal.modal('hide');
-                        showAlert(response.message);
-                    },
+                    url: '/organization/tasks/' + task.id, type: 'PUT', data: $(this).serialize(),
+                    success: (response) => location.reload(),
                     error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
                 });
             });
@@ -301,9 +263,7 @@ $(document).ready(function() {
             form.on('submit', function(e) {
                 e.preventDefault();
                 $.ajax({
-                    url: '/organization/jobs/' + jobId + '/tasks',
-                    type: 'POST',
-                    data: $(this).serialize(),
+                    url: '/organization/jobs/' + jobId + '/tasks', type: 'POST', data: $(this).serialize(),
                     success: (response) => location.reload(),
                     error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
                 });
@@ -316,7 +276,6 @@ $(document).ready(function() {
         else { $('#recurring-options').slideUp(); }
     }).trigger('change');
 
-    // Handle Task Deletion
     $(document).on('click', '.delete-task-btn', function(e) {
         e.preventDefault(); e.stopPropagation();
         if (!confirm('Are you sure you want to delete this task?')) return;
