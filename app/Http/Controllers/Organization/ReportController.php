@@ -12,9 +12,6 @@ use Illuminate\Support\Collection;
 
 class ReportController extends Controller
 {
-    /**
-     * Display the time tracking report for the organization by Client.
-     */
     public function timeReport(Request $request)
     {
         $organizationId = Auth::id();
@@ -31,24 +28,9 @@ class ReportController extends Controller
             })
             ->with(['client', 'service', 'job', 'staff']);
 
-        if (!empty($statuses)) {
-            $tasksQuery->whereIn('status', $statuses);
-        }
-
-        // Apply date filtering based on task status
-        $tasksQuery->where(function ($query) use ($startDate, $endDate) {
-            $query->where(function ($q) use ($startDate, $endDate) {
-                $q->where('status', 'completed')->whereBetween('updated_at', [$startDate, $endDate]);
-            })
-            ->orWhere(function ($q) use ($startDate, $endDate) {
-                $q->where('status', 'ongoing')
-                  ->where('start', '<=', $endDate)
-                  ->where(fn($sub) => $sub->whereNull('end')->orWhere('end', '>=', $startDate));
-            });
-        });
-
-        $tasks = $tasksQuery->where('duration_in_seconds', '>', 0)->get();
-        $groupedTasks = $this->groupTasksByClient($tasks);
+        $tasks = $tasksQuery->get();
+        $expandedTasks = $this->expandTasksForReport($tasks, $startDate, $endDate, $statuses);
+        $groupedTasks = $this->groupTasksByClient($expandedTasks);
 
         if ($request->ajax()) {
             return view('Organization.reports._client_report_table', ['groupedTasks' => $groupedTasks])->render();
@@ -59,9 +41,6 @@ class ReportController extends Controller
         ));
     }
 
-    /**
-     * Display the time tracking report for the organization by Staff.
-     */
     public function staffReport(Request $request)
     {
         $organizationId = Auth::id();
@@ -74,33 +53,16 @@ class ReportController extends Controller
             $staffMembersQuery->where('name', 'like', '%' . $search . '%');
         }
         $staffMembers = $staffMembersQuery->get()->keyBy('id');
-
         $reportData = collect();
+
         if ($staffMembers->isNotEmpty()) {
             $tasksQuery = AssignedTask::query()
-                ->whereHas('staff', function ($q) use ($staffMembers) {
-                    $q->whereIn('users.id', $staffMembers->pluck('id'))
-                      ->where('assigned_task_staff.duration_in_seconds', '>', 0);
-                })
-                ->with(['service', 'job', 'staff' => fn($q) => $q->where('assigned_task_staff.duration_in_seconds', '>', 0)->select('users.id', 'users.name')]);
+                ->whereHas('staff', fn($q) => $q->whereIn('users.id', $staffMembers->pluck('id')))
+                ->with(['service', 'job', 'staff' => fn($q) => $q->select('users.id', 'users.name')]);
 
-            if (!empty($statuses)) {
-                $tasksQuery->whereIn('status', $statuses);
-            }
-
-            $tasksQuery->where(function ($query) use ($startDate, $endDate) {
-                $query->where(function ($q) use ($startDate, $endDate) {
-                    $q->where('status', 'completed')->whereBetween('updated_at', [$startDate, $endDate]);
-                })
-                ->orWhere(function ($q) use ($startDate, $endDate) {
-                    $q->where('status', 'ongoing')
-                      ->where('start', '<=', $endDate)
-                      ->where(fn($sub) => $sub->whereNull('end')->orWhere('end', '>=', $startDate));
-                });
-            });
-
-            $tasks = $tasksQuery->where('duration_in_seconds', '>', 0)->get();
-            $reportData = $this->groupTasksByStaff($tasks, $staffMembers);
+            $tasks = $tasksQuery->get();
+            $expandedTasks = $this->expandTasksForReport($tasks, $startDate, $endDate, $statuses);
+            $reportData = $this->groupTasksByStaff($expandedTasks, $staffMembers);
         }
 
         if ($request->ajax()) {
@@ -112,6 +74,71 @@ class ReportController extends Controller
         ));
     }
 
+    private function expandTasksForReport(Collection $tasks, Carbon $startDate, Carbon $endDate, array $statuses): Collection
+    {
+        $instances = new Collection();
+
+        foreach ($tasks as $task) {
+            if (!$task->is_recurring) {
+                if (empty($statuses) || in_array($task->status, $statuses)) {
+                    $instances->push($task);
+                }
+                continue;
+            }
+
+            $instanceData = (array)($task->completed_at_dates ?? []);
+            $cursor = $task->start->copy();
+            $seriesEndDate = $task->end;
+
+            while ($cursor->lt($startDate)) {
+                if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
+                switch ($task->recurring_frequency) {
+                    case 'daily': $cursor->addDay(); break; case 'weekly': $cursor->addWeek(); break;
+                    case 'monthly': $cursor->addMonthWithNoOverflow(); break; case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                    default: break 2;
+                }
+            }
+
+            while ($cursor->lte($endDate)) {
+                if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
+
+                $instanceDateString = $cursor->toDateString();
+                $instanceSpecifics = $instanceData[$instanceDateString] ?? [];
+                $instanceStatus = $instanceSpecifics['status'] ?? $task->status;
+
+                if (empty($statuses) || in_array($instanceStatus, $statuses)) {
+                    $instance = clone $task;
+                    $instance->name = $task->name . ' (' . $cursor->format('M j') . ')';
+                    $instance->status = $instanceStatus;
+                    
+                    $totalDurationForInstance = 0;
+                    $clonedStaff = new \Illuminate\Database\Eloquent\Collection(); // Use Eloquent Collection
+                    $userDurations = $instanceSpecifics['durations'] ?? [];
+
+                    foreach($task->staff as $staffMember) {
+                        $clonedMember = clone $staffMember;
+                        $clonedMember->pivot = clone $staffMember->pivot;
+                        $duration = $userDurations['user_' . $staffMember->id] ?? 0;
+                        $clonedMember->pivot->duration_in_seconds = $duration;
+                        $totalDurationForInstance += $duration;
+                        $clonedStaff->push($clonedMember);
+                    }
+                    $instance->setRelation('staff', $clonedStaff);
+                    $instance->duration_in_seconds = $totalDurationForInstance;
+                    
+                    $instances->push($instance);
+                }
+                
+                switch ($task->recurring_frequency) {
+                    case 'daily': $cursor->addDay(); break; case 'weekly': $cursor->addWeek(); break;
+                    case 'monthly': $cursor->addMonthWithNoOverflow(); break; case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                    default: break 2;
+                }
+            }
+        }
+        return $instances;
+    }
+    
     private function resolveDatesFromRequest(Request $request): array
     {
         if ($request->get('use_custom_range') === 'true') {
@@ -151,19 +178,6 @@ class ReportController extends Controller
         ]);
     }
 
-    private function filterTasksByDate(Collection $tasks, ?Carbon $startDate, ?Carbon $endDate): Collection
-    {
-        if (!$startDate) return $tasks;
-        return $tasks->filter(function ($task) use ($startDate, $endDate) {
-            if (!$task->is_recurring) return $task->updated_at->between($startDate, $endDate);
-            $completedDates = (array) ($task->completed_at_dates ?? []);
-            foreach ($completedDates as $dateString) {
-                if (Carbon::parse($dateString)->between($startDate, $endDate)) return true;
-            }
-            return false;
-        });
-    }
-
     private function groupTasksByClient(Collection $tasks): Collection
     {
         return $tasks->groupBy('client.name')->map(fn($clientTasks) => 
@@ -179,13 +193,14 @@ class ReportController extends Controller
         foreach ($staffMembers as $staff) {
             $staffServices = []; $staffTotalDuration = 0;
             foreach ($tasks as $task) {
-                if ($staffOnTask = $task->staff->find($staff->id)) {
+                // --- THIS IS THE FIX: Changed find() to firstWhere() ---
+                if ($staffOnTask = $task->staff->firstWhere('id', $staff->id)) {
                     $serviceId = $task->service->id ?? 'uncategorized';
                     $jobId = $task->job->id ?? 'uncategorized';
                     $duration = $staffOnTask->pivot->duration_in_seconds;
                     if (!isset($staffServices[$serviceId])) $staffServices[$serviceId] = ['name' => $task->service->name ?? 'Uncategorized', 'jobs' => [], 'total_duration' => 0];
                     if (!isset($staffServices[$serviceId]['jobs'][$jobId])) $staffServices[$serviceId]['jobs'][$jobId] = ['name' => $task->job->name ?? 'Uncategorized', 'tasks' => [], 'total_duration' => 0];
-                    $staffServices[$serviceId]['jobs'][$jobId]['tasks'][] = ['name' => $task->name, 'duration' => $duration];
+                    $staffServices[$serviceId]['jobs'][$jobId]['tasks'][] = ['name' => $task->name, 'duration' => $duration, 'status' => $task->status];
                     $staffServices[$serviceId]['jobs'][$jobId]['total_duration'] += $duration;
                     $staffServices[$serviceId]['total_duration'] += $duration;
                     $staffTotalDuration += $duration;

@@ -403,26 +403,34 @@ class ClientController extends Controller
                 $selectedTaskTemplates = Task::with('job.service')->findMany($newTaskIds);
                 
                 foreach ($selectedTaskTemplates as $taskTemplate) {
-                    $startDate = $taskTemplate->start ?? ($validated['task_start_dates'][$taskTemplate->id] ?? null);
+                    $startDate = $validated['task_start_dates'][$taskTemplate->id] ?? $taskTemplate->start;
                     $endDate = $validated['task_end_dates'][$taskTemplate->id] ?? $taskTemplate->end;
-    
-                    $assignedTask = AssignedTask::updateOrCreate(
+
+                    // --- THIS IS THE DEFINITIVE FIX ---
+                    $assignedTask = AssignedTask::firstOrNew(
                         [
                             'client_id' => $client->id,
                             'task_template_id' => $taskTemplate->id,
-                        ],
-                        [
-                            'service_id' => $taskTemplate->job->service_id,
-                            'job_id' => $taskTemplate->job_id,
-                            'name' => $taskTemplate->name,
-                            'description' => $taskTemplate->description,
-                            'status' => 'to_do', // <-- DEFINITIVE FIX HERE
-                            'start' => $startDate,
-                            'end' => $endDate,
-                            'is_recurring' => $taskTemplate->is_recurring,
-                            'recurring_frequency' => $taskTemplate->recurring_frequency,
                         ]
                     );
+
+                    // If it's a brand new assignment, set the status to 'to_do'.
+                    // Otherwise, preserve the existing status.
+                    if (!$assignedTask->exists) {
+                        $assignedTask->status = 'to_do';
+                    }
+
+                    $assignedTask->fill([
+                        'service_id' => $taskTemplate->job->service_id,
+                        'job_id' => $taskTemplate->job_id,
+                        'name' => $taskTemplate->name,
+                        'description' => $taskTemplate->description,
+                        'start' => $startDate,
+                        'end' => $endDate,
+                        'is_recurring' => $taskTemplate->is_recurring,
+                        'recurring_frequency' => $taskTemplate->recurring_frequency,
+                    ])->save();
+                    // --- END OF FIX ---
     
                     $staffIds = $validated['staff_assignments'][$taskTemplate->id] ?? [];
                     
