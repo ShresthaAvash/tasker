@@ -149,7 +149,7 @@ $(document).ready(function() {
         ]
     });
 
-    $('#status-filter').val(['to_do', 'ongoing']).trigger('change');
+    $('#status-filter').val({!! json_encode($statuses) !!}).trigger('change');
 
     function formatTime(totalSeconds) {
         if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
@@ -320,7 +320,7 @@ $(document).ready(function() {
     taskManager.on('click', '#reset-filters', () => {
         const now = new Date();
         $('#search-input').val('');
-        $('#status-filter').val(['to_do', 'ongoing']).trigger('change');
+        $('#status-filter').val(null).trigger('change');
         $('#custom-search-switch').prop('checked', false).trigger('change');
         $('#year-filter').val(now.getFullYear());
         $('#month-filter').val(now.getMonth() + 1);

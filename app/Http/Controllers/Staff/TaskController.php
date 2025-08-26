@@ -29,7 +29,7 @@ class TaskController extends Controller
         $statuses = $request->input('statuses');
 
         if ($statuses === null) {
-            $statuses = ['to_do', 'ongoing'];
+            $statuses = [];
         }
         if (!is_array($statuses)) {
             $statuses = [];
@@ -69,7 +69,7 @@ class TaskController extends Controller
         $years = range(now()->year - 4, now()->year + 2);
         $months = [ 'all' => 'All Months', 1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'];
         
-        return view('Staff.tasks.index', compact('clientTaskGroups', 'personalTasks', 'allStatuses', 'startDate', 'endDate', 'years', 'months'));
+        return view('Staff.tasks.index', compact('clientTaskGroups', 'personalTasks', 'allStatuses', 'startDate', 'endDate', 'years', 'months', 'statuses'));
     }
 
     private function getTaskInstancesInDateRange($staffId, Carbon $startDate, Carbon $endDate, $search, $statuses)

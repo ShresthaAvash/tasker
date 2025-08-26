@@ -28,7 +28,6 @@
         </div>
     </div>
 
-    {{-- --- THIS IS THE NEW INFO BOX --- --}}
     <div class="col-lg-4 col-md-6">
         <div class="small-box bg-success">
             <div class="inner">
@@ -72,6 +71,45 @@
             </div>
         </div>
     </div>
+
+    {{-- NEW: Column for Pie Chart --}}
+    <div class="col-md-4">
+        <div class="card card-info">
+            <div class="card-header">
+                <h3 class="card-title">Task Overview</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="taskStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
 </div>
 
+@stop
+
+@section('js')
+    {{-- NEW: Chart.js script --}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(function () {
+            var ctx = document.getElementById('taskStatusChart').getContext('2d');
+            var taskStatusChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: @json($chartLabels),
+                    datasets: [{
+                        data: @json($chartData),
+                        backgroundColor: [ 'rgba(255, 193, 7, 0.7)', 'rgba(40, 167, 69, 0.7)' ],
+                        borderColor: [ 'rgba(255, 193, 7, 1)', 'rgba(40, 167, 69, 1)' ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    legend: { position: 'top' },
+                }
+            });
+        });
+    </script>
 @stop
