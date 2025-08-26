@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-<div class="card card-info">
+<div class="card card-primary">
     <div class="card-header">
         <h3 class="card-title">Service Details</h3>
     </div>
@@ -31,7 +31,7 @@
                     <option value="I">Inactive</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-info">Save Service</button>
+            <button type="submit" class="btn btn-primary">Save Service</button>
             <a href="{{ route('services.index') }}" class="btn btn-default">Cancel</a>
         </form>
     </div>

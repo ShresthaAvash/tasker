@@ -68,19 +68,27 @@
 
 @section('css')
     <style>
-        /* Base styles from previous step */
-        html { font-size: 20px !important; }
+        /* Base styles for a cleaner look */
         .main-sidebar, .brand-link { background-color: #ffffff !important; }
         .brand-link .brand-text { color: #343a40 !important; }
         .main-sidebar { border-right: 1px solid #dee2e6 !important; }
-        .card-tabs .nav-tabs .nav-link.active { background-color: #17a2b8 !important; color: #ffffff !important; border-color: #17a2b8 #17a2b8 #ffffff; }
+
+        /* --- THEME COLOR FIXES --- */
+        /* This rule ensures that active tabs in cards use your primary blue color */
+        .card-primary.card-tabs .nav-tabs .nav-link.active,
+        .card-tabs .nav-tabs .nav-link.active {
+            background-color: #0c6ffd !important;
+            border-color: #0c6ffd #0c6ffd #ffffff !important;
+            color: #ffffff !important;
+        }
         .card-tabs .nav-tabs .nav-link { color: #007bff; }
         
+        /* Notification dropdown styles */
         #notification-bell .dropdown-menu { min-width: 450px !important; position: absolute !important; left: auto !important; right: 0 !important; }
         .notification-item { display: flex !important; justify-content: space-between !important; align-items: center !important; white-space: normal !important; padding-top: 10px; padding-bottom: 10px; }
         .notification-text { flex-grow: 1; padding-right: 15px; }
 
-        /* --- NEW MODAL STYLES --- */
+        /* Modal styles for notifications */
         #notificationDetailModal .modal-header {
             background-color: #f8f9fa;
             border-bottom: 1px solid #dee2e6;

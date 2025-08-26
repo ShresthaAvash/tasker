@@ -8,8 +8,8 @@
 
 @section('content')
 
-{{-- This card component provides the new UI --}}
-<div class="card card-info">
+{{-- The card class is now 'card-primary' for the blue theme --}}
+<div class="card card-primary">
     <div class="card-header">
         <h3 class="card-title">Client Details</h3>
     </div>
@@ -75,9 +75,8 @@
                 <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
             </div>
 
-            {{-- --- THIS IS THE FIX --- --}}
-            {{-- We change the button class from btn-primary to btn-info --}}
-            <button type="submit" class="btn btn-info">Add Client</button>
+            {{-- The button class is now 'btn-primary' for the blue theme --}}
+            <button type="submit" class="btn btn-primary">Add Client</button>
             <a href="{{ route('clients.index') }}" class="btn btn-default">Cancel</a>
         </form>
     </div>

@@ -17,7 +17,7 @@
     <div class="row">
         <div class="col-12">
 
-            <div class="card card-info card-outline">
+            <div class="card card-primary card-outline">
                 <div class="card-header">
                     <h3 class="card-title">Client Details</h3>
                     <div class="card-tools">
@@ -119,7 +119,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-info">Save</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
         </div>
@@ -143,7 +143,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-info">Save</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
         </div>
@@ -184,7 +184,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-info" disabled>
+                    <button type="submit" class="btn btn-primary" disabled>
                         <i class="fas fa-upload mr-1"></i> Upload
                     </button>
                 </div>
@@ -217,7 +217,7 @@
                 <hr>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0">Jobs</h5>
-                    <button id="add-new-job-btn" class="btn btn-sm btn-info">
+                    <button id="add-new-job-btn" class="btn btn-sm btn-primary">
                         <i class="fas fa-plus"></i> Add Job
                     </button>
                 </div>

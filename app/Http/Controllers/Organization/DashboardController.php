@@ -19,7 +19,7 @@ class DashboardController extends Controller
     public function index()
     {
         $organizationId = Auth::id();
-        $organization = Auth::user(); // Get the authenticated user object
+        $organization = Auth::user();
 
         // Stats for the info boxes
         $clientCount = User::where('organization_id', $organizationId)
@@ -32,31 +32,33 @@ class DashboardController extends Controller
 
         $serviceCount = Service::where('organization_id', $organizationId)->count();
 
-        // --- THIS IS THE MODIFIED LOGIC ---
-        // Count the number of active subscriptions for the organization
         $subscriptionCount = $organization->subscriptions()->where('stripe_status', 'active')->count();
-        // --- END OF MODIFICATION ---
+        
+        // --- THIS IS THE DEFINITIVE FIX FOR ALL DASHBOARD DATA ---
 
-        $activeTaskCount = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
-            ->where('status', 'active')
+        // Count active tasks from assignments, not templates
+        $activeTaskCount = AssignedTask::whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
+            ->whereIn('status', ['to_do', 'ongoing'])
             ->count();
 
-        // Get upcoming tasks and eager load the relationships we need to display.
-        $upcomingTasks = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
-            ->where('status', 'active')
-            ->whereNotNull('staff_id')
+        // Get upcoming tasks from assignments, not templates
+        $upcomingTasks = AssignedTask::whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
+            ->whereIn('status', ['to_do', 'ongoing'])
             ->whereNotNull('start')
             ->where('start', '>=', now())
+            ->whereHas('staff') // Ensure at least one staff member is assigned
             ->orderBy('start', 'asc')
-            ->with(['staff', 'job', 'job.service'])
+            ->with(['client', 'service', 'job', 'staff'])
             ->limit(5)
             ->get();
             
-        // Data for the pie chart
-        $taskStatusCounts = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
+        // Data for the pie chart from assignments, not templates
+        $taskStatusCounts = AssignedTask::whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
             ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->pluck('count', 'status');
+        
+        // --- END OF FIX ---
 
         $chartLabels = $taskStatusCounts->keys()->map(fn($s) => ucwords(str_replace('_', ' ', $s)));
         $chartData = $taskStatusCounts->values();
@@ -66,7 +68,7 @@ class DashboardController extends Controller
             'staffCount',
             'serviceCount',
             'activeTaskCount',
-            'subscriptionCount', // Pass the new count variable
+            'subscriptionCount',
             'upcomingTasks',
             'chartLabels',
             'chartData'
@@ -85,7 +87,7 @@ class DashboardController extends Controller
         $staffCount = User::where('organization_id', $organizationId)->whereIn('type', ['A', 'T'])->count();
         $serviceCount = Service::where('organization_id', $organizationId)->count();
 
-        // Get task counts by status
+        // Get task counts by status from templates
         $taskStatusCounts = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
             ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')

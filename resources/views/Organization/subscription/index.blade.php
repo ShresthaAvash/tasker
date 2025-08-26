@@ -5,6 +5,17 @@
 @section('content_header')
     <h1>My Subscription</h1>
 @stop
+
+@section('css')
+<style>
+    /* This rule now makes the active tab's text white for better contrast */
+    .card-primary.card-tabs .nav-tabs .nav-link.active {
+        background-color: #0c6ffd !important;
+        border-color: #0c6ffd #0c6ffd #ffffff !important;
+        color: #ffffff !important; /* This makes the text white */
+    }
+</style>
+@stop
  
 @section('content')
 @if(session('success'))
@@ -20,7 +31,7 @@
     </div>
 @endif
  
-<div class="card card-info card-outline card-tabs">
+<div class="card card-primary card-outline card-tabs">
     <div class="card-header p-0 pt-1 border-bottom-0">
         <ul class="nav nav-tabs" id="subscription-tabs" role="tablist">
             <li class="nav-item">
@@ -36,7 +47,7 @@
             {{-- Current Plan Tab --}}
             <div class="tab-pane fade show active" id="current-plan" role="tabpanel">
                 @if ($currentSubscription && $plan)
-                    <h3 class="text-info">{{ $plan->name }}</h3>
+                    <h3 class="text-primary">{{ $plan->name }}</h3>
                     <p class="lead"><b>${{ number_format($plan->price, 2) }}</b> / {{ $plan->type }}</p>
                     <p class="text-muted">{{ $plan->description }}</p>
                     <hr>
@@ -103,8 +114,9 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
+                                            {{-- This button class has been changed to btn-success for a green color --}}
                                             <a href="{{ $invoice->invoice_pdf }}"
-                                            class="btn btn-xs btn-secondary"
+                                            class="btn btn-xs btn-success"
                                             target="_blank"
                                             title="Download Invoice">
                                                 <i class="fas fa-download"></i> Download

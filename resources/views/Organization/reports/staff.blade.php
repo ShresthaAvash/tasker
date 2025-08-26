@@ -9,7 +9,8 @@
         .card-header a { text-decoration: none !important; display: block; }
         .report-header-staff { background-color: #6c757d; color: white; }
         .report-header-staff a, .report-header-staff .total-time-display { color: white !important; }
-        .report-header-service { background-color: #17a2b8; color: white; }
+        /* THIS IS THE UPDATED COLOR */
+        .report-header-service { background-color: #007afe; color: white; } 
         .report-header-service a, .report-header-service .total-time-display { color: white !important; }
         .report-header-job { background-color: #e9ecef; color: #343a40; }
         .report-header-job .total-time-display { color: #343a40 !important; }
@@ -28,7 +29,7 @@
 @stop
 
 @section('content')
-<div class="card card-info card-outline">
+<div class="card card-primary card-outline">
     <div class="card-body">
         <div class="row mb-4 align-items-center bg-light p-3 rounded d-print-none">
             <div class="col-md-3"><input type="text" id="search-input" class="form-control" placeholder="Search by Staff Name..." value="{{ $search ?? '' }}"></div>
@@ -60,7 +61,7 @@
 <script>
 $(document).ready(function() {
     let debounceTimer;
-    const statuses = @json($statuses);
+    const statuses = {!! json_encode($statuses) !!};
 
     $('#status-filter').select2({
         placeholder: 'Filter by Status (default all)',

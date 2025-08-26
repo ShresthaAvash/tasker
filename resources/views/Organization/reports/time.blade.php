@@ -9,7 +9,8 @@
         .card-header a { text-decoration: none !important; display: block; }
         .report-header-client { background-color: #6c757d; color: white; }
         .report-header-client a, .report-header-client .total-time-display { color: white !important; }
-        .report-header-service { background-color: #17a2b8; color: white; }
+        /* THIS IS THE UPDATED COLOR */
+        .report-header-service { background-color: #007afe; color: white; } 
         .report-header-service a, .report-header-service .total-time-display { color: white !important; }
         .report-header-job { background-color: #e9ecef; color: #343a40; }
         .report-header-job .total-time-display { color: #343a40 !important; }
@@ -29,7 +30,7 @@
 @stop
 
 @section('content')
-<div class="card card-info card-outline">
+<div class="card card-primary card-outline">
     <div class="card-body">
         <div class="row mb-4 align-items-center bg-light p-3 rounded d-print-none">
             <div class="col-md-3"><input type="text" id="search-input" class="form-control" placeholder="Search by Client Name..." value="{{ $search ?? '' }}"></div>
@@ -65,7 +66,7 @@ $(document).ready(function() {
     $('#status-filter').select2({
         placeholder: 'Filter by Status (default all)',
         data: [ { id: 'ongoing', text: 'Ongoing' }, { id: 'completed', text: 'Completed' } ]
-    }).val(@json($statuses)).trigger('change');
+    }).val({!! json_encode($statuses) !!}).trigger('change');
 
     function fetch_report_data() {
         clearTimeout(debounceTimer);

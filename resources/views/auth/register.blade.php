@@ -1,119 +1,165 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+<head>
+    <meta charset="utf-t">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ config('app.name', 'Laravel') }} - Register</title>
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+    <!-- Scripts -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-        {{-- Custom Styles for the Register Page (matches login page) --}}
-        <style>
-            :root {
-                --primary-color: #3c8dbc; /* AdminLTE light blue */
-                --primary-hover-color: #367fa9;
-                --body-bg-color: #f4f6f9; /* Light grey background */
-            }
-
-            body {
-                background-color: var(--body-bg-color) !important;
-                font-family: 'Figtree', sans-serif;
-            }
+    {{-- Custom Styles for the Register Page --}}
+    <style>
+        :root {
+            --primary-color: #0c6ffd;
+            --primary-hover-color: #0a58ca;
+            --body-bg-color: #f0f2f5;
+            --card-bg-color: #ffffff;
+            --input-bg-color: #f7f7f7;
+            --text-color: #333;
+            --text-muted-color: #6c757d;
+        }
+        body {
+            background-color: var(--body-bg-color);
+            font-family: 'Figtree', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .register-container {
+            width: 100%;
+            max-width: 550px; 
+            padding: 20px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .register-box {
+            animation: fadeIn 0.6s ease-out forwards;
+            background-color: var(--card-bg-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            padding: 40px;
+            text-align: center;
+        }
+        .register-logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+        .register-logo a { color: inherit; text-decoration: none; }
+        .register-box h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 8px;
+        }
+        .register-box p.lead {
+            color: var(--text-muted-color);
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        .form-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        .form-group .form-control {
+            height: 50px;
+            padding-left: 45px;
+            border-radius: 8px;
+            background-color: var(--input-bg-color);
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s ease-in-out;
+            width: 100%; /* Ensure full width */
+        }
+        .form-group .form-control:focus {
+            background-color: #fff;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(12, 111, 253, 0.15);
+        }
+        .form-group .form-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #adb5bd;
+            transition: color 0.2s ease-in-out;
+        }
+        .form-group .form-control:focus + .form-icon { color: var(--primary-color); }
+        .register-button {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            padding: 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .register-button:hover {
+            background-color: var(--primary-hover-color) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(12, 111, 253, 0.2);
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+    <div class="register-container">
+        <div class="register-box">
+            <h1 class="register-logo"><a href="/">Tasker</a></h1>
             
-            .register-container {
-                min-height: 100vh;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                padding: 1rem;
-            }
+            <h2>Create an Account</h2>
+            <p class="lead">Get started by creating your new account.</p>
 
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(-20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
+            <form method="POST" action="{{ route('register') }}" class="text-left">
+                @csrf
+                
+                <input type="hidden" name="plan_id" value="{{ request()->query('plan') }}">
+                
+                <div class="form-group">
+                    <input id="name" class="form-control" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" placeholder="Full Name" />
+                    <i class="fas fa-user form-icon"></i>
+                    <x-input-error :messages="$errors->get('name')" class="mt-2" />
+                </div>
 
-            .register-box {
-                animation: fadeIn 0.7s ease-out forwards;
-                width: 100%;
-                max-width: 28rem;
-                margin-top: 1.5rem;
-                padding: 2.5rem;
-                background-color: white;
-                border-radius: 0.5rem;
-                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            }
+                <div class="form-group">
+                    <input id="email" class="form-control" type="email" name="email" :value="old('email')" required autocomplete="username" placeholder="Email Address" />
+                    <i class="fas fa-envelope form-icon"></i>
+                    <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                </div>
 
-            .register-button {
-                background-color: var(--primary-color) !important;
-                transition: background-color 0.3s;
-            }
-            .register-button:hover {
-                background-color: var(--primary-hover-color) !important;
-            }
+                <div class="form-group">
+                    <input id="password" class="form-control" type="password" name="password" required autocomplete="new-password" placeholder="Password" />
+                    <i class="fas fa-lock form-icon"></i>
+                    <x-input-error :messages="$errors->get('password')" class="mt-2" />
+                </div>
 
-            .register-box a { color: var(--primary-color); }
-        </style>
-    </head>
-    <body class="font-sans text-gray-900 antialiased">
-        <div class="register-container">
-            <div>
-                <a href="/">
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
-                </a>
-            </div>
+                <div class="form-group">
+                    <input id="password_confirmation" class="form-control" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Confirm Password" />
+                    <i class="fas fa-lock form-icon"></i>
+                    <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+                </div>
 
-            <div class="register-box">
-                <form method="POST" action="{{ route('register') }}">
-                    @csrf
-                    
-                    <input type="hidden" name="plan_id" value="{{ request()->query('plan') }}">
-                    
-                    <!-- Name -->
-                    <div>
-                        <x-input-label for="name" :value="__('Name')" />
-                        <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-                        <x-input-error :messages="$errors->get('name')" class="mt-2" />
-                    </div>
-
-                    <!-- Email Address -->
-                    <div class="mt-4">
-                        <x-input-label for="email" :value="__('Email')" />
-                        <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-                        <x-input-error :messages="$errors->get('email')" class="mt-2" />
-                    </div>
-
-                    <!-- Password -->
-                    <div class="mt-4">
-                        <x-input-label for="password" :value="__('Password')" />
-                        <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-                        <x-input-error :messages="$errors->get('password')" class="mt-2" />
-                    </div>
-
-                    <!-- Confirm Password -->
-                    <div class="mt-4">
-                        <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-                        <x-text-input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
-                        <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-                    </div>
-
-                    <div class="flex items-center justify-between mt-4">
-                        {{-- --- THIS IS THE MODIFIED LINK --- --}}
-                        <a class="underline text-sm text-gray-600 hover:text-gray-900" href="{{ route('login', ['plan' => request()->query('plan')]) }}">
-                            {{ __('Already registered?') }}
-                        </a>
-
-                        <x-primary-button class="ms-4 register-button">
-                            {{ __('Register') }}
-                        </x-primary-button>
-                    </div>
-                </form>
-            </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary register-button">
+                        {{ __('Register') }}
+                    </button>
+                </div>
+            
+                <div class="text-center mt-4 text-muted">
+                    Already have an account? <a href="{{ route('login', ['plan' => request()->query('plan')]) }}" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Log In</a>
+                </div>
+            </form>
         </div>
-    </body>
+    </div>
+</body>
 </html>
-

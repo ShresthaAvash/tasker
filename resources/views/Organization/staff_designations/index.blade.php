@@ -7,24 +7,20 @@
 @stop
 
 @section('content')
-{{-- --- THIS IS THE FIX --- --}}
-{{-- We add 'card-info' and 'card-outline' to style the card --}}
-<div class="card card-info card-outline">
+{{-- The card now uses 'card-primary' and 'card-outline' for the blue theme --}}
+<div class="card card-primary card-outline">
     <div class="card-header">
         <h3 class="card-title">All Designations</h3>
         <div class="card-tools">
-            {{-- --- THIS IS THE FIX --- --}}
-            {{-- We change the button to 'btn-info' to match the theme --}}
-            <a href="{{ route('staff-designations.create') }}" class="btn btn-info btn-sm">Add New Designation</a>
+            {{-- The button is now 'btn-primary' for the blue theme --}}
+            <a href="{{ route('staff-designations.create') }}" class="btn btn-primary btn-sm">Add New Designation</a>
         </div>
     </div>
-    <div class="card-body p-0"> {{-- We use p-0 to make the table fit nicely --}}
+    <div class="card-body p-0">
         @if(session('success'))
             <div class="alert alert-success m-3">{{ session('success') }}</div>
         @endif
 
-        {{-- --- THIS IS THE FIX --- --}}
-        {{-- We remove 'table-bordered' for a cleaner look --}}
         <table class="table table-hover table-striped">
             <thead>
                 <tr>

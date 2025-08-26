@@ -7,12 +7,24 @@
     <h1>Services</h1>
 @stop
 
+@section('css')
+<style>
+    /* Change the color of the sortable table headers to the new theme blue */
+    .table thead th a.sort-link {
+        color: #0c6ffd;
+    }
+    .table thead th a.sort-link i {
+        color: #0c6ffd;
+    }
+</style>
+@stop
+
 @section('content')
-<div class="card card-info card-outline">
+<div class="card card-primary card-outline">
     <div class="card-header">
         <h3 class="card-title">All Services</h3>
         <div class="card-tools">
-            <a href="{{ route('services.create') }}" class="btn btn-info btn-sm">Add New Service</a>
+            <a href="{{ route('services.create') }}" class="btn btn-primary btn-sm">Add New Service</a>
         </div>
     </div>
     <div class="card-body">

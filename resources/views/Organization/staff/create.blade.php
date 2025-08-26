@@ -7,7 +7,8 @@
 @stop
 
 @section('content')
-<div class="card card-info">
+{{-- The card class is now 'card-primary' for the blue theme --}}
+<div class="card card-primary">
     <div class="card-header">
         <h3 class="card-title">Staff Details</h3>
     </div>
@@ -83,7 +84,8 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-info">Add Staff Member</button>
+            {{-- The button class is now 'btn-primary' for the blue theme --}}
+            <button type="submit" class="btn btn-primary">Add Staff Member</button>
             <a href="{{ route('staff.index') }}" class="btn btn-default">Cancel</a>
         </form>
     </div>

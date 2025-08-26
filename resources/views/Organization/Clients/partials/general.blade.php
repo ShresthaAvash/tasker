@@ -9,5 +9,5 @@
     <div class="form-group"><label>Status</label><select class="form-control" name="status" required><option value="A" @if(old('status', $client->status) == 'A') selected @endif>Active</option><option value="I" @if(old('status', $client->status) == 'I') selected @endif>Inactive</option></select></div>
     <hr><p class="text-muted">Password (leave blank to keep current)</p>
     <div class="row"><div class="col-md-6"><div class="form-group"><label>New Password</label><input type="password" class="form-control" name="password"></div></div><div class="col-md-6"><div class="form-group"><label>Confirm Password</label><input type="password" class="form-control" name="password_confirmation"></div></div></div>
-    <button type="submit" class="btn btn-info">Save Changes</button> <a href="{{ route('clients.index') }}" class="btn btn-secondary">Back to List</a>
+    <button type="submit" class="btn btn-primary">Save Changes</button> <a href="{{ route('clients.index') }}" class="btn btn-secondary">Back to List</a>
 </form>

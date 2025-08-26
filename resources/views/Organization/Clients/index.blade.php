@@ -9,16 +9,19 @@
 
 @section('content')
 <div id="action-bar" class="mb-3" style="display: none;">
+    {{-- I've updated this button to use the correct blue color --}}
     <button id="show-message-modal-btn" class="btn btn-primary" data-toggle="modal" data-target="#messageModal">
         <i class="fas fa-paper-plane"></i> Send Message to <span id="selected-count">0</span> Client(s)
     </button>
 </div>
 
-<div class="card card-info card-outline">
+{{-- This card now uses card-primary for the blue outline --}}
+<div class="card card-primary card-outline">
     <div class="card-header">
         <h3 class="card-title">All Clients</h3>
         <div class="card-tools">
-            <a href="{{ route('clients.create') }}" class="btn btn-info btn-sm">Add New Client</a>
+            {{-- This button is now your theme blue --}}
+            <a href="{{ route('clients.create') }}" class="btn btn-primary btn-sm">Add New Client</a>
         </div>
     </div>
     <div class="card-body">
@@ -53,7 +56,8 @@
             <form action="{{ route('clients.sendMessage') }}" method="POST">
                 @csrf
                 <div id="modal-hidden-inputs"></div>
-                <div class="modal-header bg-info text-white">
+                {{-- The modal header is now your theme blue --}}
+                <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">Send Message</h5>
                     <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
@@ -75,7 +79,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-info">Send Message</button>
+                    {{-- The send button is now your theme blue --}}
+                    <button type="submit" class="btn btn-primary">Send Message</button>
                 </div>
             </form>
         </div>

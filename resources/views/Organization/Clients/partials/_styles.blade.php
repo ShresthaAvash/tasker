@@ -1,15 +1,4 @@
-
 <style>
-
-    /* Force Full Width Layout for Edit Page */
-    .content-wrapper > .content {
-        padding: 0 .5rem !important;
-    }
-    .content > .container-fluid {
-        max-width: none !important;
-        padding: 0 !important;
-    }
-
     /* New Modern Tab Styles for Edit Page */
     .card-body > .nav-tabs {
         border-bottom: 1px solid #dee2e6;
@@ -26,11 +15,11 @@
         margin-bottom: -1px; /* Overlap the main border */
     }
     .card-body > .nav-tabs .nav-item .nav-link:hover {
-        color: #007bff !important;
+        color: #0c6ffd !important;
         background-color: transparent !important;
     }
     .card-body > .nav-tabs .nav-item .nav-link.active {
-        color: #007bff !important;
+        color: #0c6ffd !important;
         background-color: transparent !important;
     }
     .card-body > .nav-tabs .nav-item .nav-link::after {
@@ -41,7 +30,7 @@
         transform: translateX(-50%);
         width: 0;
         height: 3px;
-        background-color: #007bff;
+        background-color: #0c6ffd;
         transition: width 0.3s ease, left 0.3s ease, transform 0.3s ease;
     }
     .card-body > .nav-tabs .nav-item .nav-link.active::after,
@@ -55,7 +44,7 @@
     .pinned-note-bar {
         background-color: #e3f2fd; /* Light blue background */
         border: 1px solid #b8daff; /* Slightly darker blue border */
-        border-left: 5px solid #007bff; /* Accent color left border */
+        border-left: 5px solid #0c6ffd; /* Accent color left border */
         border-radius: .375rem;
         padding: 1rem 1.25rem;
         margin-bottom: 1.5rem;
@@ -69,7 +58,7 @@
 
     /* Select2 Styles */
     .select2-container--default .select2-selection--multiple { background-color: #fff; border-color: #ced4da; color: #495057; }
-    .select2-container--default .select2-selection--multiple .select2-selection__choice { background-color: #007bff; border-color: #138496; color: #fff; }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice { background-color: #0c6ffd; border-color: #0a58ca; color: #fff; }
     .select2-container--default .select2-selection--multiple .select2-selection__choice__remove { color: rgba(255,255,255,0.7); }
     .select2-container--default .select2-search--inline .select2-search__field { color: #495057; }
     .select2-dropdown { border-color: #ced4da; }
@@ -91,7 +80,7 @@
     /* Modern Modal Styles */
     #documentUploadModal .modal-header { background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; }
     .file-drop-zone { border: 2px dashed #adb5bd; border-radius: .375rem; padding: 2.5rem 1rem; text-align: center; background-color: #f8f9fa; cursor: pointer; transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out; }
-    .file-drop-zone.is-active { background-color: #e9ecef; border-color: #007bff; }
+    .file-drop-zone.is-active { background-color: #e9ecef; border-color: #0c6ffd; }
     .file-drop-zone .file-drop-icon { font-size: 2.5rem; color: #6c757d; }
     .file-drop-zone .file-drop-text { color: #495057; margin-top: 0.5rem; }
     #file-preview-list { display: none; max-height: 200px; overflow-y: auto; margin-top: 1rem; }
