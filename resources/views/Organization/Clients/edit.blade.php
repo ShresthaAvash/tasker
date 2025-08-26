@@ -249,6 +249,28 @@
         </div>
     </div>
 </div>
+
+<!-- --- THIS IS THE NEW MODAL --- -->
+<div class="modal fade" id="unassign-task-warning-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle text-warning"></i> Confirm Action</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>This task has already been assigned. Unchecking it will remove the assignment — reports may be lost and the staff member will no longer be able to work on it.</p>
+                <p><strong>Are you sure you want to proceed?</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-unassign-btn">Yes, Unassign</button>
+            </div>
+        </div>
+    </div>
+</div>
 @stop
 
 @section('js')
