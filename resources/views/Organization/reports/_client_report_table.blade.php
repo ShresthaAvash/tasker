@@ -34,7 +34,8 @@
                     @endif
                 </a>
             </div>
-            <div id="collapse-client-{{ $loop->index }}" class="collapse show" data-parent="#clientReportAccordion">
+            {{-- THIS IS THE FIX: The data-parent attribute has been removed --}}
+            <div id="collapse-client-{{ $loop->index }}" class="collapse show">
                 <div class="card-body p-2">
                     @foreach($services as $serviceName => $jobs)
                         @php

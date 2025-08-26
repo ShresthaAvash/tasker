@@ -11,12 +11,13 @@
 <div class="accordion" id="staffReportAccordion">
     @forelse($reportData as $staffData)
         @php
-            $allStaffTasksAreToDo = collect($staffData->services)->flatMap(fn($service) => collect($service['jobs'])->flatMap(fn($job) => $job['tasks']))->every(fn($task) => $task['status'] === 'to_do' && $task['duration'] == 0);
+            // This logic checks if all tasks for a staff member are in the 'to_do' state with zero time logged.
+            $allStaffTasksAreToDo = collect($staffData->services)->flatMap(fn($service) => collect($service['jobs'])->flatMap(fn($job) => $job['tasks']))->every(fn($task) => isset($task['status']) && $task['status'] === 'to_do' && $task['duration'] == 0);
         @endphp
         <div class="card shadow-sm mb-3">
-            <div class="card-header p-0" id="heading-staff-{{ $loop->index }}" style="background-color: #6c757d; color: white;">
-                <a href="#collapse-staff-{{ $loop->index }}" class="d-flex justify-content-between align-items-center p-3 text-white" data-toggle="collapse" aria-expanded="true" style="text-decoration: none;">
-                    <span><i class="fas fa-user mr-2"></i> Staff: {{ $staffData->staff_name }}</span>
+            <div class="card-header p-0 report-header-staff" id="heading-staff-{{ $loop->index }}">
+                <a href="#collapse-staff-{{ $loop->index }}" class="d-flex justify-content-between align-items-center p-3" data-toggle="collapse" aria-expanded="true" style="text-decoration: none;">
+                    <span><i class="fas fa-user-circle mr-2"></i> Staff: {{ $staffData->staff_name }}</span>
                     @if($staffData->total_duration == 0 && $allStaffTasksAreToDo)
                         <span class="font-weight-normal text-white-50">Not Started Yet</span>
                     @else
@@ -24,11 +25,11 @@
                     @endif
                 </a>
             </div>
-            <div id="collapse-staff-{{ $loop->index }}" class="collapse show" data-parent="#staffReportAccordion">
+            <div id="collapse-staff-{{ $loop->index }}" class="collapse show">
                 <div class="card-body p-2">
                     @foreach($staffData->services as $service)
                          @php
-                            $allServiceTasksAreToDo = collect($service['jobs'])->flatMap(fn($job) => $job['tasks'])->every(fn($task) => $task['status'] === 'to_do' && $task['duration'] == 0);
+                            $allServiceTasksAreToDo = collect($service['jobs'])->flatMap(fn($job) => $job['tasks'])->every(fn($task) => isset($task['status']) && $task['status'] === 'to_do' && $task['duration'] == 0);
                         @endphp
                         <div class="card mb-2">
                              <div class="card-header p-0 report-header-service" id="heading-service-{{ $loop->parent->index }}-{{ $loop->index }}">
@@ -45,7 +46,7 @@
                                 <div class="card-body p-2">
                                     @foreach($service['jobs'] as $job)
                                         @php
-                                            $allJobTasksAreToDo = collect($job['tasks'])->every(fn($task) => $task['status'] === 'to_do' && $task['duration'] == 0);
+                                            $allJobTasksAreToDo = collect($job['tasks'])->every(fn($task) => isset($task['status']) && $task['status'] === 'to_do' && $task['duration'] == 0);
                                         @endphp
                                         <div class="card mb-2">
                                              <div class="card-header p-0 report-header-job" id="heading-job-{{ $loop->parent->parent->index }}-{{ $loop->parent->index }}-{{ $loop->index }}">
@@ -62,15 +63,15 @@
                                                 <ul class="list-group list-group-flush">
                                                     @foreach($job['tasks'] as $task)
                                                         @php
-                                                            $statusClass = ['to_do' => 'badge-secondary', 'ongoing' => 'badge-warning', 'completed' => 'badge-success'][$task['status']] ?? 'badge-light';
+                                                            $statusClass = ['to_do' => 'badge-secondary', 'ongoing' => 'badge-warning', 'completed' => 'badge-success'][($task['status'] ?? 'to_do')] ?? 'badge-light';
                                                         @endphp
                                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                                             <div>
                                                                 <strong>{{ $task['name'] }}</strong>
-                                                                <span class="badge {{ $statusClass }} ml-2">{{ ucfirst(str_replace('_', ' ', $task['status'])) }}</span>
+                                                                <span class="badge {{ $statusClass }} ml-2">{{ ucfirst(str_replace('_', ' ', ($task['status'] ?? 'To do'))) }}</span>
                                                             </div>
                                                             <span class="font-weight-bold">
-                                                                @if($task['status'] === 'to_do' && $task['duration'] == 0)
+                                                                @if(isset($task['status']) && $task['status'] === 'to_do' && $task['duration'] == 0)
                                                                     <span class="text-muted font-weight-normal">Not Started Yet</span>
                                                                 @else
                                                                     {{ formatToHms($task['duration']) }}

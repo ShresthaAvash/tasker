@@ -7,14 +7,10 @@
     @parent 
     <style>
         .card-header a { text-decoration: none !important; display: block; }
-<<<<<<< HEAD
         .report-header-staff { background-color: #6c757d; color: white; }
         .report-header-staff a, .report-header-staff .total-time-display { color: white !important; }
-        /* THIS IS THE UPDATED COLOR */
+        /* This is the correct blue color for the service bar */
         .report-header-service { background-color: #007afe; color: white; } 
-=======
-        .report-header-service { background-color: #17a2b8; color: white; }
->>>>>>> f93bfd0ed0f01c5965c1de5e5cf9cc0a8f0e656e
         .report-header-service a, .report-header-service .total-time-display { color: white !important; }
         .report-header-job { background-color: #e9ecef; color: #343a40; }
         .report-header-job .total-time-display { color: #343a40 !important; }
@@ -39,8 +35,9 @@
             <div class="col-md-3">
                 <input type="text" id="search-input" class="form-control" placeholder="Search by Staff Name..." value="{{ $search ?? '' }}">
             </div>
+            {{-- THIS IS THE CORRECTED HTML for the filter dropdown --}}
             <div class="col-md-3">
-                <select id="status-filter" class="form-control" multiple="multiple"></select>
+                <select id="status-filter" multiple="multiple"></select>
             </div>
             <div class="col-md-4">
                 <div id="dropdown-filters" class="row">
@@ -88,15 +85,11 @@
 <script>
 $(document).ready(function() {
     let debounceTimer;
-<<<<<<< HEAD
-    const statuses = {!! json_encode($statuses) !!};
 
-=======
-    
-    // --- THIS IS THE FIX: Added 'To Do' status to the filter options ---
->>>>>>> f93bfd0ed0f01c5965c1de5e5cf9cc0a8f0e656e
+    // --- THIS IS THE CORRECTED JAVASCRIPT for the filter dropdown ---
     $('#status-filter').select2({
         placeholder: 'Filter by Status (default all)',
+        width: '100%',
         data: [
             { id: 'to_do', text: 'To Do' },
             { id: 'ongoing', text: 'Ongoing' },
@@ -104,7 +97,7 @@ $(document).ready(function() {
         ]
     }).val(@json($statuses)).trigger('change');
 
-    function fetch_report_data() {
+    function fetch_report_data(page = 1) {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(function() {
             $('#staff-report-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
@@ -147,8 +140,13 @@ $(document).ready(function() {
         fetch_report_data();
     });
 
+    // Initial setup
     toggleDateFilters($('#custom-range-switch').is(':checked'));
-    $('#search-input, #status-filter, #year-filter, #month-filter, #start-date-filter, #end-date-filter').on('keyup change', fetch_report_data);
+    
+    // Event Listeners
+    $('#search-input, #status-filter, #year-filter, #month-filter, #start-date-filter, #end-date-filter').on('keyup change', function() {
+        fetch_report_data(1);
+    });
 
     $(document).on('click', '#staff-report-table-container .pagination a', function(e) {
         e.preventDefault();
