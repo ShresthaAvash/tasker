@@ -42,7 +42,8 @@ class ReportController extends Controller
                 $q->where('status', 'completed')->whereBetween('updated_at', [$startDate, $endDate]);
             })
             ->orWhere(function ($q) use ($startDate, $endDate) {
-                $q->where('status', 'ongoing')
+                // THIS IS THE FIX: Include 'to_do' tasks in the date filtering logic.
+                $q->whereIn('status', ['ongoing', 'to_do'])
                   ->where('start', '<=', $endDate)
                   ->where(fn($sub) => $sub->whereNull('end')->orWhere('end', '>=', $startDate));
             });

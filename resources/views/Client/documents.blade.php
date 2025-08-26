@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'My Documents')
+@section('plugins.Select2', true)
 
 @section('content_header')
     <h1>My Documents</h1>
@@ -111,7 +112,6 @@
 @endif
 
 <div class="card card-outline card-primary">
-    {{-- THIS IS THE CORRECTED HEADER --}}
     <div class="card-header">
         <h3 class="card-title">Document History</h3>
         <div class="card-tools">
@@ -120,83 +120,60 @@
             </button>
         </div>
     </div>
-    <div class="card-body p-0">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Uploaded By</th>
-                    <th>Date</th>
-                    <th style="width: 220px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($documents as $document)
-                    @php
-                        $fileType = strtolower($document->file_type);
-                        $iconClass = 'fa-file-alt'; // Default icon
-                        $iconColor = 'text-muted';
-
-                        if (in_array($fileType, ['pdf'])) {
-                            $iconClass = 'fa-file-pdf';
-                            $iconColor = 'text-danger';
-                        } elseif (in_array($fileType, ['doc', 'docx'])) {
-                            $iconClass = 'fa-file-word';
-                            $iconColor = 'text-primary';
-                        } elseif (in_array($fileType, ['xls', 'xlsx'])) {
-                            $iconClass = 'fa-file-excel';
-                            $iconColor = 'text-success';
-                        } elseif (in_array($fileType, ['jpg', 'jpeg', 'png', 'gif'])) {
-                            $iconClass = 'fa-file-image';
-                            $iconColor = 'text-info';
-                        }
-                    @endphp
-                    <tr>
-                        <td>
-                            <i class="fas {{ $iconClass }} {{ $iconColor }} fa-lg mr-2"></i>
-                            <strong>{{ $document->name }}</strong>
-                            <br>
-                            <small class="text-muted">{{ strtoupper($document->file_type) }} - {{ number_format($document->file_size / 1024, 1) }} KB</small>
-                        </td>
-                        <td>{{ $document->description ?? 'N/A' }}</td>
-                        <td>
-                            <span class="badge {{ $document->uploader->id === Auth::id() ? 'badge-primary' : 'badge-info' }}">
-                                {{ $document->uploader->id === Auth::id() ? 'You' : $document->uploader->name }}
-                            </span>
-                        </td>
-                        <td>{{ $document->created_at->format('d M Y, h:i A') }}</td>
-                        <td>
-                            @if(in_array(strtolower($document->file_type), ['pdf', 'jpg', 'jpeg', 'png']))
-                                <a href="{{ asset('storage/' . $document->file_path) }}" class="btn btn-xs btn-outline-info" target="_blank">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                            @endif
-                            <a href="{{ route('client.documents.download', $document) }}" class="btn btn-xs btn-secondary">
-                                <i class="fas fa-download"></i> Download
-                            </a>
-                            @if($document->uploaded_by_id === Auth::id())
-                                <form action="{{ route('client.documents.destroy', $document) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-xs btn-danger"><i class="fas fa-trash"></i> Delete</button>
-                                </form>
-                            @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="text-center text-muted p-4">No documents have been shared yet.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div class="card-body">
+        <div class="row mb-4 align-items-center bg-light p-3 rounded d-print-none">
+            <div class="col-md-3">
+                <input type="text" id="search-input" class="form-control" placeholder="Search by document name..." value="{{ $search ?? '' }}">
+            </div>
+            <div class="col-md-2">
+                <select id="type-filter" class="form-control" multiple="multiple"></select>
+            </div>
+            <div class="col-md-2">
+                <select id="uploader-filter" class="form-control">
+                    <option value="">All Uploaders</option>
+                    <option value="client" {{ ($selectedUploadedBy ?? '') === 'client' ? 'selected' : '' }}>Uploaded by Me</option>
+                    <option value="organization" {{ ($selectedUploadedBy ?? '') === 'organization' ? 'selected' : '' }}>Uploaded by Organization</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div id="dropdown-filters" class="row">
+                    <div class="col">
+                        <select id="year-filter" class="form-control">
+                            @foreach($years as $year)
+                                <option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>{{ $year }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col">
+                        <select id="month-filter" class="form-control">
+                            @foreach($months as $num => $name)
+                                <option value="{{ $num }}" {{ (string)$num === (string)$currentMonth ? 'selected' : '' }}>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div id="custom-range-filters" class="row" style="display: none;">
+                    <div class="col">
+                        <input type="date" id="start-date-filter" class="form-control" value="{{ $startDate->format('Y-m-d') }}">
+                    </div>
+                    <div class="col">
+                        <input type="date" id="end-date-filter" class="form-control" value="{{ $endDate->format('Y-m-d') }}">
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-1 d-flex justify-content-end align-items-center">
+                 <div class="custom-control custom-switch pt-1">
+                    <input type="checkbox" class="custom-control-input" id="custom-range-switch" {{ $use_custom_range ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="custom-range-switch" title="Toggle Date Range"></label>
+                </div>
+                <button class="btn btn-sm btn-secondary ml-2" id="reset-filters" title="Reset Filters"><i class="fas fa-undo"></i></button>
+            </div>
+        </div>
+        
+        <div id="documents-table-container">
+            @include('Client._documents_table', ['documents' => $documents])
+        </div>
     </div>
-    @if($documents->hasPages())
-    <div class="card-footer">
-        {{ $documents->links() }}
-    </div>
-    @endif
 </div>
 
 <!-- Document Upload Modal -->
@@ -244,6 +221,79 @@
 @section('js')
 <script>
     $(function () {
+        let debounceTimer;
+
+        // Initialize Select2
+        $('#type-filter').select2({
+            placeholder: 'Filter by Type',
+            data: @json($availableFileTypes)
+        }).val(@json($selectedTypes)).trigger('change');
+
+        // Main AJAX function to fetch and update documents
+        function fetch_documents_data(page = 1) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function() {
+                $('#documents-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
+                
+                let data = {
+                    page: page,
+                    search: $('#search-input').val(),
+                    types: $('#type-filter').val(),
+                    uploaded_by: $('#uploader-filter').val(),
+                    use_custom_range: $('#custom-range-switch').is(':checked').toString(),
+                    start_date: $('#start-date-filter').val(),
+                    end_date: $('#end-date-filter').val(),
+                    year: $('#year-filter').val(),
+                    month: $('#month-filter').val()
+                };
+
+                $.ajax({
+                    url: "{{ route('client.documents.index') }}",
+                    data: data,
+                    success: (response) => $('#documents-table-container').html(response),
+                    error: () => $('#documents-table-container').html('<p class="text-danger text-center">Failed to load documents.</p>')
+                });
+            }, 500);
+        }
+
+        // Toggle date filter types
+        function toggleDateFilters(useCustom) {
+            $('#dropdown-filters').toggle(!useCustom);
+            $('#custom-range-filters').toggle(useCustom);
+        }
+
+        toggleDateFilters($('#custom-range-switch').is(':checked'));
+        $('#custom-range-switch').on('change', function() {
+            toggleDateFilters(this.checked);
+            fetch_documents_data();
+        });
+
+        // Reset all filters
+        $('#reset-filters').on('click', function() {
+            const today = new Date();
+            $('#search-input').val('');
+            $('#type-filter').val(null).trigger('change');
+            $('#uploader-filter').val('');
+            $('#custom-range-switch').prop('checked', false);
+            $('#year-filter').val(today.getFullYear());
+            $('#month-filter').val('all');
+            toggleDateFilters(false);
+            fetch_documents_data();
+        });
+
+        // Event listeners for filters
+        $('#search-input, #uploader-filter, #type-filter, #year-filter, #month-filter, #start-date-filter, #end-date-filter').on('keyup change', function() {
+            fetch_documents_data(1);
+        });
+
+        // AJAX pagination
+        $(document).on('click', '#documents-table-container .pagination a', function(e) {
+            e.preventDefault();
+            const page = $(this).attr('href').split('page=')[1];
+            fetch_documents_data(page);
+        });
+
+        // Drag-and-drop file uploader script
         const uploadModal = $('#documentUploadModal');
         const dropZone = uploadModal.find('.file-drop-zone');
         const fileInput = uploadModal.find('#document_file');
@@ -252,49 +302,31 @@
         let fileStore = new DataTransfer();
 
         function handleFiles(files) {
-            for (const file of files) {
-                fileStore.items.add(file);
-            }
+            for (const file of files) { fileStore.items.add(file); }
             updateFileInput();
             renderPreviews();
         }
 
         function renderPreviews() {
-            filePreviewList.empty();
+            filePreviewList.empty().hide();
             uploadButton.prop('disabled', fileStore.files.length === 0);
-
-            if (fileStore.files.length === 0) {
-                filePreviewList.hide();
-                return;
-            }
-
-            filePreviewList.show();
+            if (fileStore.files.length === 0) return;
             
+            filePreviewList.show();
             for (const file of fileStore.files) {
                 const fileType = file.name.split('.').pop().toLowerCase();
                 let iconClass = 'fas fa-file-alt', iconColor = 'text-muted';
-                if (file.type.startsWith('image/')) { iconClass = 'fas fa-file-image'; iconColor = 'text-info';
-                } else if (fileType === 'pdf') { iconClass = 'fas fa-file-pdf'; iconColor = 'text-danger';
-                } else if (['doc', 'docx'].includes(fileType)) { iconClass = 'fas fa-file-word'; iconColor = 'text-primary';
-                } else if (['xls', 'xlsx'].includes(fileType)) { iconClass = 'fas fa-file-excel'; iconColor = 'text-success'; }
+                if (file.type.startsWith('image/')) { iconClass = 'fas fa-file-image'; iconColor = 'text-info'; } 
+                else if (fileType === 'pdf') { iconClass = 'fas fa-file-pdf'; iconColor = 'text-danger'; } 
+                else if (['doc', 'docx'].includes(fileType)) { iconClass = 'fas fa-file-word'; iconColor = 'text-primary'; } 
+                else if (['xls', 'xlsx'].includes(fileType)) { iconClass = 'fas fa-file-excel'; iconColor = 'text-success'; }
                 
-                const previewHtml = `
-                    <div class="file-preview-item" data-name="${file.name}">
-                        <i class="file-preview-icon ${iconClass} ${iconColor}"></i>
-                        <div class="file-preview-info">
-                            <div class="file-preview-name">${file.name}</div>
-                            <div class="file-preview-size">${(file.size / 1024).toFixed(1)} KB</div>
-                        </div>
-                        <button type="button" class="remove-file-btn">&times;</button>
-                    </div>
-                `;
+                const previewHtml = `<div class="file-preview-item" data-name="${file.name}"><i class="file-preview-icon ${iconClass} ${iconColor}"></i><div class="file-preview-info"><div class="file-preview-name">${file.name}</div><div class="file-preview-size">${(file.size / 1024).toFixed(1)} KB</div></div><button type="button" class="remove-file-btn">&times;</button></div>`;
                 filePreviewList.append(previewHtml);
             }
         }
         
-        function updateFileInput() {
-            fileInput.prop('files', fileStore.files);
-        }
+        function updateFileInput() { fileInput.prop('files', fileStore.files); }
         
         dropZone.on('click', () => fileInput.click());
         dropZone.on('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.addClass('is-active'); });
@@ -305,33 +337,21 @@
             dropZone.removeClass('is-active');
             handleFiles(e.originalEvent.dataTransfer.files);
         });
-
-        fileInput.on('change', function() {
-            handleFiles(this.files);
-        });
+        fileInput.on('change', function() { handleFiles(this.files); });
 
         filePreviewList.on('click', '.remove-file-btn', function() {
             const itemToRemove = $(this).closest('.file-preview-item');
             const fileName = itemToRemove.data('name');
-            
             itemToRemove.addClass('removing');
-
             setTimeout(() => {
                 const newFiles = new DataTransfer();
                 for (const file of fileStore.files) {
-                    if (file.name !== fileName) {
-                        newFiles.items.add(file);
-                    }
+                    if (file.name !== fileName) { newFiles.items.add(file); }
                 }
                 fileStore = newFiles;
                 updateFileInput();
-                itemToRemove.remove();
-
-                if (fileStore.files.length === 0) {
-                    filePreviewList.hide();
-                    uploadButton.prop('disabled', true);
-                }
-            }, 300); // Wait for animation to finish
+                renderPreviews();
+            }, 300);
         });
         
         uploadModal.on('hidden.bs.modal', function () {

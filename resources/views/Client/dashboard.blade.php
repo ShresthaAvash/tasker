@@ -10,26 +10,42 @@
 <div class="row">
     <div class="col-md-3">
         <div class="small-box bg-info">
-            <div class="inner"><h3>{{ $stats['total'] }}</h3><p>Total Tasks</p></div>
+            <div class="inner">
+                <h3>{{ $stats['total'] }}</h3>
+                <p>Total Tasks</p>
+            </div>
             <div class="icon"><i class="fas fa-tasks"></i></div>
+            <a href="{{ route('client.reports.index', ['month' => 'all']) }}" class="small-box-footer">View All Tasks <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
     <div class="col-md-3">
         <div class="small-box bg-warning">
-            <div class="inner"><h3>{{ $stats['to_do'] }}</h3><p>Tasks To Do</p></div>
+            <div class="inner">
+                <h3>{{ $stats['to_do'] }}</h3>
+                <p>Tasks To Do</p>
+            </div>
             <div class="icon"><i class="fas fa-hourglass-start"></i></div>
+            <a href="{{ route('client.reports.index', ['month' => 'all', 'statuses' => ['to_do']]) }}" class="small-box-footer">View Tasks To Do <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
     <div class="col-md-3">
         <div class="small-box bg-primary">
-            <div class="inner"><h3>{{ $stats['ongoing'] }}</h3><p>Ongoing Tasks</p></div>
+            <div class="inner">
+                <h3>{{ $stats['ongoing'] }}</h3>
+                <p>Ongoing Tasks</p>
+            </div>
             <div class="icon"><i class="fas fa-spinner"></i></div>
+            <a href="{{ route('client.reports.index', ['month' => 'all', 'statuses' => ['ongoing']]) }}" class="small-box-footer">View Ongoing Tasks <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
     <div class="col-md-3">
         <div class="small-box bg-success">
-            <div class="inner"><h3>{{ $stats['completed'] }}</h3><p>Completed Tasks</p></div>
+            <div class="inner">
+                <h3>{{ $stats['completed'] }}</h3>
+                <p>Completed Tasks</p>
+            </div>
             <div class="icon"><i class="fas fa-check-circle"></i></div>
+            <a href="{{ route('client.reports.index', ['month' => 'all', 'statuses' => ['completed']]) }}" class="small-box-footer">View Completed Tasks <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
 </div>
