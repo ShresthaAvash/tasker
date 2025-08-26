@@ -293,22 +293,24 @@ class ClientController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'document_file' => 'required|file|mimes:jpg,png,pdf,docx|max:10240',
+            'document_file' => 'required|array|min:1',
+            'document_file.*' => 'file|mimes:jpg,png,pdf,docx,xlsx|max:10240', // Validate each file
         ]);
 
-        $file = $request->file('document_file');
-        $filePath = $file->store('client_documents/' . $client->id, 'public');
+        foreach ($request->file('document_file') as $file) {
+            $filePath = $file->store('client_documents/' . $client->id, 'public');
 
-        $client->documents()->create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'file_path' => $filePath,
-            'file_type' => $file->getClientOriginalExtension(),
-            'file_size' => $file->getSize(),
-            'uploaded_by_id' => Auth::id(),
-        ]);
+            $client->documents()->create([
+                'name' => $request->name,
+                'description' => $request->description,
+                'file_path' => $filePath,
+                'file_type' => $file->getClientOriginalExtension(),
+                'file_size' => $file->getSize(),
+                'uploaded_by_id' => Auth::id(),
+            ]);
+        }
 
-        return redirect()->route('clients.edit', $client->id)->with('success', 'Document uploaded successfully.');
+        return redirect()->route('clients.edit', $client->id)->with('success', 'Documents uploaded successfully.');
     }
 
     public function destroyDocument(ClientDocument $document)

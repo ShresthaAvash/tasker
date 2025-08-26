@@ -26,24 +26,27 @@ class DocumentController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'document_file' => 'required|file|mimes:jpg,jpeg,png,pdf,docx,xlsx|max:10240', // 10MB Max
+            'document_file' => 'required|array|min:1',
+            'document_file.*' => 'required|file|mimes:jpg,jpeg,png,pdf,docx,xlsx|max:10240', // 10MB Max per file
         ]);
 
         $client = Auth::user();
-        $file = $request->file('document_file');
-        $filePath = $file->store('client_documents/' . $client->id, 'public');
+        
+        foreach ($request->file('document_file') as $file) {
+            $filePath = $file->store('client_documents/' . $client->id, 'public');
 
-        ClientDocument::create([
-            'client_id' => $client->id,
-            'uploaded_by_id' => $client->id, // Client is the uploader
-            'name' => $request->name,
-            'description' => $request->description,
-            'file_path' => $filePath,
-            'file_type' => $file->getClientOriginalExtension(),
-            'file_size' => $file->getSize(),
-        ]);
+            ClientDocument::create([
+                'client_id' => $client->id,
+                'uploaded_by_id' => $client->id, // Client is the uploader
+                'name' => $request->name,
+                'description' => $request->description,
+                'file_path' => $filePath,
+                'file_type' => $file->getClientOriginalExtension(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
 
-        return redirect()->route('client.documents.index')->with('success', 'Document uploaded successfully.');
+        return redirect()->route('client.documents.index')->with('success', 'Documents uploaded successfully.');
     }
 
     public function download(ClientDocument $document)

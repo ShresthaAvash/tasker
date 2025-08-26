@@ -267,7 +267,12 @@ return [
             'icon'    => 'fas fa-fw fa-users',
             'can'     => 'is-organization',
             'submenu' => [
-                [ 'text' => 'List Clients', 'route'  => 'clients.index', 'icon' => 'fas fa-fw fa-list', ],
+                [ 
+                    'text' => 'List Clients', 
+                    'route'  => 'clients.index', 
+                    'icon' => 'fas fa-fw fa-list',
+                    'active' => ['organization/clients', 'organization/clients/*/edit'] 
+                ],
                 [ 'text' => 'Add Client', 'route'  => 'clients.create', 'icon' => 'fas fa-fw fa-plus', ],
             ],
         ],

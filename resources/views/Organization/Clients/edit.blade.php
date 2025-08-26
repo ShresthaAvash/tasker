@@ -9,202 +9,189 @@
 @stop
 
 @section('css')
-@parent
-<style>
-    /* Theme Overrides */
-    .card-info.card-tabs .card-header { background-color: #17a2b8; border-bottom: none; }
-    .card-info.card-tabs .nav-link { border: 0; color: rgba(255, 255, 255, 0.8); transition: all 0.2s ease-in-out; border-top: 3px solid transparent; margin-bottom: -1px; }
-    .card-info.card-tabs .nav-link.active { background-color: #fff; color: #17a2b8; border-top-color: #17a2b8; }
-    .card-info.card-tabs .nav-link:not(.active):hover { color: #ffffff; border-top-color: #138496; }
-    
-    /* Pinned Note Styles */
-    .pinned-note-bar { background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: .25rem; padding: .75rem 1.25rem; margin-bottom: 1rem; position: relative; }
-    .pinned-note-bar .unpin-btn { position: absolute; top: 5px; right: 10px; }
-
-    /* Select2 Styles */
-    .select2-container--default .select2-selection--multiple { background-color: #fff; border-color: #ced4da; color: #495057; }
-    .select2-container--default .select2-selection--multiple .select2-selection__choice { background-color: #17a2b8; border-color: #138496; color: #fff; }
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove { color: rgba(255,255,255,0.7); }
-    .select2-container--default .select2-search--inline .select2-search__field { color: #495057; }
-    .select2-dropdown { border-color: #ced4da; }
-    
-    /* Create Service Modal Styles */
-    #createServiceModal .job-block { border: 1px solid #e9ecef; border-radius: 5px; margin-bottom: 1rem; }
-    #createServiceModal .job-header { background-color: #f8f9fa; padding: 0.75rem 1.25rem; border-bottom: 1px solid #e9ecef; }
-    #createServiceModal .task-item { border-top: 1px solid #f1f1f1; padding: 0.75rem 1.25rem; }
-
-    .collapsing { transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
-    a[data-toggle="collapse"] .collapse-icon { transition: transform 0.3s ease-in-out; }
-    a[data-toggle="collapse"][aria-expanded="true"] .collapse-icon { transform: rotate(-180deg); }
-    .custom-control-label::before, .custom-control-label::after { cursor: pointer; }
-    
-    /* Accordion Header Hover Effects */
-    .service-header-link:hover { background-color: #d1ecf1 !important; }
-    .job-header-link:hover { background-color: #e9ecef !important; }
-
-    /* --- THIS IS THE NEW CSS FOR THE DOCUMENT "CHAT" --- */
-    .document-thread { list-style-type: none; padding: 0; }
-    .document-entry { display: flex; margin-bottom: 1.5rem; max-width: 80%; }
-    .document-entry .document-bubble { background-color: #e9ecef; border-radius: 12px; padding: 1rem; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .document-entry.is-organization { margin-left: auto; flex-direction: row-reverse; }
-    .document-entry.is-organization .document-bubble { background-color: #cce5ff; }
-    .document-entry .uploader-name { font-weight: bold; margin-bottom: 0.25rem; }
-    .document-entry .document-name { font-size: 1.1rem; font-weight: 500; }
-    .document-entry .document-meta { font-size: 0.8rem; color: #6c757d; }
-
-</style>
+    @include('Organization.Clients.partials._styles')
 @stop
 
 @section('content')
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
 
-@if($client->pinnedNote)
-<div class="pinned-note-bar">
-    <form action="{{ route('clients.notes.unpin', $client->pinnedNote) }}" method="POST" class="unpin-btn">@csrf @method('PATCH')<button type="submit" class="btn btn-xs btn-outline-secondary" title="Unpin Note"><i class="fas fa-thumbtack"></i> Unpin</button></form>
-    <strong><i class="fas fa-thumbtack mr-1"></i> {{ $client->pinnedNote->title }} ({{ $client->pinnedNote->note_date->format('d M Y') }})</strong>
-    <p class="mb-0">{{ $client->pinnedNote->content }}</p>
-</div>
-@endif
-
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>{{ session('success') }}</div>
-@endif
-@if ($errors->any())
-    <div class="alert alert-danger"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
-@endif
-
-<div class="card card-info card-tabs">
-    <div class="card-header p-0 pt-1">
-        <ul class="nav nav-tabs" id="client-tabs" role="tablist">
-            <li class="nav-item"><a class="nav-link active" id="general-tab-link" data-toggle="pill" href="#general-tab" role="tab">General</a></li>
-            <li class="nav-item"><a class="nav-link" id="contacts-tab-link" data-toggle="pill" href="#contacts-tab" role="tab">Contacts</a></li>
-            <li class="nav-item"><a class="nav-link" id="notes-tab-link" data-toggle="pill" href="#notes-tab" role="tab">Notes</a></li>
-            <li class="nav-item"><a class="nav-link" id="documents-tab-link" data-toggle="pill" href="#documents-tab" role="tab">Documents</a></li>
-            <li class="nav-item"><a class="nav-link" id="services-tab-link" data-toggle="pill" href="#services-tab" role="tab">Services</a></li>
-        </ul>
-    </div>
-    <div class="card-body">
-        <div class="tab-content" id="client-tabs-content">
-            <!-- General Tab -->
-            <div class="tab-pane fade show active" id="general-tab" role="tabpanel">
-                <form action="{{ route('clients.update', $client->id) }}" method="POST" enctype="multipart/form-data">
-                    @csrf @method('PUT')
-                    <div class="form-group"><label>Client Name</label><input type="text" class="form-control" name="name" value="{{ old('name', $client->name) }}" required></div>
-                    <div class="form-group"><label>Client Email</label><input type="email" class="form-control" name="email" value="{{ old('email', $client->email) }}" required></div>
-                    <div class="form-group"><label>Client Phone</label><input type="text" class="form-control" name="phone" value="{{ old('phone', $client->phone) }}"></div>
-                    <div class="form-group"><label>Client Address</label><textarea class="form-control" name="address">{{ old('address', $client->address) }}</textarea></div>
-                    <div class="form-group"><label>Client Photo</label>@if($client->photo)<div><img src="{{ asset('storage/'.$client->photo) }}" alt="Photo" width="100" class="mb-2 img-thumbnail"></div>@endif<input type="file" class="form-control-file" name="photo" accept="image/*"></div>
-                    <div class="form-group"><label>Status</label><select class="form-control" name="status" required><option value="A" @if(old('status', $client->status) == 'A') selected @endif>Active</option><option value="I" @if(old('status', $client->status) == 'I') selected @endif>Inactive</option></select></div>
-                    <hr><p class="text-muted">Password (leave blank to keep current)</p>
-                    <div class="row"><div class="col-md-6"><div class="form-group"><label>New Password</label><input type="password" class="form-control" name="password"></div></div><div class="col-md-6"><div class="form-group"><label>Confirm Password</label><input type="password" class="form-control" name="password_confirmation"></div></div></div>
-                    <button type="submit" class="btn btn-info">Save Changes</button> <a href="{{ route('clients.index') }}" class="btn btn-secondary">Back to List</a>
-                </form>
-            </div>
-
-            <!-- Contacts Tab -->
-            <div class="tab-pane fade" id="contacts-tab" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3"><h4 class="card-title mb-0">Client Contacts</h4><button class="btn btn-sm btn-success" data-toggle="modal" data-target="#contactModal" data-action="create"><i class="fas fa-plus"></i> Add New Contact</button></div>
-                <table class="table table-hover">
-                    <thead><tr><th>Name</th><th>Position</th><th>Email</th><th>Phone</th><th style="width: 150px;">Actions</th></tr></thead>
-                    <tbody>
-                        @forelse($client->contacts as $contact)
-                            <tr><td>{{ $contact->name }}</td><td>{{ $contact->position ?? 'N/A' }}</td><td>{{ $contact->email }}</td><td>{{ $contact->phone ?? 'N/A' }}</td><td><button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#contactModal" data-action="edit" data-contact='{{ $contact->toJson() }}'>Edit</button><form action="{{ route('clients.contacts.destroy', $contact) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this contact?');">@csrf @method('DELETE')<button type="submit" class="btn btn-xs btn-danger">Delete</button></form></td></tr>
-                        @empty
-                            <tr><td colspan="5" class="text-center">No contacts added yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Notes Tab -->
-            <div class="tab-pane fade" id="notes-tab" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3"><h4 class="card-title mb-0">Client Notes</h4><button class="btn btn-sm btn-success" data-toggle="modal" data-target="#noteModal" data-action="create"><i class="fas fa-plus"></i> Add New Note</button></div>
-                <table class="table table-hover">
-                    <thead><tr><th>Title</th><th>Content</th><th>Date</th><th style="width: 200px;">Actions</th></tr></thead>
-                    <tbody>
-                        @forelse($client->notes as $note)
-                            <tr><td>{{ $note->title }}</td><td>{{ Str::limit($note->content, 70) }}</td><td>{{ $note->note_date->format('d M Y') }}</td><td>@if(!$note->isPinned())<form action="{{ route('clients.notes.pin', $note) }}" method="POST" class="d-inline">@csrf @method('PATCH')<button type="submit" class="btn btn-xs btn-info" title="Pin Note"><i class="fas fa-thumbtack"></i> Pin</button></form>@endif<button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#noteModal" data-action="edit" data-note='{{ $note->toJson() }}'>Edit</button><form action="{{ route('clients.notes.destroy', $note) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this note?');">@csrf @method('DELETE')<button type="submit" class="btn btn-xs btn-danger">Delete</button></form></td></tr>
-                        @empty
-                            <tr><td colspan="4" class="text-center">No notes added yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Documents Tab -->
-            <div class="tab-pane fade" id="documents-tab" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3"><h4 class="card-title mb-0">Document Exchange</h4><button class="btn btn-sm btn-success" data-toggle="modal" data-target="#documentModal"><i class="fas fa-upload"></i> Upload Document for Client</button></div>
-                <ul class="document-thread">
-                    @forelse($client->documents as $document)
-                        <li class="document-entry {{ $document->uploader->type === 'C' ? 'is-client' : 'is-organization' }}">
-                            <div class="document-bubble">
-                                <p class="uploader-name">{{ $document->uploader->name }}</p>
-                                <p class="document-name mb-1"><i class="fas fa-file-alt mr-2"></i>{{ $document->name }}</p>
-                                @if($document->description)
-                                    <p class="mb-2"><em>{{ $document->description }}</em></p>
-                                @endif
-                                <p class="document-meta mb-2">{{ $document->created_at->format('d M Y, h:i A') }} | {{ strtoupper($document->file_type) }} | {{ number_format($document->file_size / 1024, 1) }} KB</p>
-                                <a href="{{ route('clients.documents.download', $document) }}" class="btn btn-xs btn-secondary"><i class="fas fa-download"></i> Download</a>
-                                <form action="{{ route('clients.documents.destroy', $document) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this document?');">@csrf @method('DELETE')<button type="submit" class="btn btn-xs btn-danger"><i class="fas fa-trash"></i> Delete</button></form>
-                            </div>
-                        </li>
-                    @empty
-                        <li class="text-center text-muted p-4">No documents have been shared yet.</li>
-                    @endforelse
-                </ul>
-            </div>
-
-            <!-- Services Tab -->
-            <div class="tab-pane fade" id="services-tab" role="tabpanel">
-                @if($client->assignedServices->isNotEmpty())
-                <script>
-                    $(function() {
-                        $('#service-selection-step').hide();
-                        $('#job-config-step').show();
-                        $('#next-to-jobs-btn').trigger('click');
-                    });
-                </script>
-                @endif
-                <form id="service-assignment-form" action="{{ route('clients.services.assign', $client) }}" method="POST">
-                    @csrf
-                    <div id="service-selection-step">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h4>1. Select Services</h4>
-                                <p>Choose the services you want to activate for this client.</p>
-                            </div>
-                            <button type="button" class="btn btn-success" data-toggle="modal" data-target="#createServiceModal">
-                                <i class="fas fa-plus"></i> Create New Service
+            <div class="card card-info card-outline">
+                <div class="card-header">
+                    <h3 class="card-title">Client Details</h3>
+                    <div class="card-tools">
+                        <a href="{{ route('clients.index') }}" class="btn btn-default btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Client List
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    
+                    @if($client->pinnedNote)
+                    <div class="pinned-note-bar">
+                        <form action="{{ route('clients.notes.unpin', $client->pinnedNote) }}" method="POST" class="unpin-btn">
+                            @csrf @method('PATCH')
+                            <button type="submit" class="btn btn-xs btn-outline-secondary" title="Unpin Note">
+                                <i class="fas fa-thumbtack"></i> Unpin
                             </button>
-                        </div>
-                        <hr>
-                        <div class="form-group" id="service-checkbox-list">
-                            @forelse($allServices as $service)
-                                <div class="custom-control custom-checkbox"><input class="custom-control-input service-checkbox" type="checkbox" id="service_{{ $service->id }}" name="services[]" value="{{ $service->id }}" {{ $client->assignedServices->contains($service) ? 'checked' : '' }}><label for="service_{{ $service->id }}" class="custom-control-label">{{ $service->name }}</label></div>
-                            @empty
-                                <p class="text-muted">No services have been created yet. <a href="{{ route('services.create') }}">Create one now</a>.</p>
-                            @endforelse
-                        </div>
-                        <button type="button" id="next-to-jobs-btn" class="btn btn-info">Next <i class="fas fa-arrow-right"></i></button>
+                        </form>
+                        <strong>
+                            <i class="fas fa-thumbtack mr-1"></i> 
+                            {{ $client->pinnedNote->title }} ({{ $client->pinnedNote->note_date->format('d M Y') }})
+                        </strong>
+                        <p class="mb-0">{{ $client->pinnedNote->content }}</p>
                     </div>
+                    @endif
 
-                    <div id="job-config-step" style="display: none;">
-                        <h4>2. Configure Jobs & Tasks</h4>
-                        <p>Uncheck any jobs or tasks to exclude them. Assign staff members and dates to each task.</p>
-                        <div id="jobs-accordion-container" class="accordion"></div>
-                        <hr>
-                        <button type="button" id="back-to-services-btn" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</button>
-                        <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Save Assignments</button>
+                    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            {{ session('success') }}
+                        </div>
+                    @endif
+                    @if ($errors->any())
+                        <div class="alert alert-danger">
+                            <ul>
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <ul class="nav nav-tabs" id="client-tabs" role="tablist">
+                        <li class="nav-item"><a class="nav-link active" id="general-tab-link" data-toggle="pill" href="#general-tab" role="tab">General</a></li>
+                        <li class="nav-item"><a class="nav-link" id="contacts-tab-link" data-toggle="pill" href="#contacts-tab" role="tab">Contacts</a></li>
+                        <li class="nav-item"><a class="nav-link" id="notes-tab-link" data-toggle="pill" href="#notes-tab" role="tab">Notes</a></li>
+                        <li class="nav-item"><a class="nav-link" id="documents-tab-link" data-toggle="pill" href="#documents-tab" role="tab">Documents</a></li>
+                        <li class="nav-item"><a class="nav-link" id="services-tab-link" data-toggle="pill" href="#services-tab" role="tab">Services</a></li>
+                    </ul>
+                    <div class="tab-content pt-3" id="client-tabs-content">
+                        <!-- General Tab -->
+                        <div class="tab-pane fade show active" id="general-tab" role="tabpanel">
+                            @include('Organization.Clients.partials.general')
+                        </div>
+
+                        <!-- Contacts Tab -->
+                        <div class="tab-pane fade" id="contacts-tab" role="tabpanel">
+                            @include('Organization.Clients.partials.contacts')
+                        </div>
+
+                        <!-- Notes Tab -->
+                        <div class="tab-pane fade" id="notes-tab" role="tabpanel">
+                            @include('Organization.Clients.partials.notes')
+                        </div>
+                        
+                        <!-- Documents Tab -->
+                        <div class="tab-pane fade" id="documents-tab" role="tabpanel">
+                            @include('Organization.Clients.partials.documents')
+                        </div>
+
+                        <!-- Services Tab -->
+                        <div class="tab-pane fade" id="services-tab" role="tabpanel">
+                            @include('Organization.Clients.partials.services')
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
+
         </div>
     </div>
 </div>
 
 <!-- Modals -->
-<div class="modal fade" id="contactModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="contactForm" method="POST" action="{{ route('clients.contacts.store', $client) }}">@csrf<input type="hidden" id="contact-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="contactModalLabel">Add Contact</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Name</label><input type="text" id="contact-name" name="name" class="form-control" required></div><div class="form-group"><label>Email</label><input type="email" id="contact-email" name="email" class="form-control" required></div><div class="form-group"><label>Phone (Optional)</label><input type="text" id="contact-phone" name="phone" class="form-control"></div><div class="form-group"><label>Position</label><input type="text" id="contact-position" name="position" class="form-control"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-info">Save</button></div></form></div></div></div>
-<div class="modal fade" id="noteModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="noteForm" method="POST" action="{{ route('clients.notes.store', $client) }}">@csrf<input type="hidden" id="note-method" name="_method" value="POST"><div class="modal-header"><h5 class="modal-title" id="noteModalLabel">Add Note</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Title</label><input type="text" id="note-title" name="title" class="form-control" required></div><div class="form-group"><label>Content</label><textarea id="note-content" name="content" class="form-control" rows="4" required></textarea></div><div class="form-group"><label>Date</label><input type="date" id="note-date" name="note_date" class="form-control" required></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-info">Save</button></div></form></div></div></div>
-<div class="modal fade" id="documentModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form id="documentForm" method="POST" action="{{ route('clients.documents.store', $client) }}" enctype="multipart/form-data">@csrf<div class="modal-header"><h5 class="modal-title">Upload Document</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body"><div class="form-group"><label>Document Name</label><input type="text" name="name" class="form-control" required placeholder="e.g., Signed Contract"></div><div class="form-group"><label>Description / Message (Optional)</label><textarea name="description" class="form-control" rows="3" placeholder="Add any context or notes for this document..."></textarea></div><div class="form-group"><label>File</label><input type="file" name="document_file" class="form-control-file" required><small class="form-text text-muted">Allowed types: PDF, DOCX, PNG, JPG. Max size: 10MB.</small></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="submit" class="btn btn-info">Upload</button></div></form></div></div></div>
+<div class="modal fade" id="contactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="contactForm" method="POST" action="{{ route('clients.contacts.store', $client) }}">
+                @csrf
+                <input type="hidden" id="contact-method" name="_method" value="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="contactModalLabel">Add Contact</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group"><label>Name</label><input type="text" id="contact-name" name="name" class="form-control" required></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="contact-email" name="email" class="form-control" required></div>
+                    <div class="form-group"><label>Phone (Optional)</label><input type="text" id="contact-phone" name="phone" class="form-control"></div>
+                    <div class="form-group"><label>Position</label><input type="text" id="contact-position" name="position" class="form-control"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-info">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="noteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="noteForm" method="POST" action="{{ route('clients.notes.store', $client) }}">
+                @csrf
+                <input type="hidden" id="note-method" name="_method" value="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="noteModalLabel">Add Note</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group"><label>Title</label><input type="text" id="note-title" name="title" class="form-control" required></div>
+                    <div class="form-group"><label>Content</label><textarea id="note-content" name="content" class="form-control" rows="4" required></textarea></div>
+                    <div class="form-group"><label>Date</label><input type="date" id="note-date" name="note_date" class="form-control" required></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-info">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Document Upload Modal -->
+<div class="modal fade" id="documentUploadModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <form action="{{ route('clients.documents.store', $client) }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload New Documents</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="name">Document Title</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g., Q1 Financial Statements" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description / Message (Optional)</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Add any context or notes for these documents..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Files</label>
+                        <div class="file-drop-zone">
+                            <i class="fas fa-cloud-upload-alt file-drop-icon"></i>
+                            <p class="file-drop-text">Drag & drop files here or <strong>click to browse</strong>.</p>
+                        </div>
+                        <input type="file" class="d-none" id="document_file" name="document_file[]" multiple required>
+                        <div id="file-preview-list"></div>
+                        <small class="form-text text-muted mt-2">Max file size: 10MB per file.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info" disabled>
+                        <i class="fas fa-upload mr-1"></i> Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 @include('Organization.services._task_modal', ['designations' => $designations])
 
@@ -230,7 +217,9 @@
                 <hr>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0">Jobs</h5>
-                    <button id="add-new-job-btn" class="btn btn-sm btn-info"><i class="fas fa-plus"></i> Add Job</button>
+                    <button id="add-new-job-btn" class="btn btn-sm btn-info">
+                        <i class="fas fa-plus"></i> Add Job
+                    </button>
                 </div>
                 <div id="service-jobs-container">
                     <p class="text-muted text-center">No jobs added yet.</p>
@@ -248,315 +237,20 @@
     <div class="job-block">
         <div class="job-header d-flex justify-content-between align-items-center">
             <input type="text" class="form-control job-name-input" placeholder="Enter Job Name">
-            <button class="btn btn-sm btn-danger remove-job-btn ml-2"><i class="fas fa-trash"></i></button>
+            <button class="btn btn-sm btn-danger remove-job-btn ml-2">
+                <i class="fas fa-trash"></i>
+            </button>
         </div>
         <div class="p-3">
             <div class="task-list"></div>
-            <button class="btn btn-xs btn-outline-primary add-task-to-job-btn mt-2"><i class="fas fa-plus"></i> Add Task</button>
+            <button class="btn btn-xs btn-outline-primary add-task-to-job-btn mt-2">
+                <i class="fas fa-plus"></i> Add Task
+            </button>
         </div>
     </div>
 </div>
 @stop
 
 @section('js')
-<script>
-$(document).ready(function() {
-    // ... (rest of the existing script for contacts, notes, etc.)
-
-    const serviceSelectionStep = $('#service-selection-step');
-    const jobConfigStep = $('#job-config-step');
-    const jobsContainer = $('#jobs-accordion-container');
-    const allStaffData = {!! $allStaffJson !!};
-    const clientTasks = {!! json_encode($client->assignedTasks->keyBy('task_template_id')) !!};
-
-    function renderJobsAndTasks(jobs) {
-        jobsContainer.empty();
-        if (!jobs || jobs.length === 0) {
-            jobsContainer.html('<p class="text-muted text-center p-3">The selected services do not have any jobs or tasks configured.</p>');
-            return;
-        }
-
-        const jobsByService = jobs.reduce((acc, job) => {
-            const serviceId = job.service.id;
-            if (!acc[serviceId]) {
-                acc[serviceId] = { name: job.service.name, jobs: [] };
-            }
-            acc[serviceId].jobs.push(job);
-            return acc;
-        }, {});
-
-        Object.entries(jobsByService).forEach(([serviceId, serviceGroup]) => {
-            let jobsHtml = '';
-            serviceGroup.jobs.forEach(job => {
-                let taskHtml = '';
-                if (job.tasks && job.tasks.length > 0) {
-                    job.tasks.forEach(task => {
-                        const assignedTask = clientTasks[task.id];
-                        const assignedStaffIds = assignedTask ? assignedTask.staff.map(s => s.id) : [];
-                        const isChecked = !clientTasks.hasOwnProperty(task.id) || assignedTask ? 'checked' : '';
-                        const assignedStartDate = assignedTask && assignedTask.start ? assignedTask.start.slice(0, 16).replace(' ', 'T') : '';
-                        const assignedEndDate = assignedTask && assignedTask.end ? assignedTask.end.slice(0, 16).replace(' ', 'T') : (task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
-                        
-                        let startDateInputHtml = '';
-                        if (task.start === null) {
-                            startDateInputHtml = `
-                                <div style="width: 210px;">
-                                    <label class="d-block small text-muted mb-0">Start Date (Required)</label>
-                                    <input type="datetime-local" class="form-control form-control-sm task-start-date" name="task_start_dates[${task.id}]" value="${assignedStartDate}">
-                                </div>`;
-                        }
-                        
-                        const endDateInputHtml = `
-                            <div style="width: 210px;">
-                                <label class="d-block small text-muted mb-0">End Date (Optional)</label>
-                                <input type="datetime-local" class="form-control form-control-sm" name="task_end_dates[${task.id}]" value="${assignedEndDate}">
-                            </div>`;
-
-                        taskHtml += `
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                    <div class="custom-control custom-checkbox" style="min-width: 250px; flex: 1;">
-                                        <input type="checkbox" class="custom-control-input task-checkbox" name="tasks[${task.id}]" id="task_${task.id}" ${isChecked} data-job-id="${job.id}" data-service-id="${serviceId}">
-                                        <label class="custom-control-label font-weight-normal" for="task_${task.id}">${task.name}</label>
-                                    </div>
-                                    <div class="task-inputs-wrapper d-flex align-items-center" style="gap: 15px;">
-                                        ${startDateInputHtml}
-                                        ${endDateInputHtml}
-                                        <div style="width: 300px;">
-                                            <label class="d-block small text-muted mb-0">Assigned Staff</label>
-                                            <select class="form-control staff-select" name="staff_assignments[${task.id}][]" multiple="multiple" style="width: 100%;" data-assigned-staff='${JSON.stringify(assignedStaffIds)}'></select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </li>`;
-                    });
-                } else { taskHtml = '<li class="list-group-item text-muted">No tasks in this job.</li>'; }
-                
-                jobsHtml += `
-                    <div class="card mb-2">
-                        <a href="#collapse_job_${job.id}" class="card-header job-header-link bg-light d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" style="text-decoration: none; padding: 0.75rem 1.25rem;">
-                            <div class="custom-control custom-checkbox d-inline-block mr-3" onclick="event.stopPropagation();">
-                                <input type="checkbox" class="custom-control-input job-master-checkbox" id="job_master_${job.id}" data-job-id="${job.id}" data-service-id="${serviceId}">
-                                <label class="custom-control-label" for="job_master_${job.id}">&nbsp;</label>
-                            </div>
-                            <span class="flex-grow-1">${job.name}</span>
-                            <i class="fas fa-chevron-down collapse-icon"></i>
-                        </a>
-                        <div id="collapse_job_${job.id}" class="collapse show">
-                            <ul class="list-group list-group-flush">${taskHtml}</ul>
-                        </div>
-                    </div>`;
-            });
-
-            const serviceHtml = `
-                <div class="card mb-3 shadow-sm">
-                    <a href="#collapse_service_${serviceId}" class="card-header service-header-link d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" style="background-color: #e3f2fd; text-decoration: none; padding: 1rem 1.25rem;">
-                        <div class="custom-control custom-checkbox d-inline-block mr-3" onclick="event.stopPropagation();">
-                            <input type="checkbox" class="custom-control-input service-master-checkbox" id="service_master_${serviceId}" data-service-id="${serviceId}">
-                            <label class="custom-control-label" for="service_master_${serviceId}">&nbsp;</label>
-                        </div>
-                        <span class="flex-grow-1" style="font-size: 1.2rem;">Service: ${serviceGroup.name}</span>
-                        <i class="fas fa-chevron-down collapse-icon"></i>
-                    </a>
-                    <div id="collapse_service_${serviceId}" class="collapse show">
-                        <div class="card-body">${jobsHtml}</div>
-                    </div>
-                </div>`;
-            jobsContainer.append(serviceHtml);
-        });
-        
-        $('.staff-select').each(function() {
-            $(this).select2({ placeholder: 'Assign Staff', data: allStaffData, width: '100%' }).val(JSON.parse($(this).attr('data-assigned-staff') || '[]')).trigger('change');
-        });
-
-        function toggleRequiredForDate(checkbox) {
-            const isChecked = $(checkbox).is(':checked');
-            const listItem = $(checkbox).closest('li.list-group-item');
-            const startDateInput = listItem.find('input.task-start-date');
-            if (startDateInput.length > 0) {
-                startDateInput.prop('required', isChecked);
-            }
-        }
-
-        $('.task-checkbox').each(function() {
-            toggleRequiredForDate(this);
-        });
-
-        $('.job-master-checkbox, .service-master-checkbox').each(function() {
-            updateParentCheckboxState($(this));
-        });
-
-        jobsContainer.on('click', 'a[data-toggle="collapse"]', function() {
-            const isExpanded = $(this).attr('aria-expanded') === 'true';
-            $(this).attr('aria-expanded', !isExpanded);
-        });
-    }
-    
-    $('#next-to-jobs-btn').on('click', function() {
-        const selectedServiceIds = $('.service-checkbox:checked').map((_, el) => $(el).val()).get();
-        jobsContainer.html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
-        serviceSelectionStep.hide(); jobConfigStep.show();
-        if (selectedServiceIds.length === 0) { renderJobsAndTasks([]); return; }
-        $.ajax({ url: '{{ route('clients.services.getJobs') }}', method: 'GET', data: { service_ids: selectedServiceIds }, success: jobs => renderJobsAndTasks(jobs), error: () => jobsContainer.html('<p class="text-danger text-center p-3">Failed to load job data.</p>') });
-    });
-
-    $('#back-to-services-btn').on('click', () => { jobConfigStep.hide(); serviceSelectionStep.show(); });
-
-    function updateParentCheckboxState(checkbox) {
-        const isService = checkbox.hasClass('service-master-checkbox');
-        const scope = isService ? checkbox.closest('.card') : checkbox.closest('.card').find('.collapse');
-        const childSelector = isService ? '.job-master-checkbox' : '.task-checkbox';
-        const children = scope.find(childSelector);
-        const checkedChildren = children.filter(':checked');
-        checkbox.prop('checked', children.length > 0 && children.length === checkedChildren.length);
-        checkbox.prop('indeterminate', checkedChildren.length > 0 && checkedChildren.length < children.length);
-    }
-    
-    jobsContainer.on('change', '.service-master-checkbox', function() {
-        const serviceId = $(this).data('service-id');
-        const isChecked = $(this).prop('checked');
-        $(`[data-service-id="${serviceId}"]`).prop('checked', isChecked).prop('indeterminate', false);
-    });
-
-    jobsContainer.on('change', '.job-master-checkbox', function() {
-        const jobId = $(this).data('job-id');
-        const isChecked = $(this).prop('checked');
-        $(`.task-checkbox[data-job-id="${jobId}"]`).prop('checked', isChecked);
-        updateParentCheckboxState($(`#service_master_${$(this).data('service-id')}`));
-    });
-
-    function toggleRequiredForDate(checkbox) {
-        const isChecked = $(checkbox).is(':checked');
-        const listItem = $(checkbox).closest('li.list-group-item');
-        const startDateInput = listItem.find('input.task-start-date');
-        if (startDateInput.length > 0) {
-            startDateInput.prop('required', isChecked);
-        }
-    }
-
-    jobsContainer.on('change', '.task-checkbox', function() {
-        toggleRequiredForDate(this);
-        const jobId = $(this).data('job-id');
-        updateParentCheckboxState($(`#job_master_${jobId}`));
-        updateParentCheckboxState($(`#service_master_${$(this).data('service-id')}`));
-    });
-    
-    let jobCounter = 0;
-    
-    $('#add-new-job-btn').on('click', function() {
-        if ($('#service-jobs-container .text-muted').length) $('#service-jobs-container').empty();
-        jobCounter++;
-        const jobTemplate = $('#job-template .job-block').clone();
-        jobTemplate.attr('data-job-id', jobCounter);
-        jobTemplate.find('.add-task-to-job-btn').data('job-id', jobCounter);
-        $('#service-jobs-container').append(jobTemplate);
-    });
-    
-    $('#service-jobs-container').on('click', '.remove-job-btn', function() {
-        $(this).closest('.job-block').remove();
-        if ($('#service-jobs-container').children().length === 0) {
-            $('#service-jobs-container').html('<p class="text-muted text-center">No jobs added yet.</p>');
-        }
-    });
-
-    $('#service-jobs-container').on('click', '.add-task-to-job-btn', function() {
-        const jobId = $(this).data('job-id');
-        const taskModal = $('#taskModal');
-        taskModal.data('target-job-id', jobId);
-        taskModal.modal('show');
-    });
-
-    $('#taskModal').on('show.bs.modal', function (event) {
-        const form = $(this).find('form');
-        form[0].reset();
-
-        function toggleRecurringFields() {
-            if ($('#is_recurring').is(':checked')) {
-                $('#recurring-options').slideDown();
-                $('#task-end').prop('required', false);
-            } else {
-                $('#recurring-options').slideUp();
-                $('#task-end').prop('required', false);
-            }
-        }
-        
-        $('#is_recurring').off('change').on('change', toggleRecurringFields);
-        toggleRecurringFields();
-    });
-
-    $('#taskModal form').on('submit', function(e) {
-        const targetJobId = $('#taskModal').data('target-job-id');
-        if (!targetJobId) return;
-        
-        e.preventDefault();
-        const form = $(this);
-        const taskData = {
-            name: form.find('[name="name"]').val(), description: form.find('[name="description"]').val(),
-            start: form.find('[name="start"]').val(), end: form.find('[name="end"]').val(),
-            is_recurring: form.find('[name="is_recurring"]').is(':checked'),
-            recurring_frequency: form.find('[name="recurring_frequency"]').val(),
-            staff_designation_id: form.find('[name="staff_designation_id"]').val()
-        };
-        const taskHtml = `<div class="task-item" data-task-data='${JSON.stringify(taskData)}'><span>${taskData.name}</span><button type="button" class="btn btn-xs btn-danger float-right remove-task-btn"><i class="fas fa-times"></i></button></div>`;
-        
-        $(`.job-block[data-job-id="${targetJobId}"]`).find('.task-list').append(taskHtml);
-        
-        $('#taskModal').modal('hide').removeData('target-job-id');
-        form[0].reset();
-    });
-    
-    $('#service-jobs-container').on('click', '.remove-task-btn', function() {
-        $(this).closest('.task-item').remove();
-    });
-
-    $('#save-new-service-btn').on('click', function() {
-        const button = $(this);
-        const feedback = $('#service-creation-feedback');
-        const serviceData = { name: $('#new-service-name').val(), description: $('#new-service-description').val(), jobs: [] };
-        $('#service-jobs-container .job-block').each(function() {
-            const jobBlock = $(this);
-            const jobData = { name: jobBlock.find('.job-name-input').val(), tasks: [] };
-            jobBlock.find('.task-item').each(function() { jobData.tasks.push($(this).data('task-data')); });
-            serviceData.jobs.push(jobData);
-        });
-        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
-        feedback.hide().removeClass('alert-success alert-danger');
-        $.ajax({
-            url: '{{ route("clients.services.storeForClient", $client) }}',
-            method: 'POST', data: JSON.stringify(serviceData), contentType: 'application/json',
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(response) {
-                const newCheckbox = `<div class="custom-control custom-checkbox"><input class="custom-control-input service-checkbox" type="checkbox" id="service_${response.service.id}" name="services[]" value="${response.service.id}" checked><label for="service_${response.service.id}" class="custom-control-label">${response.service.name}</label></div>`;
-                $('#service-checkbox-list').append(newCheckbox);
-                $('#createServiceModal').modal('hide');
-            },
-            error: function(xhr) {
-                let errorMsg = 'An unknown error occurred.';
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    errorMsg = Object.values(xhr.responseJSON.errors).flat().join(' ');
-                }
-                feedback.addClass('alert-danger').text(errorMsg).fadeIn();
-            },
-            complete: function() {
-                button.prop('disabled', false).text('Save Service and Assign');
-            }
-        });
-    });
-
-    $(document).on('show.bs.modal', '.modal', function () {
-        const zIndex = 1040 + (10 * $('.modal:visible').length);
-        $(this).css('z-index', zIndex);
-        setTimeout(() => {
-            $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
-        }, 0);
-    });
-    $(document).on('hidden.bs.modal', '.modal', function () {
-        if ($('.modal:visible').length > 0) {
-            setTimeout(() => {
-                $(document.body).addClass('modal-open');
-            }, 0);
-        }
-    });
-});
-</script>
+    @include('Organization.Clients.partials._scripts')
 @stop
