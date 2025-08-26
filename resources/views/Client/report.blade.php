@@ -83,9 +83,14 @@
 $(document).ready(function() {
     let debounceTimer;
 
+    // --- THIS IS THE FIX: Added 'To Do' status to the filter options ---
     $('#status-filter').select2({
         placeholder: 'Filter by Status',
-        data: [ { id: 'ongoing', text: 'Ongoing' }, { id: 'completed', text: 'Completed' } ]
+        data: [
+            { id: 'to_do', text: 'To Do' },
+            { id: 'ongoing', text: 'Ongoing' },
+            { id: 'completed', text: 'Completed' }
+        ]
     }).val(@json($statuses)).trigger('change');
 
     function fetch_report_data() {

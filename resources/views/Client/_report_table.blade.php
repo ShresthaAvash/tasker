@@ -12,8 +12,12 @@
     @forelse($groupedTasks as $serviceName => $jobs)
         @php
             $serviceTotalDuration = 0;
+            $allServiceTasksAreToDo = true;
             foreach ($jobs as $tasks) {
                 $serviceTotalDuration += $tasks->sum('duration_in_seconds');
+                if ($tasks->contains(fn($task) => $task->status !== 'to_do')) {
+                    $allServiceTasksAreToDo = false;
+                }
             }
         @endphp
         <!-- Service Card -->
@@ -21,35 +25,57 @@
             <div class="card-header p-0 report-header-service" id="heading-service-{{ $loop->index }}">
                 <a href="#collapse-service-{{ $loop->index }}" class="d-flex justify-content-between align-items-center p-3" data-toggle="collapse" aria-expanded="true">
                     <span><i class="fas fa-concierge-bell mr-2"></i> Service: {{ $serviceName }}</span>
-                    <span class="total-time-display">{{ formatToHms($serviceTotalDuration) }}</span>
+                    @if($serviceTotalDuration == 0 && $allServiceTasksAreToDo)
+                        <span class="font-weight-normal text-white-50">Not Started Yet</span>
+                    @else
+                        <span class="total-time-display">{{ formatToHms($serviceTotalDuration) }}</span>
+                    @endif
                 </a>
             </div>
             <div id="collapse-service-{{ $loop->index }}" class="collapse show" data-parent="#serviceReportAccordion">
                 <div class="card-body p-2">
                     @foreach($jobs as $jobName => $tasks)
+                        @php
+                            $jobTotalDuration = $tasks->sum('duration_in_seconds');
+                            $allJobTasksAreToDo = !$tasks->contains(fn($task) => $task->status !== 'to_do');
+                        @endphp
                         <!-- Job Card -->
                          <div class="card mb-2">
                             <div class="card-header p-0 report-header-job" id="heading-job-{{ $loop->parent->index }}-{{ $loop->index }}">
                                  <a href="#collapse-job-{{ $loop->parent->index }}-{{ $loop->index }}" class="d-flex justify-content-between align-items-center p-3" data-toggle="collapse" aria-expanded="true">
                                     <span><i class="fas fa-briefcase mr-2"></i> Job: {{ $jobName }}</span>
-                                    <span class="total-time-display">{{ formatToHms($tasks->sum('duration_in_seconds')) }}</span>
+                                    @if($jobTotalDuration == 0 && $allJobTasksAreToDo)
+                                        <span class="font-weight-normal text-muted">Not Started Yet</span>
+                                    @else
+                                        <span class="total-time-display">{{ formatToHms($jobTotalDuration) }}</span>
+                                    @endif
                                 </a>
                             </div>
                             <div id="collapse-job-{{ $loop->parent->index }}-{{ $loop->index }}" class="collapse show">
                                 <ul class="list-group list-group-flush">
                                     @foreach($tasks as $task)
+                                        @php
+                                            $statusClass = ['to_do' => 'badge-secondary', 'ongoing' => 'badge-warning', 'completed' => 'badge-success'][$task->status] ?? 'badge-light';
+                                        @endphp
                                         <!-- Task Item -->
                                          <li class="list-group-item">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
                                                     <strong>{{ $task->name }}</strong>
+                                                    <span class="badge {{ $statusClass }} ml-2">{{ ucfirst(str_replace('_', ' ', $task->status)) }}</span>
                                                     @if($task->staff->isNotEmpty())
                                                     <a href="#staff-breakdown-{{ $task->id }}" data-toggle="collapse" class="d-block text-muted small">
                                                         Assigned Staff ({{ $task->staff->count() }}) <i class="fas fa-chevron-down fa-xs collapse-icon"></i>
                                                     </a>
                                                     @endif
                                                 </div>
-                                                <span class="font-weight-bold">{{ formatToHms($task->duration_in_seconds) }}</span>
+                                                <span class="font-weight-bold">
+                                                    @if($task->status === 'to_do' && $task->duration_in_seconds == 0)
+                                                        <span class="text-muted font-weight-normal">Not Started Yet</span>
+                                                    @else
+                                                        {{ formatToHms($task->duration_in_seconds) }}
+                                                    @endif
+                                                </span>
                                             </div>
                                             @if($task->staff->isNotEmpty())
                                             <div class="collapse staff-breakdown mt-2" id="staff-breakdown-{{ $task->id }}">
@@ -77,7 +103,7 @@
     @empty
         <div class="text-center p-4 text-muted">
             <h4>No Tasks Found</h4>
-            <p>There are no ongoing or completed tasks that match the selected criteria.</p>
+            <p>There are no tasks that match the selected criteria.</p>
         </div>
     @endforelse
 </div>

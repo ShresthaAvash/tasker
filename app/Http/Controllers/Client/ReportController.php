@@ -20,9 +20,7 @@ class ReportController extends Controller
 
         $tasksQuery = AssignedTask::query()
             ->where('client_id', $client->id)
-            ->with(['service', 'job', 'staff' => function ($query) {
-                $query->where('assigned_task_staff.duration_in_seconds', '>', 0);
-            }]);
+            ->with(['service', 'job', 'staff']);
 
         if ($search) {
             $tasksQuery->where(function ($q) use ($search) {
@@ -31,26 +29,10 @@ class ReportController extends Controller
                   ->orWhereHas('job', fn($jq) => $jq->where('name', 'like', "%{$search}%"));
             });
         }
-
-        if (!empty($statuses)) {
-            $tasksQuery->whereIn('status', $statuses);
-        }
-
-        // Apply date filtering based on task status
-        $tasksQuery->where(function ($query) use ($startDate, $endDate) {
-            $query->where(function ($q) use ($startDate, $endDate) {
-                $q->where('status', 'completed')->whereBetween('updated_at', [$startDate, $endDate]);
-            })
-            ->orWhere(function ($q) use ($startDate, $endDate) {
-                // THIS IS THE FIX: Include 'to_do' tasks in the date filtering logic.
-                $q->whereIn('status', ['ongoing', 'to_do'])
-                  ->where('start', '<=', $endDate)
-                  ->where(fn($sub) => $sub->whereNull('end')->orWhere('end', '>=', $startDate));
-            });
-        });
-
-        $tasks = $tasksQuery->where('duration_in_seconds', '>', 0)->get();
-        $groupedTasks = $this->groupTasksByService($tasks);
+        
+        $tasks = $tasksQuery->get();
+        $expandedTasks = $this->expandTasksForReport($tasks, $startDate, $endDate, $statuses);
+        $groupedTasks = $this->groupTasksByService($expandedTasks);
 
         if ($request->ajax()) {
             return view('Client._report_table', ['groupedTasks' => $groupedTasks])->render();
@@ -59,6 +41,71 @@ class ReportController extends Controller
         return view('Client.report', $this->getCommonViewData(
             ['groupedTasks' => $groupedTasks], $request, $startDate, $endDate
         ));
+    }
+
+    private function expandTasksForReport(Collection $tasks, Carbon $startDate, Carbon $endDate, array $statuses): Collection
+    {
+        $instances = new Collection();
+
+        foreach ($tasks as $task) {
+            if (!$task->is_recurring) {
+                if (empty($statuses) || in_array($task->status, $statuses)) {
+                    $instances->push($task);
+                }
+                continue;
+            }
+
+            $instanceData = (array)($task->completed_at_dates ?? []);
+            $cursor = $task->start->copy();
+            $seriesEndDate = $task->end;
+
+            while ($cursor->lt($startDate)) {
+                if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
+                switch ($task->recurring_frequency) {
+                    case 'daily': $cursor->addDay(); break; case 'weekly': $cursor->addWeek(); break;
+                    case 'monthly': $cursor->addMonthWithNoOverflow(); break; case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                    default: break 2;
+                }
+            }
+
+            while ($cursor->lte($endDate)) {
+                if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
+
+                $instanceDateString = $cursor->toDateString();
+                $instanceSpecifics = $instanceData[$instanceDateString] ?? [];
+                $instanceStatus = $instanceSpecifics['status'] ?? $task->status;
+
+                if (empty($statuses) || in_array($instanceStatus, $statuses)) {
+                    $instance = clone $task;
+                    $instance->name = $task->name . ' (' . $cursor->format('M j') . ')';
+                    $instance->status = $instanceStatus;
+                    
+                    $totalDurationForInstance = 0;
+                    $clonedStaff = new Collection();
+                    $userDurations = $instanceSpecifics['durations'] ?? [];
+
+                    foreach($task->staff as $staffMember) {
+                        $clonedMember = clone $staffMember;
+                        $clonedMember->pivot = clone $staffMember->pivot;
+                        $duration = $userDurations['user_' . $staffMember->id] ?? 0;
+                        $clonedMember->pivot->duration_in_seconds = $duration;
+                        $totalDurationForInstance += $duration;
+                        $clonedStaff->push($clonedMember);
+                    }
+                    $instance->setRelation('staff', $clonedStaff);
+                    $instance->duration_in_seconds = $totalDurationForInstance;
+                    
+                    $instances->push($instance);
+                }
+                
+                switch ($task->recurring_frequency) {
+                    case 'daily': $cursor->addDay(); break; case 'weekly': $cursor->addWeek(); break;
+                    case 'monthly': $cursor->addMonthWithNoOverflow(); break; case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                    default: break 2;
+                }
+            }
+        }
+        return $instances;
     }
 
     private function resolveDatesFromRequest(Request $request): array
