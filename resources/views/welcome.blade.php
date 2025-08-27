@@ -56,15 +56,105 @@
         .step-card { text-align: center; }
         .step-number { background-color: var(--primary-blue); color: #fff; width: 40px; height: 40px; line-height: 40px; border-radius: 50%; margin: 0 auto 20px auto; font-weight: 700; }
         
-        /* Pricing Section */
-        .pricing-card { background: #fff; border: 2px solid #dee2e6; border-radius: 12px; padding: 40px; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
-        .pricing-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-color: var(--primary-blue); }
-        .pricing-card-content { flex-grow: 1; }
-        .pricing-card .plan-name { font-weight: 600; font-size: 1.2rem; }
-        .price { font-size: 3.5rem; font-weight: 700; }
-        .btn-purchase { width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 600; border-radius: 8px; transition: all 0.2s ease-in-out; }
-        .btn-outline-primary:hover { background-color: var(--primary-blue); color: #fff; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(13, 110, 253, 0.25); }
+        /* Pricing Section Styling */
+        .pricing-section {
+            padding: 80px 0;
+            background-color: #f8f9fa; /* Light grey background */
+        }
+        .pricing-header {
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 50px;
+        }
+        .pricing-header h2 {
+            font-weight: 700;
+            font-size: 2.8rem;
+            color: #1a202c;
+        }
+        .pricing-header p {
+            font-size: 1.15rem;
+            color: #6c757d;
+        }
+        .pricing-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px; /* Space between cards */
+        }
+        .pricing-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 40px 30px; /* Vertical and horizontal padding */
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center content horizontally */
+            flex: 0 0 340px; /* Fixed width for cards */
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .pricing-card.highlight {
+            background: linear-gradient(180deg, #4f80f8 0%, #3b66f5 100%);
+            border: none;
+            color: #fff;
+            transform: scale(1.05); /* Makes the highlighted card slightly larger */
+        }
+        .pricing-card.highlight:hover {
+            transform: scale(1.08); /* Slightly larger hover effect */
+        }
+        .pricing-card.highlight .plan-name,
+        .pricing-card.highlight .price,
+        .pricing-card.highlight .price-period,
+        .pricing-card.highlight .plan-description {
+            color: #fff;
+        }
+        .pricing-card.highlight .feature-list li { color: #e0ecff; }
+        .pricing-card.highlight .feature-list .fa-check-circle { color: #fff; }
+        .pricing-card.highlight .btn-purchase { background: #fff; color: #2563eb; }
+        .most-popular-badge {
+            position: absolute;
+            top: -14px; /* Position badge above the card */
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffffff;
+            color: #3b82f6;
+            padding: 5px 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 14px; /* Pill shape */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .plan-name { font-weight: 600; font-size: 1.1rem; margin-bottom: 10px; color: #1a202c; }
+        .price { font-size: 3rem; font-weight: 700; color: #1a202c; }
+        .price-period { font-size: 1rem; color: #6c757d; font-weight: 500; margin-bottom: 20px; }
+        .plan-description { font-size: 0.95rem; color: #4a5568; margin-bottom: 25px; text-align: center; min-height: 40px; }
+        .feature-list { list-style: none; padding: 0; margin: 15px 0 30px 0; text-align: left; width: 100%; flex-grow: 1; }
+        .feature-list li { margin-bottom: 14px; display: flex; align-items: center; font-size: 0.95rem; color: #4a5568;}
+        .feature-list .fa-check-circle { color: #3b82f6; margin-right: 12px; font-size: 1.1rem; }
+        .btn-purchase {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            background: #3b82f6;
+            color: #fff;
+            border: 1px solid #3b82f6;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        .btn-purchase.btn-outline {
+            background: transparent;
+            color: #3b82f6;
+        }
+        .btn-purchase:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
 
         /* Contact & Footer */
         .contact-section { background-color: var(--section-bg); }
@@ -120,7 +210,7 @@
                             <li><i class="fas fa-check-circle me-2"></i> Collaborate with your team in real-time</li>
                             <li><i class="fas fa-check-circle me-2"></i> Track progress with powerful analytics</li>
                         </ul>
-                        <a href="{{ route('pricing') }}" class="btn btn-light me-2">Get Started Now</a>
+                        <a href="#pricing" class="btn btn-light me-2">Get Started Now</a>
                     </div>
                     <div class="col-lg-6 text-center d-none d-lg-block">
                         <div class="hero-image-wrapper">
@@ -172,44 +262,70 @@
         </section>
 
         {{-- Pricing Section --}}
-        <section class="section bg-light" id="pricing">
+        <section class="pricing-section" id="pricing">
             <div class="container">
                 <div class="pricing-header text-center">
-                    <h2 class="section-title">Choose Your Perfect Plan</h2>
-                    <p class="section-subtitle">Scale your productivity with Tasker. From personal task management to enterprise-grade solutions.</p>
+                    <h2>Choose Your Perfect Plan</h2>
+                    <p>Scale your productivity with Tasker. From personal task management to enterprise-grade solutions.</p>
                 </div>
-                @php
-                    $monthlyPlan = $plans->firstWhere('type', 'monthly');
-                    $annualPlan = $plans->firstWhere('type', 'annually');
-                @endphp
-
-                @if($monthlyPlan && $annualPlan)
-                    <div class="row justify-content-center">
-                        <div class="col-lg-5 mb-4">
-                            <div class="pricing-card h-100">
-                                <div class="pricing-card-content text-center">
-                                    <h5 class="plan-name">{{ $monthlyPlan->name }}</h5>
-                                    <h2 class="price my-3">£{{ number_format($monthlyPlan->price, 2) }}</h2>
-                                    <p class="text-muted">Per Month + VAT</p>
-                                    <hr><ul class="feature-list"><li><i class="fas fa-check-circle"></i> Unlimited Clients & Staff</li><li><i class="fas fa-check-circle"></i> Workflow & Task Automation</li><li><i class="fas fa-check-circle"></i> Secure Client Portal</li><li><i class="fas fa-check-circle"></i> Time Tracking & Reporting</li><li><i class="fas fa-check-circle"></i> Email & Phone Support</li></ul>
-                                </div>
-                                <div class="mt-auto"><a href="{{ route('register', ['plan' => $monthlyPlan->id]) }}" class="btn btn-outline-primary btn-purchase">Get Started</a></div>
-                            </div>
-                        </div>
-                        <div class="col-lg-5 mb-4">
-                            <div class="pricing-card h-100">
-                                <div class="pricing-card-content text-center">
-                                    <h5 class="plan-name">{{ $annualPlan->name }}</h5>
-                                    <h2 class="price my-3">£{{ number_format($annualPlan->price / 12, 2) }}</h2>
-                                    <p class="text-muted">Per Month + VAT</p>
-                                    <div class="badge bg-success my-2 fs-6">Save 20%</div><hr>
-                                    <ul class="feature-list"><li><i class="fas fa-check-circle"></i> Unlimited Clients & Staff</li><li><i class="fas fa-check-circle"></i> Workflow & Task Automation</li><li><i class="fas fa-check-circle"></i> Secure Client Portal</li><li><i class="fas fa-check-circle"></i> Time Tracking & Reporting</li><li><i class="fas fa-check-circle"></i> Email & Phone Support</li></ul>
-                                </div>
-                                <div class="mt-auto"><a href="{{ route('register', ['plan' => $annualPlan->id]) }}" class="btn btn-primary btn-purchase">Get Started</a></div>
-                            </div>
-                        </div>
+        
+                @if(session('info'))
+                    <div class="alert alert-info mb-4 col-md-8 mx-auto">
+                        {{ session('info') }}
                     </div>
                 @endif
+        
+                <div class="pricing-container">
+                    @forelse($plans as $plan)
+                        @php
+                            $isHighlighted = $loop->iteration == 2;
+                        @endphp
+                        <div class="pricing-card {{ $isHighlighted ? 'highlight' : '' }}">
+                            @if($isHighlighted)
+                                <div class="most-popular-badge">Most Popular</div>
+                            @endif
+        
+                            <h5 class="plan-name">{{ $plan->name }}</h5>
+                            <h2 class="price">
+                                £{{ number_format($plan->type == 'annually' && $plan->price > 0 ? $plan->price / 12 : $plan->price, 2) }}
+                            </h2>
+                            <p class="price-period">
+                                Per {{ $plan->type == 'annually' ? 'year' : 'month' }} +VAT
+                            </p>
+        
+                            <p class="plan-description">{{ $plan->description }}</p>
+        
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check-circle"></i> Unlimited client & staff</li>
+                                <li><i class="fas fa-check-circle"></i> Workflow & task automation</li>
+                                <li><i class="fas fa-check-circle"></i> Advance task organization</li>
+                                <li><i class="fas fa-check-circle"></i> Team tracking & reporting</li>
+                                <li><i class="fas fa-check-circle"></i> Email & push notification</li>
+                                <li><i class="fas fa-check-circle"></i> Mobile support</li>
+                            </ul>
+                           
+                            @php
+                                $buttonClass = $isHighlighted ? '' : 'btn-outline';
+                            @endphp
+        
+                            @auth
+                                @if(Auth::user()->subscribed('default') && Auth::user()->subscription('default')->stripe_price === $plan->stripe_price_id)
+                                    <button type="button" class="btn-purchase mt-auto" disabled>Current Plan</button>
+                                @else
+                                     <a href="{{ route('subscription.checkout', ['plan' => $plan->id]) }}" class="btn-purchase mt-auto {{ $buttonClass }}">Get Started</a>
+                                @endif
+                            @else
+                                <a href="{{ route('register', ['plan' => $plan->id]) }}" class="btn-purchase mt-auto {{ $buttonClass }}">Get Started</a>
+                            @endauth
+                        </div>
+                    @empty
+                        <div class="col-12">
+                            <div class="alert alert-warning text-center">
+                                No subscription plans have been configured by the administrator yet. Please check back later.
+                            </div>
+                        </div>
+                    @endforelse
+                </div>
             </div>
         </section>
 
