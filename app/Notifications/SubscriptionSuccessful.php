@@ -9,19 +9,19 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class OrganizationSubscribed extends Notification
+class SubscriptionSuccessful extends Notification
 {
     use Queueable;
 
-    protected $organization;
+    protected $user;
     protected $plan;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(User $organization, Plan $plan)
+    public function __construct(User $user, Plan $plan)
     {
-        $this->organization = $organization;
+        $this->user = $user;
         $this->plan = $plan;
     }
 
@@ -32,22 +32,23 @@ class OrganizationSubscribed extends Notification
      */
     public function via(object $notifiable): array
     {
-        // --- THIS IS THE FIX: Added 'mail' to the array ---
-        return ['database', 'mail'];
+        return ['mail']; // We only want to send this as an email
     }
 
     /**
-     * --- THIS IS THE NEW METHOD ---
      * Get the mail representation of the notification.
      */
     public function toMail(object $notifiable): MailMessage
     {
+        // --- THIS IS THE DEFINITIVE FIX ---
+        // This now points to our beautiful new Markdown email template.
         return (new MailMessage)
-                    ->subject('New Organization Subscription: ' . $this->organization->name)
-                    ->markdown('emails.organization_subscribed', [
-                        'organization' => $this->organization,
+                    ->subject('Welcome! Your Subscription is Active')
+                    ->markdown('emails.subscription_successful', [
+                        'user' => $this->user,
                         'plan' => $this->plan,
                     ]);
+        // --- END OF FIX ---
     }
 
     /**
@@ -58,9 +59,7 @@ class OrganizationSubscribed extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'organization_id' => $this->organization->id,
-            'organization_name' => $this->organization->name,
-            'message' => "'{$this->organization->name}' has subscribed to the '{$this->plan->name}' plan.",
+            //
         ];
     }
 }
