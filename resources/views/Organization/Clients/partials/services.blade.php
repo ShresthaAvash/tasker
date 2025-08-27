@@ -1,4 +1,3 @@
-{{-- tasker/resources/views/Organization/Clients/partials/services.blade.php --}}
 @if($client->assignedServices->isNotEmpty())
 <script>
     $(function() {
@@ -21,9 +20,20 @@
             </button>
         </div>
         <hr>
+        {{-- NEW: "Select All" checkbox --}}
+        <div class="form-group">
+            <div class="custom-control custom-checkbox">
+                <input class="custom-control-input" type="checkbox" id="select-all-services">
+                <label for="select-all-services" class="custom-control-label font-weight-bold">Select All Services</label>
+            </div>
+        </div>
         <div class="form-group" id="service-checkbox-list">
             @forelse($allServices as $service)
-                <div class="custom-control custom-checkbox"><input class="custom-control-input service-checkbox" type="checkbox" id="service_{{ $service->id }}" name="services[]" value="{{ $service->id }}" {{ $client->assignedServices->contains($service) ? 'checked' : '' }}><label for="service_{{ $service->id }}" class="custom-control-label">{{ $service->name }}</label></div>
+                <div class="custom-control custom-checkbox">
+                    {{-- MODIFIED: Removed the conditional checked attribute. JS will handle it. --}}
+                    <input class="custom-control-input service-checkbox" type="checkbox" id="service_{{ $service->id }}" name="services[]" value="{{ $service->id }}">
+                    <label for="service_{{ $service->id }}" class="custom-control-label">{{ $service->name }}</label>
+                </div>
             @empty
                 <p class="text-muted">No services have been created yet. <a href="{{ route('services.create') }}">Create one now</a>.</p>
             @endforelse

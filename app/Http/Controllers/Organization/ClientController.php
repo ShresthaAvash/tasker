@@ -389,8 +389,6 @@ class ClientController extends Controller
         }
     
         DB::transaction(function () use ($validated, $client) {
-            $client->assignedServices()->sync($validated['services'] ?? []);
-            
             $currentTaskIds = $client->assignedTasks()->pluck('task_template_id')->toArray();
             $newTaskIds = array_keys($validated['tasks'] ?? []);
     
@@ -398,24 +396,26 @@ class ClientController extends Controller
             if (!empty($tasksToDelete)) {
                 $client->assignedTasks()->whereIn('task_template_id', $tasksToDelete)->delete();
             }
-    
+            
+            // --- THIS IS THE DEFINITIVE FIX FOR ISSUE #1 ---
+            $assignedServiceIds = [];
+
             if (!empty($newTaskIds)) {
                 $selectedTaskTemplates = Task::with('job.service')->findMany($newTaskIds);
                 
                 foreach ($selectedTaskTemplates as $taskTemplate) {
+                    // Collect the service ID for syncing later
+                    if ($taskTemplate->job && $taskTemplate->job->service_id) {
+                        $assignedServiceIds[] = $taskTemplate->job->service_id;
+                    }
+                    
                     $startDate = $validated['task_start_dates'][$taskTemplate->id] ?? $taskTemplate->start;
                     $endDate = $validated['task_end_dates'][$taskTemplate->id] ?? $taskTemplate->end;
 
-                    // --- THIS IS THE DEFINITIVE FIX ---
                     $assignedTask = AssignedTask::firstOrNew(
-                        [
-                            'client_id' => $client->id,
-                            'task_template_id' => $taskTemplate->id,
-                        ]
+                        ['client_id' => $client->id, 'task_template_id' => $taskTemplate->id]
                     );
 
-                    // If it's a brand new assignment, set the status to 'to_do'.
-                    // Otherwise, preserve the existing status.
                     if (!$assignedTask->exists) {
                         $assignedTask->status = 'to_do';
                     }
@@ -430,7 +430,6 @@ class ClientController extends Controller
                         'is_recurring' => $taskTemplate->is_recurring,
                         'recurring_frequency' => $taskTemplate->recurring_frequency,
                     ])->save();
-                    // --- END OF FIX ---
     
                     $staffIds = $validated['staff_assignments'][$taskTemplate->id] ?? [];
                     
@@ -446,6 +445,10 @@ class ClientController extends Controller
                     }
                 }
             }
+
+            // Sync services based only on the ones that have tasks assigned
+            $client->assignedServices()->sync(array_unique($assignedServiceIds));
+            // --- END OF FIX ---
         });
     
         return redirect()->route('clients.edit', $client->id)->with('success', 'Client services and tasks have been updated successfully.');

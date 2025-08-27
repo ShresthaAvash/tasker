@@ -80,7 +80,7 @@ class JobController extends Controller
             ]);
         }
 
-        return redirect()->route('jobs.edit', $job->id)->with('success', 'Job updated successfully.');
+        return redirect()->route('services.show', $job->service_id)->with('success', 'Job updated successfully.');
     }
 
     /**

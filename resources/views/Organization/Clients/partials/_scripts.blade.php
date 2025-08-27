@@ -69,6 +69,42 @@ $(document).ready(function() {
     const originallyAssignedServiceIds = {!! json_encode($client->assignedServices->pluck('id')) !!};
     let checkboxToUnassign = null;
 
+    // --- START OF MODIFICATIONS FOR REQUIREMENTS ---
+
+    // Function to update the "Select All" checkbox based on individual checkbox states
+    function updateSelectAllState() {
+        const allServiceCheckboxes = $('.service-checkbox');
+        const checkedServiceCheckboxes = $('.service-checkbox:checked');
+        const allCount = allServiceCheckboxes.length;
+        const checkedCount = checkedServiceCheckboxes.length;
+
+        if (allCount > 0 && allCount === checkedCount) {
+            $('#select-all-services').prop('checked', true).prop('indeterminate', false);
+        } else if (checkedCount > 0) {
+            $('#select-all-services').prop('checked', false).prop('indeterminate', true);
+        } else {
+            $('#select-all-services').prop('checked', false).prop('indeterminate', false);
+        }
+    }
+
+    // Check previously assigned services on page load
+    originallyAssignedServiceIds.forEach(serviceId => {
+        $(`#service_${serviceId}`).prop('checked', true);
+    });
+    updateSelectAllState(); // Update select-all based on initial state
+
+    // "Select All" functionality
+    $('#select-all-services').on('change', function() {
+        $('.service-checkbox').prop('checked', $(this).is(':checked'));
+    });
+    
+    // Update "Select All" when individual services are toggled
+    $('#service-checkbox-list').on('change', '.service-checkbox', function() {
+        updateSelectAllState();
+    });
+
+    // --- END OF MODIFICATIONS FOR REQUIREMENTS ---
+
     function renderJobsAndTasks(jobs) {
         jobsContainer.empty();
         if (!jobs || jobs.length === 0) {
@@ -91,7 +127,9 @@ $(document).ready(function() {
                     job.tasks.forEach(task => {
                         const assignedTask = clientTasks[task.id];
                         const isAlreadyAssigned = clientTasks.hasOwnProperty(task.id);
-                        const isChecked = isAlreadyAssigned || !assignedTask ? 'checked' : '';
+                        
+                        const isChecked = isAlreadyAssigned ? 'checked' : '';
+
                         const assignedStaffIds = assignedTask ? assignedTask.staff.map(s => s.id) : [];
 
                         const assignedStartDate = (assignedTask && assignedTask.start) ? assignedTask.start.slice(0, 16).replace(' ', 'T') : (task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
@@ -148,7 +186,7 @@ $(document).ready(function() {
         jobsContainer.html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
         serviceSelectionStep.hide(); jobConfigStep.show();
         if (selectedServiceIds.length === 0) { renderJobsAndTasks([]); return; }
-        $.ajax({ url: '<?php echo e(route('clients.services.getJobs')); ?>', method: 'GET', data: { service_ids: selectedServiceIds }, success: jobs => renderJobsAndTasks(jobs), error: () => jobsContainer.html('<p class="text-danger text-center p-3">Failed to load job data.</p>') });
+        $.ajax({ url: '{{ route('clients.services.getJobs') }}', method: 'GET', data: { service_ids: selectedServiceIds }, success: jobs => renderJobsAndTasks(jobs), error: () => jobsContainer.html('<p class="text-danger text-center p-3">Failed to load job data.</p>') });
     });
 
     $('#back-to-services-btn').on('click', () => { jobConfigStep.hide(); serviceSelectionStep.show(); });
@@ -162,24 +200,40 @@ $(document).ready(function() {
         checkbox.prop('checked', children.length > 0 && children.length === checkedChildren.length);
         checkbox.prop('indeterminate', checkedChildren.length > 0 && checkedChildren.length < children.length);
     }
-
+    
+    // --- THIS IS THE DEFINITIVE FIX FOR ISSUE #2 ---
     function handleUncheck(e) {
         const $checkbox = $(this);
-        if ($checkbox.is(':checked')) return;
+        if ($checkbox.is(':checked')) {
+            // This logic runs when checking a box, which doesn't need a warning.
+            return;
+        }
 
+        // This logic runs when unchecking a box.
         let hasAssigned = false;
         if ($checkbox.hasClass('task-checkbox')) {
-            if ($checkbox.data('is-assigned')) hasAssigned = true;
+            if ($checkbox.attr('data-is-assigned') === 'true') {
+                hasAssigned = true;
+            }
         } else if ($checkbox.hasClass('job-master-checkbox')) {
-            $(`.task-checkbox[data-job-id="${$checkbox.data('job-id')}"]`).each(function() { if ($(this).data('is-assigned')) { hasAssigned = true; return false; } });
+            $(`.task-checkbox[data-job-id="${$checkbox.data('job-id')}"]`).each(function() {
+                if ($(this).attr('data-is-assigned') === 'true') {
+                    hasAssigned = true;
+                    return false; // Exit the .each() loop
+                }
+            });
         } else if ($checkbox.hasClass('service-master-checkbox')) {
-            $(`.task-checkbox[data-service-id="${$checkbox.data('service-id')}"]`).each(function() { if ($(this).data('is-assigned')) { hasAssigned = true; return false; } });
+            $(`.task-checkbox[data-service-id="${$checkbox.data('service-id')}"]`).each(function() {
+                if ($(this).attr('data-is-assigned') === 'true') {
+                    hasAssigned = true;
+                    return false; // Exit the .each() loop
+                }
+            });
         }
 
         if (hasAssigned) {
-            e.preventDefault();
-            $checkbox.prop('checked', true);
-            checkboxToUnassign = this;
+            e.preventDefault(); // Stop the unchecking action immediately
+            checkboxToUnassign = this; // Store a reference to the clicked checkbox
             $('#unassign-task-warning-modal').modal('show');
         }
     }
@@ -187,21 +241,16 @@ $(document).ready(function() {
     $('#confirm-unassign-btn').on('click', function() {
         if (!checkboxToUnassign) return;
         const $checkbox = $(checkboxToUnassign);
-        const isChecked = false;
+        
+        // Temporarily remove the click listener to prevent an infinite loop
+        $checkbox.off('click', handleUncheck);
 
-        $checkbox.off('change');
+        // Manually uncheck the box and trigger the 'change' handler to update children
+        $checkbox.prop('checked', false).trigger('change');
 
-        if ($checkbox.hasClass('task-checkbox')) {
-            $checkbox.prop('checked', isChecked).trigger('change');
-        } else if ($checkbox.hasClass('job-master-checkbox')) {
-            $(`.task-checkbox[data-job-id="${$checkbox.data('job-id')}"]`).prop('checked', isChecked).trigger('change');
-        } else if ($checkbox.hasClass('service-master-checkbox')) {
-            const serviceId = $checkbox.data('service-id');
-            $(`.job-master-checkbox[data-service-id="${serviceId}"]`).prop('checked', isChecked).prop('indeterminate', false);
-            $(`.task-checkbox[data-service-id="${serviceId}"]`).prop('checked', isChecked).trigger('change');
-        }
-        $checkbox.on('change', changeHandler);
-        $checkbox.trigger('change');
+        // Re-attach the click listener for future interactions
+        $checkbox.on('click', handleUncheck);
+
         $('#unassign-task-warning-modal').modal('hide');
         checkboxToUnassign = null;
     });
@@ -224,8 +273,11 @@ $(document).ready(function() {
         }
     };
     
+    // MODIFIED: Use 'click' for handleUncheck to prevent the state change before confirmation
     jobsContainer.on('click', '.task-checkbox, .job-master-checkbox, .service-master-checkbox', handleUncheck);
     jobsContainer.on('change', '.task-checkbox, .job-master-checkbox, .service-master-checkbox', changeHandler);
+
+    // --- END OF FIX ---
 
     function toggleRequiredForDate(checkbox) {
         const isChecked = $(checkbox).is(':checked');
@@ -326,7 +378,7 @@ $(document).ready(function() {
         button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
         feedback.hide().removeClass('alert-success alert-danger');
         $.ajax({
-            url: '<?php echo e(route("clients.services.storeForClient", $client)); ?>',
+            url: '{{ route("clients.services.storeForClient", $client) }}',
             method: 'POST', data: JSON.stringify(serviceData), contentType: 'application/json',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(response) {

@@ -150,61 +150,52 @@ $(document).ready(function() {
         setTimeout(() => $('#alert-container').find('.alert').fadeOut(() => $(this).remove()), 5000);
     }
 
-    // --- JOB EDIT & DELETE BUTTONS ---
-    $('#jobsAccordion').on('click', '[data-action="edit"][data-target="#jobModal"]', function(e) {
-        e.stopPropagation();
-        var button = $(this);
-        var job = button.data('job');
-        var modal = $('#jobModal');
-        var form = modal.find('form');
-        form[0].reset();
-        form.off('submit');
-
-        modal.find('.modal-title').text('Edit Job');
-        modal.find('#job-name').val(job.name);
-        modal.find('#job-description').val(job.description);
-
-        form.on('submit', function(e) {
-            e.preventDefault();
-            $.ajax({
-                url: '/organization/jobs/' + job.id,
-                type: 'PUT',
-                data: $(this).serialize(),
-                success: function(response) {
-                    $('#job-title-' + job.id).text(response.job.name);
-                    var card = $('#job-card-' + job.id);
-                    var editButton = card.find('.job-actions [data-action="edit"]');
-                    var currentData = editButton.data('job');
-                    currentData.name = response.job.name;
-                    currentData.description = response.job.description;
-                    editButton.data('job', currentData);
-                    modal.modal('hide');
-                    showAlert(response.message);
-                },
-                error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
-            });
-        });
-        modal.modal('show');
-    });
-    
+    // --- THIS IS THE DEFINITIVE FIX FOR THE JOB MODAL ---
     $('#jobModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
-        if (button.data('action') === 'edit') return;
+        var action = button.data('action');
         var modal = $(this);
         var form = modal.find('form');
+
+        // Reset form and clear previous submit handlers
         form[0].reset();
         form.off('submit');
-        modal.find('.modal-title').text('Add New Job');
+
+        if (action === 'edit') {
+            var job = button.data('job');
+            modal.find('.modal-title').text('Edit Job: ' + job.name);
+            modal.find('#job-name').val(job.name);
+            modal.find('#job-description').val(job.description);
+            form.attr('action', '/organization/jobs/' + job.id);
+            form.find('input[name="_method"]').val('PUT');
+        } else { // 'create' action
+            modal.find('.modal-title').text('Add New Job');
+            form.attr('action', '{{ route("services.jobs.store", $service) }}');
+            form.find('input[name="_method"]').val('POST');
+        }
+
+        // Universal submit handler for both create and edit
         form.on('submit', function(e) {
             e.preventDefault();
             $.ajax({
-                url: '{{ route("services.jobs.store", $service) }}', type: 'POST', data: $(this).serialize(),
-                success: (response) => location.reload(),
-                error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
+                url: $(this).attr('action'),
+                type: 'POST', // Always POST, Laravel handles PUT/PATCH via _method field
+                data: $(this).serialize(),
+                success: function(response) {
+                    location.reload(); // Reload the page to show changes
+                },
+                error: function(xhr) {
+                    var errorMsg = 'An error occurred.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    alert('Error: ' + errorMsg);
+                }
             });
         });
     });
-
+    // --- END OF FIX ---
+    
     $(document).on('click', '.delete-job-btn', function(e) {
         e.preventDefault(); e.stopPropagation();
         if (!confirm('Are you sure you want to delete this job and all its tasks? This action cannot be undone.')) return;
