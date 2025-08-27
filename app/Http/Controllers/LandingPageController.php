@@ -12,7 +12,9 @@ class LandingPageController extends Controller
      */
     public function index()
     {
-        return view('welcome');
+        // MODIFIED: Fetch plans to display on the homepage
+        $plans = Plan::all();
+        return view('welcome', compact('plans'));
     }
 
     /**
@@ -20,6 +22,7 @@ class LandingPageController extends Controller
      */
     public function pricing()
     {
+        // This was already correct, no changes needed here.
         $subscriptions = Plan::all();
         return view('pricing', compact('subscriptions'));
     }
