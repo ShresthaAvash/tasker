@@ -7,7 +7,8 @@
 @stop
 
 @section('content')
-<div class="card">
+{{-- MODIFIED: Changed card theme to primary --}}
+<div class="card card-primary card-outline">
     <div class="card-header"><h4>Edit Plan</h4></div>
     <div class="card-body">
         <form method="POST" action="{{ route('superadmin.plans.update', $plan->id) }}">

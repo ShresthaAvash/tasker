@@ -101,4 +101,16 @@
         from { opacity: 1; transform: translateY(0); }
         to { opacity: 0; transform: translateY(-10px); }
     }
+
+    /* --- THIS IS THE FIX FOR THE BUTTON COLOR --- */
+    #next-to-jobs-btn {
+        background-color: #007afe !important;
+        border-color: #007afe !important;
+        color: #fff;
+    }
+
+    #next-to-jobs-btn:hover {
+        background-color: #0069d9 !important;
+        border-color: #0062cc !important;
+    }
 </style>

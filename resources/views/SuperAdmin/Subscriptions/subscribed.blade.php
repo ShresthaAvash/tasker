@@ -6,10 +6,25 @@
     <h1>Subscribed Organizations</h1>
 @stop
 
+@section('css')
+<style>
+    .card-primary.card-tabs .nav-tabs .nav-link {
+        color: #343a40; /* Dark text for inactive tabs */
+        border-top: 3px solid transparent;
+        margin-top: -3px;
+    }
+    .card-primary.card-tabs .nav-tabs .nav-link.active {
+        background-color: #007bff !important;
+        border-color: #007bff #007bff #007bff !important;
+        color: #ffffff !important; /* White text for active tab */
+    }
+</style>
+@stop
+
 @section('content')
-<div class="card card-info card-outline card-tabs">
+{{-- MODIFIED: Changed card-info to card-primary for the blue theme line --}}
+<div class="card card-primary card-outline card-tabs">
     <div class="card-header p-0 pt-1 border-bottom-0">
-        {{-- --- THIS IS THE NEW TAB STRUCTURE --- --}}
         <ul class="nav nav-tabs" id="subscription-status-tabs" role="tablist">
             <li class="nav-item">
                 <a class="nav-link active" id="active-subs-tab" data-status="active" data-toggle="pill" href="#subs-content" role="tab">Active Subscriptions</a>
@@ -67,7 +82,6 @@ $(document).ready(function() {
         return $('#subscription-status-tabs .nav-link.active').data('status') || 'active';
     }
 
-    // --- JAVASCRIPT FOR TAB SWITCHING ---
     $('#subscription-status-tabs a[data-toggle="pill"]').on('shown.bs.tab', function (e) {
         const status = $(e.target).data('status');
         const title = status === 'active' ? 'All Active & Trialing Subscriptions' : 'All Deactivated Subscriptions';

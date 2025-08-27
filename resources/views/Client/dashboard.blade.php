@@ -9,7 +9,8 @@
 @section('content')
 <div class="row">
     <div class="col-md-3">
-        <div class="small-box bg-info">
+        {{-- MODIFIED: Changed color to primary blue --}}
+        <div class="small-box bg-primary">
             <div class="inner">
                 <h3>{{ $stats['total'] }}</h3>
                 <p>Total Tasks</p>
@@ -29,7 +30,8 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="small-box bg-primary">
+        {{-- MODIFIED: Changed color to a different shade of blue for variety --}}
+        <div class="small-box bg-info">
             <div class="inner">
                 <h3>{{ $stats['ongoing'] }}</h3>
                 <p>Ongoing Tasks</p>

@@ -7,7 +7,8 @@
 @stop
 
 @section('content')
-<div class="card">
+{{-- MODIFIED: Added card-primary and card-outline classes --}}
+<div class="card card-primary card-outline">
     <div class="card-header"><h4>Plan Details</h4></div>
     <div class="card-body">
         <form method="POST" action="{{ route('superadmin.plans.store') }}">

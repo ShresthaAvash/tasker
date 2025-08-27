@@ -34,10 +34,11 @@
                     <td>{{ $org->name }}</td>
                     <td>{{ $org->email }}</td>
                     <td>
+                        {{-- MODIFIED: Changed badge colors for subscription status --}}
                         @if($org->subscribed('default'))
-                            <span class="badge badge-info">Subscribed</span>
+                            <span class="badge badge-success">Subscribed</span>
                         @else
-                            <span class="badge badge-secondary">Not Subscribed</span>
+                            <span class="badge badge-danger">Not Subscribed</span>
                         @endif
                     </td>
                     <td>
@@ -54,7 +55,8 @@
                         <a href="{{ route('superadmin.organizations.edit', $org->id) }}" class="btn btn-warning btn-xs">Edit</a>
                         <form method="POST" action="{{ route('superadmin.organizations.destroy', $org->id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to {{ $org->status === 'A' ? 'deactivate' : 'activate' }} this organization?');">
                             @csrf @method('DELETE')
-                            <button class="btn btn-{{ $org->status === 'A' ? 'secondary' : 'success' }} btn-xs">
+                            {{-- MODIFIED: Deactivate is now red, Activate is now green --}}
+                            <button class="btn btn-{{ $org->status === 'A' ? 'danger' : 'success' }} btn-xs">
                                 {{ $org->status === 'A' ? 'Deactivate' : 'Activate' }}
                             </button>
                         </form>

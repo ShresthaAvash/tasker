@@ -7,11 +7,11 @@
 @stop
 
 @section('content')
-<div class="card card-info card-outline">
+<div class="card card-primary card-outline">
     <div class="card-header">
         <h3 class="card-title">Available Plans</h3>
         <div class="card-tools">
-            <a href="{{ route('superadmin.plans.create') }}" class="btn btn-info btn-sm">Add New Plan</a>
+            <a href="{{ route('superadmin.plans.create') }}" class="btn btn-primary btn-sm">Add New Plan</a>
         </div>
     </div>
     <div class="card-body p-0">
@@ -47,8 +47,10 @@
             </tbody>
         </table>
     </div>
-    <div class="card-footer">
-        {{ $plans->links() }}
-    </div>
+    @if($plans->hasPages())
+        <div class="card-footer">
+            {{ $plans->links() }}
+        </div>
+    @endif
 </div>
 @endsection
