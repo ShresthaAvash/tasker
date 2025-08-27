@@ -3,14 +3,8 @@
         <h2 class="text-lg font-medium text-gray-900">
             {{ __('Update Password') }}
         </h2>
-
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __('Ensure your account is using a long, random password to stay secure.') }}
-        </p>
     </header>
 
-    {{-- --- THIS IS THE FIX --- --}}
-    {{-- This form is updated to show validation errors correctly --}}
     <form method="post" action="{{ route('password.update') }}" class="mt-4">
         @csrf
         @method('put')
@@ -37,7 +31,8 @@
         </div>
 
         <div class="d-flex align-items-center">
-            <button type="submit" class="btn btn-info">{{ __('Save') }}</button>
+            {{-- MODIFIED: Changed btn-info to btn-primary --}}
+            <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
 
             @if (session('status') === 'password-updated')
                 <p class="ml-3 text-sm text-success">

@@ -7,7 +7,8 @@
     @parent 
     <style>
         .card-header a { text-decoration: none !important; display: block; }
-        .report-header-service { background-color: #17a2b8; color: white; }
+        /* MODIFIED: Changed the service header background to primary blue */
+        .report-header-service { background-color: #007bff; color: white; }
         .report-header-service a, .report-header-service .total-time-display { color: white !important; }
         .report-header-job { background-color: #e9ecef; color: #343a40; }
         .report-header-job .total-time-display { color: #343a40 !important; }
@@ -27,7 +28,8 @@
 @stop
 
 @section('content')
-<div class="card card-info card-outline">
+{{-- MODIFIED: Changed the card theme to primary blue --}}
+<div class="card card-primary card-outline">
     <div class="card-body">
         <div class="row mb-4 align-items-center bg-light p-3 rounded d-print-none">
             <div class="col-md-3">
@@ -83,7 +85,6 @@
 $(document).ready(function() {
     let debounceTimer;
 
-    // --- THIS IS THE FIX: Added 'To Do' status to the filter options ---
     $('#status-filter').select2({
         placeholder: 'Filter by Status',
         data: [

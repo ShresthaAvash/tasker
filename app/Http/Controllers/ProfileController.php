@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\DB; // <-- This line is added
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage; // <-- ADD THIS
+use Illuminate\Validation\Rule; // <-- ADD THIS
 
 class ProfileController extends Controller
 {
@@ -25,18 +26,40 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // Validate the incoming request data
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'photo' => ['nullable', 'image', 'max:2048'], // Validate the photo
+        ]);
+        
+        // Fill the user model with validated name and email
+        $user->fill($validated);
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        // Handle the photo upload
+        if ($request->hasFile('photo')) {
+            // Delete old photo if it exists
+            if ($user->photo) {
+                Storage::disk('public')->delete($user->photo);
+            }
+            // Store the new photo in 'storage/app/public/avatars'
+            $path = $request->file('photo')->store('avatars', 'public');
+            $user->photo = $path;
+        }
+
+        $user->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
+
 
     /**
      * Delete the user's account.
@@ -60,7 +83,6 @@ class ProfileController extends Controller
     }
 
     /**
-     * --- THIS IS THE NEW METHOD ---
      * Display the user's activity log.
      */
     public function showActivityLog(Request $request): View

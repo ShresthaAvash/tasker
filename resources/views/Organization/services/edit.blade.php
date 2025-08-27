@@ -81,6 +81,7 @@
             </div>
         </div>
         <div class="card-footer">
+            {{-- MODIFIED: Changed button color to primary for consistency --}}
             <button type="submit" class="btn btn-primary">Save Changes</button>
             <a href="{{ route('services.show', $job->service_id) }}" class="btn btn-default">Back to Service Builder</a>
         </div>

@@ -4,7 +4,8 @@
 <form method="POST" action="">
 @csrf
 <input type="hidden" name="_method" value="POST">
-<div class="modal-header bg-info text-white">
+{{-- MODIFIED: Changed bg-info to bg-primary for the blue theme --}}
+<div class="modal-header bg-primary text-white">
 <h5 class="modal-title" id="taskModalLabel">Add/Edit Task</h5>
 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
 <span aria-hidden="true">&times;</span>
@@ -61,7 +62,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-info px-4">Save Task</button>
+                {{-- MODIFIED: Changed btn-info to btn-primary for the blue theme --}}
+                <button type="submit" class="btn btn-primary px-4">Save Task</button>
             </div>
         </form>
     </div>

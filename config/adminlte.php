@@ -253,6 +253,11 @@ return [
                     'route'  => 'superadmin.plans.create',
                     'icon' => 'fas fa-fw fa-plus',
                 ],
+                [
+                    'text' => 'Earnings Report',
+                    'route'  => 'superadmin.earnings',
+                    'icon' => 'fas fa-fw fa-chart-line',
+                ],
             ],
         ],
         // ORGANIZATION MENU
@@ -295,7 +300,6 @@ return [
                 [ 'text' => 'Add Service', 'route'  => 'services.create', 'icon' => 'fas fa-fw fa-plus', ],
             ],
         ],
-        // --- THIS IS THE MODIFIED REPORTS MENU ITEM ---
         [
             'text'    => 'Reports',
             'icon'    => 'fas fa-fw fa-chart-pie',

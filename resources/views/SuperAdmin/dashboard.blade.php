@@ -6,17 +6,41 @@
     <h1>Dashboard</h1>
 @stop
 
+{{-- NEW: Custom CSS for a more attractive dashboard --}}
+@section('css')
+<style>
+    .quick-actions .btn-app {
+        width: calc(33.333% - 10px);
+        margin: 5px;
+        font-size: 14px;
+        height: 80px;
+    }
+    .quick-actions {
+        display: flex;
+        justify-content: space-between;
+    }
+    .info-box {
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        border-radius: .375rem;
+    }
+    .card {
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        border-radius: .375rem;
+    }
+</style>
+@stop
+
 @section('content')
 {{-- Top Row Info Boxes --}}
 <div class="row">
     <div class="col-lg-3 col-6">
-        <div class="small-box bg-info">
+        {{-- MODIFIED: Changed bg-info to bg-primary for a blue color --}}
+        <div class="small-box bg-primary">
             <div class="inner">
                 <h3>{{ $organizationCount }}</h3>
                 <p>Total Organizations</p>
             </div>
             <div class="icon"><i class="fas fa-building"></i></div>
-            {{-- MODIFIED TEXT --}}
             <a href="{{ route('superadmin.organizations.index') }}" class="small-box-footer">View Total Organizations <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
@@ -27,7 +51,6 @@
                 <p>Subscription Plans</p>
             </div>
             <div class="icon"><i class="fas fa-tags"></i></div>
-            {{-- MODIFIED TEXT --}}
             <a href="{{ route('superadmin.plans.index') }}" class="small-box-footer">View All Subscription Plans <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
@@ -38,7 +61,6 @@
                 <p>Subscribed Organizations</p>
             </div>
             <div class="icon"><i class="fas fa-user-check"></i></div>
-            {{-- MODIFIED TEXT --}}
             <a href="{{ route('superadmin.subscriptions.subscribed') }}" class="small-box-footer">View All Subscribed Organizations <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
@@ -49,7 +71,6 @@
                 <p>Total Earnings</p>
             </div>
             <div class="icon"><i class="fas fa-dollar-sign"></i></div>
-            {{-- MODIFIED TEXT --}}
             <a href="{{ route('superadmin.earnings') }}" class="small-box-footer">View Total Earnings <i class="fas fa-arrow-circle-right"></i></a>
         </div>
     </div>
@@ -58,7 +79,7 @@
 {{-- Main Content Row --}}
 <div class="row">
     <div class="col-md-8">
-        <div class="card card-info card-outline">
+        <div class="card card-outline card-primary">
             <div class="card-header">
                 <h3 class="card-title">Recently Joined Organizations</h3>
             </div>
@@ -82,19 +103,20 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card">
+        <div class="card card-outline card-primary">
             <div class="card-header">
                 <h3 class="card-title">Quick Actions</h3>
             </div>
-            <div class="card-body">
+            {{-- MODIFIED: Added a container div for better layout control --}}
+            <div class="card-body quick-actions">
                 <a href="{{ route('superadmin.organizations.create') }}" class="btn btn-app bg-primary">
                     <i class="fas fa-building"></i> Add Organization
                 </a>
                 <a href="{{ route('superadmin.plans.create') }}" class="btn btn-app bg-success">
-                    <i class="fas fa-tags"></i> Add Subscription
+                    <i class="fas fa-plus-circle"></i> Add Subscription
                 </a>
                 <a href="{{ route('superadmin.subscriptions.subscribed') }}" class="btn btn-app bg-warning">
-                    <i class="fas fa-user-check"></i> View Subscribed
+                    <i class="fas fa-list-alt"></i> View Subscribed
                 </a>
             </div>
         </div>
