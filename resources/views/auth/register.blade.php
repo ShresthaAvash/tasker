@@ -69,24 +69,27 @@
             font-size: 0.95rem;
         }
         .form-group {
-            position: relative;
             margin-bottom: 1.5rem;
         }
-        .form-group .form-control {
+        /* --- THIS IS THE FIX --- */
+        .input-wrapper {
+            position: relative;
+        }
+        .input-wrapper .form-control {
             height: 50px;
             padding-left: 45px;
             border-radius: 8px;
             background-color: var(--input-bg-color);
             border: 1px solid #e0e0e0;
             transition: all 0.2s ease-in-out;
-            width: 100%; /* Ensure full width */
+            width: 100%;
         }
-        .form-group .form-control:focus {
+        .input-wrapper .form-control:focus {
             background-color: #fff;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(12, 111, 253, 0.15);
         }
-        .form-group .form-icon {
+        .input-wrapper .form-icon {
             position: absolute;
             left: 15px;
             top: 50%;
@@ -94,7 +97,8 @@
             color: #adb5bd;
             transition: color 0.2s ease-in-out;
         }
-        .form-group .form-control:focus + .form-icon { color: var(--primary-color); }
+        .input-wrapper .form-control:focus + .form-icon { color: var(--primary-color); }
+        /* --- END OF FIX --- */
         .register-button {
             background-color: var(--primary-color) !important;
             border-color: var(--primary-color) !important;
@@ -125,27 +129,39 @@
                 
                 <input type="hidden" name="plan_id" value="{{ request()->query('plan') }}">
                 
+                {{-- MODIFIED: Added .input-wrapper --}}
                 <div class="form-group">
-                    <input id="name" class="form-control" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" placeholder="Full Name" />
-                    <i class="fas fa-user form-icon"></i>
+                    <div class="input-wrapper">
+                        <input id="name" class="form-control" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" placeholder="Full Name" />
+                        <i class="fas fa-user form-icon"></i>
+                    </div>
                     <x-input-error :messages="$errors->get('name')" class="mt-2" />
                 </div>
 
+                {{-- MODIFIED: Added .input-wrapper --}}
                 <div class="form-group">
-                    <input id="email" class="form-control" type="email" name="email" :value="old('email')" required autocomplete="username" placeholder="Email Address" />
-                    <i class="fas fa-envelope form-icon"></i>
+                    <div class="input-wrapper">
+                        <input id="email" class="form-control" type="email" name="email" :value="old('email')" required autocomplete="username" placeholder="Email Address" />
+                        <i class="fas fa-envelope form-icon"></i>
+                    </div>
                     <x-input-error :messages="$errors->get('email')" class="mt-2" />
                 </div>
 
+                {{-- MODIFIED: Added .input-wrapper --}}
                 <div class="form-group">
-                    <input id="password" class="form-control" type="password" name="password" required autocomplete="new-password" placeholder="Password" />
-                    <i class="fas fa-lock form-icon"></i>
+                    <div class="input-wrapper">
+                        <input id="password" class="form-control" type="password" name="password" required autocomplete="new-password" placeholder="Password" />
+                        <i class="fas fa-lock form-icon"></i>
+                    </div>
                     <x-input-error :messages="$errors->get('password')" class="mt-2" />
                 </div>
 
+                {{-- MODIFIED: Added .input-wrapper --}}
                 <div class="form-group">
-                    <input id="password_confirmation" class="form-control" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Confirm Password" />
-                    <i class="fas fa-lock form-icon"></i>
+                    <div class="input-wrapper">
+                        <input id="password_confirmation" class="form-control" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Confirm Password" />
+                        <i class="fas fa-lock form-icon"></i>
+                    </div>
                     <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
                 </div>
 

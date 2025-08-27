@@ -36,7 +36,7 @@
 
         .login-container {
             width: 100%;
-            max-width: 550px; /* Wider container */
+            max-width: 550px;
             padding: 20px;
         }
 
@@ -81,28 +81,29 @@
         }
 
         .form-group {
-            position: relative;
             margin-bottom: 1.5rem;
         }
 
-        .form-group .form-control {
-            height: 52px; /* Set explicit height */
+        /* --- THIS IS THE FIX --- */
+        .input-wrapper {
+            position: relative;
+        }
+        .input-wrapper .form-control {
+            height: 52px;
             padding-left: 45px;
             border-radius: 8px;
             background-color: var(--input-bg-color);
             border: 1px solid #e0e0e0;
             transition: all 0.2s ease-in-out;
-            width: 100%; /* ✅ Make inputs full width */
-            box-sizing: border-box; /* ✅ Prevent overflow */
+            width: 100%;
+            box-sizing: border-box;
         }
-
-        .form-group .form-control:focus {
+        .input-wrapper .form-control:focus {
             background-color: #fff;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(12, 111, 253, 0.15);
         }
-        
-        .form-group .form-icon {
+        .input-wrapper .form-icon {
             position: absolute;
             left: 15px;
             top: 50%;
@@ -110,20 +111,20 @@
             color: #adb5bd;
             transition: color 0.2s ease-in-out;
         }
-
-        .form-group .form-control:focus + .form-icon {
+        .input-wrapper .form-control:focus + .form-icon {
             color: var(--primary-color);
         }
+        /* --- END OF FIX --- */
 
         .login-button {
             background-color: var(--primary-color) !important;
             border-color: var(--primary-color) !important;
             color: #ffffff !important;
             font-weight: 600;
-            height: 52px; /* Match input height */
+            height: 52px;
             border-radius: 8px;
             transition: all 0.2s;
-            width: 100%; /* ✅ Full width button */
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -138,7 +139,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 100%; /* ✅ Stretch across box */
+            width: 100%;
         }
 
         .form-check-label {
@@ -178,17 +179,21 @@
                     <input type="hidden" name="plan_id" value="{{ request()->query('plan') }}">
                 @endif
 
-                <!-- Email Address -->
+                {{-- MODIFIED: Added .input-wrapper --}}
                 <div class="form-group">
-                    <input id="email" class="form-control" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" placeholder="Email Address" />
-                    <i class="fas fa-envelope form-icon"></i>
+                    <div class="input-wrapper">
+                        <input id="email" class="form-control" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" placeholder="Email Address" />
+                        <i class="fas fa-envelope form-icon"></i>
+                    </div>
                     <x-input-error :messages="$errors->get('email')" class="mt-2" />
                 </div>
 
-                <!-- Password -->
+                {{-- MODIFIED: Added .input-wrapper --}}
                 <div class="form-group">
-                    <input id="password" class="form-control" type="password" name="password" required autocomplete="current-password" placeholder="Password"/>
-                    <i class="fas fa-lock form-icon"></i>
+                    <div class="input-wrapper">
+                        <input id="password" class="form-control" type="password" name="password" required autocomplete="current-password" placeholder="Password"/>
+                        <i class="fas fa-lock form-icon"></i>
+                    </div>
                     <x-input-error :messages="$errors->get('password')" class="mt-2" />
                 </div>
 
@@ -224,4 +229,3 @@
     </div>
 </body>
 </html>
-<!-- hello -->

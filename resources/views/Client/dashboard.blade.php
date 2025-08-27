@@ -9,7 +9,7 @@
 @section('content')
 <div class="row">
     <div class="col-md-3">
-        {{-- MODIFIED: Changed color to primary blue --}}
+        {{-- This is now the primary blue color --}}
         <div class="small-box bg-primary">
             <div class="inner">
                 <h3>{{ $stats['total'] }}</h3>
@@ -30,7 +30,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        {{-- MODIFIED: Changed color to a different shade of blue for variety --}}
+        {{-- Using the info color for variety within the blue theme --}}
         <div class="small-box bg-info">
             <div class="inner">
                 <h3>{{ $stats['ongoing'] }}</h3>
