@@ -22,21 +22,21 @@
     }
     .pricing-card {
         background: #fff;
-        border: 1px solid #dee2e6;
+        border: 2px solid #dee2e6;
         border-radius: 12px;
         padding: 40px;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         display: flex;
         flex-direction: column;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
     .pricing-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-    .pricing-card.highlight {
         border-color: #0d6efd;
-        border-width: 2px;
+    }
+    .pricing-card-content {
+        flex-grow: 1;
     }
     .pricing-card .plan-name {
         font-weight: 600;
@@ -67,6 +67,15 @@
         font-size: 1.1rem;
         font-weight: 600;
         border-radius: 8px;
+        transition: all 0.2s ease-in-out;
+    }
+    .btn-outline-primary:hover {
+        background-color: #0d6efd;
+        color: #fff;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.25);
     }
 </style>
 @endsection
@@ -95,7 +104,7 @@
                 {{-- Monthly Card --}}
                 <div class="col-lg-5 mb-4">
                     <div class="pricing-card h-100">
-                        <div class="card-body-content text-center">
+                        <div class="pricing-card-content text-center">
                             <h5 class="plan-name">{{ $monthlyPlan->name }}</h5>
                             <h2 class="price my-3">£{{ number_format($monthlyPlan->price, 2) }}</h2>
                             <p class="text-muted">Per Month + VAT</p>
@@ -109,23 +118,24 @@
                             </ul>
                         </div>
                         
-                        {{-- --- THIS IS THE MODIFIED BUTTON LOGIC --- --}}
-                        @auth
-                            @if(Auth::user()->subscribed('default') && Auth::user()->subscription('default')->stripe_price === $monthlyPlan->stripe_price_id)
-                                <button type="button" class="btn btn-secondary btn-purchase" disabled>Current Plan</button>
+                        <div class="mt-auto">
+                            @auth
+                                @if(Auth::user()->subscribed('default') && Auth::user()->subscription('default')->stripe_price === $monthlyPlan->stripe_price_id)
+                                    <button type="button" class="btn btn-secondary btn-purchase" disabled>Current Plan</button>
+                                @else
+                                    <a href="{{ route('subscription.checkout', ['plan' => $monthlyPlan->id]) }}" class="btn btn-outline-primary btn-purchase">Choose Plan</a>
+                                @endif
                             @else
-                                <a href="{{ route('subscription.checkout', ['plan' => $monthlyPlan->id]) }}" class="btn btn-outline-primary btn-purchase">Choose Plan</a>
-                            @endif
-                        @else
-                            <a href="{{ route('register', ['plan' => $monthlyPlan->id]) }}" class="btn btn-outline-primary btn-purchase">Get Started</a>
-                        @endif
+                                <a href="{{ route('register', ['plan' => $monthlyPlan->id]) }}" class="btn btn-outline-primary btn-purchase">Get Started</a>
+                            @endauth
+                        </div>
                     </div>
                 </div>
 
                 {{-- Annual Card --}}
                 <div class="col-lg-5 mb-4">
-                    <div class="pricing-card highlight h-100">
-                        <div class="card-body-content text-center">
+                    <div class="pricing-card h-100">
+                        <div class="pricing-card-content text-center">
                             <h5 class="plan-name">{{ $annualPlan->name }}</h5>
                             <h2 class="price my-3">£{{ number_format($annualPlan->price / 12, 2) }}</h2>
                             <p class="text-muted">Per Month + VAT</p>
@@ -140,16 +150,19 @@
                             </ul>
                         </div>
                         
-                        {{-- --- THIS IS THE MODIFIED BUTTON LOGIC --- --}}
-                        @auth
-                            @if(Auth::user()->subscribed('default') && Auth::user()->subscription('default')->stripe_price === $annualPlan->stripe_price_id)
-                                <button type="button" class="btn btn-secondary btn-purchase" disabled>Current Plan</button>
+                        <div class="mt-auto">
+                            @auth
+                                @if(Auth::user()->subscribed('default') && Auth::user()->subscription('default')->stripe_price === $annualPlan->stripe_price_id)
+                                    <button type="button" class="btn btn-secondary btn-purchase" disabled>Current Plan</button>
+                                @else
+                                    {{-- THIS IS THE FIX: Changed btn-primary to btn-outline-primary --}}
+                                    <a href="{{ route('subscription.checkout', ['plan' => $annualPlan->id]) }}" class="btn btn-outline-primary btn-purchase">Choose Plan</a>
+                                @endif
                             @else
-                                <a href="{{ route('subscription.checkout', ['plan' => $annualPlan->id]) }}" class="btn btn-primary btn-purchase">Choose Plan</a>
-                            @endif
-                        @else
-                            <a href="{{ route('register', ['plan' => $annualPlan->id]) }}" class="btn btn-primary btn-purchase">Get Started</a>
-                        @endif
+                                {{-- THIS IS THE FIX: Changed btn-primary to btn-outline-primary --}}
+                                <a href="{{ route('register', ['plan' => $annualPlan->id]) }}" class="btn btn-outline-primary btn-purchase">Get Started</a>
+                            @endauth
+                        </div>
                     </div>
                 </div>
             </div>

@@ -7,7 +7,7 @@
     @parent 
     <style>
         .card-header a { text-decoration: none !important; display: block; }
-        /* MODIFIED: Changed the service header background to primary blue */
+        /* This is the primary blue for the service header */
         .report-header-service { background-color: #007bff; color: white; }
         .report-header-service a, .report-header-service .total-time-display { color: white !important; }
         .report-header-job { background-color: #e9ecef; color: #343a40; }
@@ -28,7 +28,6 @@
 @stop
 
 @section('content')
-{{-- MODIFIED: Changed the card theme to primary blue --}}
 <div class="card card-primary card-outline">
     <div class="card-body">
         <div class="row mb-4 align-items-center bg-light p-3 rounded d-print-none">
