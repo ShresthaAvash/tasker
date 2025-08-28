@@ -260,6 +260,12 @@ return [
                 ],
             ],
         ],
+        [
+            'text' => 'Messages',
+            'route'  => 'superadmin.messages.index',
+            'icon' => 'fas fa-fw fa-envelope',
+            'can'  => 'is-superadmin',
+        ],
         // ORGANIZATION MENU
         [
             'text' => 'Dashboard',

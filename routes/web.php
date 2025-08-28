@@ -21,6 +21,8 @@ use App\Http\Controllers\Organization\ReportController as OrganizationReportCont
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\DocumentController as ClientDocumentController;
 use App\Http\Controllers\Client\ReportController as ClientReportController;
+use App\Http\Controllers\ContactMessageController; // <-- ADD THIS
+use App\Http\Controllers\SuperAdmin\ContactMessageController as SuperAdminContactMessageController; // <-- ADD THIS
 use Illuminate\Support\Facades\Auth;
 use Laravel\Cashier\Http\Controllers\WebhookController;
 
@@ -32,6 +34,7 @@ use Laravel\Cashier\Http\Controllers\WebhookController;
 // Public Routes
 Route::get('/', [LandingPageController::class, 'index'])->name('landing');
 Route::get('/pricing', [LandingPageController::class, 'pricing'])->name('pricing');
+Route::post('/contact', [ContactMessageController::class, 'store'])->name('contact.store'); // <-- ADD THIS
 
 Route::get('/subscription/pending', [SubscriptionPendingController::class, 'index'])->name('subscription.pending');
 Route::get('/subscription/expired', [SubscriptionPendingController::class, 'expired'])->name('subscription.expired');
@@ -73,6 +76,10 @@ Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmi
     Route::resource('plans', SuperAdminPlanController::class)->names('superadmin.plans');
     Route::patch('/subscriptions/{user}/cancel', [SuperAdminController::class, 'cancelSubscription'])->name('superadmin.subscriptions.cancel');
     Route::patch('/subscriptions/{user}/resume', [SuperAdminController::class, 'resumeSubscription'])->name('superadmin.subscriptions.resume');
+    
+    // Message Routes <-- ADD THIS BLOCK
+    Route::get('/messages', [SuperAdminContactMessageController::class, 'index'])->name('superadmin.messages.index');
+    Route::get('/messages/{message}', [SuperAdminContactMessageController::class, 'show'])->name('superadmin.messages.show');
 });
 
 // Organization routes

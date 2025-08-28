@@ -334,18 +334,32 @@
             <div class="container">
                 <h2 class="section-title text-center">Get in <span class="text-primary">Touch</span></h2>
                 <p class="section-subtitle">Have questions about Tasker? We're here to help. Reach out to our team and we'll get back to you as soon as possible.</p>
-                {{-- MODIFIED: Adjusted column classes for better spacing --}}
+                
+                @if(session('success'))
+                    <div class="alert alert-success col-lg-6 mx-auto mb-4">{{ session('success') }}</div>
+                @endif
+                @if($errors->any())
+                    <div class="alert alert-danger col-lg-6 mx-auto mb-4">
+                        <ul>
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                
                 <div class="row align-items-center">
                     <div class="col-lg-6 mb-4 mb-lg-0">
                         <h4>Send us a message</h4>
-                        <form action="#" method="POST">
+                        <form action="{{ route('contact.store') }}" method="POST">
+                            @csrf
                             <div class="row">
-                                <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="First Name" required></div>
-                                <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="Last Name" required></div>
+                                <div class="col-md-6 mb-3"><input type="text" name="first_name" class="form-control" placeholder="First Name" required value="{{ old('first_name') }}"></div>
+                                <div class="col-md-6 mb-3"><input type="text" name="last_name" class="form-control" placeholder="Last Name" required value="{{ old('last_name') }}"></div>
                             </div>
-                            <div class="mb-3"><input type="email" class="form-control" placeholder="Email Address" required></div>
-                            <div class="mb-3"><input type="text" class="form-control" placeholder="Company (optional)"></div>
-                            <div class="mb-3"><textarea class="form-control" rows="5" placeholder="Tell us how we can help..."></textarea></div>
+                            <div class="mb-3"><input type="email" name="email" class="form-control" placeholder="Email Address" required value="{{ old('email') }}"></div>
+                            <div class="mb-3"><input type="text" name="company" class="form-control" placeholder="Company (optional)" value="{{ old('company') }}"></div>
+                            <div class="mb-3"><textarea class="form-control" name="message" rows="5" placeholder="Tell us how we can help..." required>{{ old('message') }}</textarea></div>
                             <button type="submit" class="btn btn-primary btn-lg">Send Message</button>
                         </form>
                     </div>
