@@ -132,7 +132,7 @@
                 {{-- MODIFIED: Added .input-wrapper --}}
                 <div class="form-group">
                     <div class="input-wrapper">
-                        <input id="name" class="form-control" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" placeholder="Full Name" />
+                        <input id="name" class="form-control" type="text" name="name" value="{{ old('name') }}" required autofocus autocomplete="name" placeholder="Full Name" />
                         <i class="fas fa-user form-icon"></i>
                     </div>
                     <x-input-error :messages="$errors->get('name')" class="mt-2" />
@@ -141,7 +141,7 @@
                 {{-- MODIFIED: Added .input-wrapper --}}
                 <div class="form-group">
                     <div class="input-wrapper">
-                        <input id="email" class="form-control" type="email" name="email" :value="old('email')" required autocomplete="username" placeholder="Email Address" />
+                        <input id="email" class="form-control" type="email" name="email" value="{{ old('email') }}" required autocomplete="username" placeholder="Email Address" />
                         <i class="fas fa-envelope form-icon"></i>
                     </div>
                     <x-input-error :messages="$errors->get('email')" class="mt-2" />
