@@ -44,9 +44,13 @@
         position: relative;
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
+    .pricing-card:not(.highlight):hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
  
     .pricing-card.highlight {
-        background: linear-gradient(180deg, #4f80f8 0%, #3b66f5 100%);
+        background: linear-gradient(180deg, #4f46e5 0%, #3b82f6 100%);
         border: none;
         color: #fff;
         transform: scale(1.05); /* Makes the highlighted card slightly larger */
@@ -70,11 +74,11 @@
         top: -14px; /* Position badge above the card */
         left: 50%;
         transform: translateX(-50%);
-        background: #ffffff;
-        color: #3b82f6;
+        background: #e3f2fd;
+        color: #0a58ca;
         padding: 5px 15px;
         font-size: 0.8rem;
-        font-weight: 600;
+        font-weight: 700;
         border-radius: 14px; /* Pill shape */
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }

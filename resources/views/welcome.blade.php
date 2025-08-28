@@ -43,9 +43,15 @@
         /* Hero Section */
         .hero-section { background-color: var(--primary-blue); color: #fff; padding: 120px 0; }
         .hero-section h1 { font-size: 3.8rem; font-weight: 700; line-height: 1.2; }
-        .hero-section .lead { font-size: 1.25rem; opacity: 0.9; }
+        .hero-section .lead { font-size: 1.25rem; color: #ffffff; opacity: 1; }
         .hero-section .highlight { color: #ffdd57; }
-        .hero-section .feature-list li { margin-bottom: 1rem; }
+        .hero-section .feature-list li {
+            margin-bottom: 1rem;
+            color: #ffffff; /* Text color to white */
+        }
+        .hero-section .feature-list li .fas {
+            color: #ffffff; /* Icon color to white */
+        }
         .hero-section .btn { padding: 12px 30px; font-size: 1.1rem; font-weight: 600; border-radius: 8px; }
         .hero-image-wrapper { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
 
@@ -55,7 +61,7 @@
         .feature-card .icon { font-size: 2.5rem; color: var(--primary-blue); margin-bottom: 20px; }
         .step-card { text-align: center; }
         .step-number { background-color: var(--primary-blue); color: #fff; width: 40px; height: 40px; line-height: 40px; border-radius: 50%; margin: 0 auto 20px auto; font-weight: 700; }
-        
+       
         /* Pricing Section Styling */
         .pricing-section {
             padding: 80px 0;
@@ -95,8 +101,12 @@
             position: relative;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
+        .pricing-card:not(.highlight):hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
         .pricing-card.highlight {
-            background: linear-gradient(180deg, #4f80f8 0%, #3b66f5 100%);
+            background: linear-gradient(180deg, #4f46e5 0%, #3b82f6 100%);
             border: none;
             color: #fff;
             transform: scale(1.05); /* Makes the highlighted card slightly larger */
@@ -118,11 +128,11 @@
             top: -14px; /* Position badge above the card */
             left: 50%;
             transform: translateX(-50%);
-            background: #ffffff;
-            color: #3b82f6;
+            background: #e3f2fd;
+            color: #0a58ca;
             padding: 5px 15px;
             font-size: 0.8rem;
-            font-weight: 600;
+            font-weight: 700;
             border-radius: 14px; /* Pill shape */
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
@@ -158,7 +168,38 @@
 
         /* Contact & Footer */
         .contact-section { background-color: var(--section-bg); }
-        .contact-info-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .contact-info-card {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .contact-info-card .icon-wrapper {
+            flex-shrink: 0;
+            width: 50px;
+            height: 50px;
+            background-color: var(--light-blue);
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-right: 20px;
+            font-size: 1.5rem;
+        }
+        .contact-form .form-control {
+            border-radius: 8px;
+            padding: 12px 15px;
+            border: 1px solid #ced4da;
+        }
+        .contact-form .btn-primary {
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
         .footer { background: linear-gradient(45deg, #0d6efd, #0a58ca); color: #fff; padding-top: 60px; }
         .footer a { color: #fff; text-decoration: none; }
         .footer .social-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.1); display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.3s; }
@@ -334,7 +375,7 @@
             <div class="container">
                 <h2 class="section-title text-center">Get in <span class="text-primary">Touch</span></h2>
                 <p class="section-subtitle">Have questions about Tasker? We're here to help. Reach out to our team and we'll get back to you as soon as possible.</p>
-                
+
                 @if(session('success'))
                     <div class="alert alert-success col-lg-6 mx-auto mb-4">{{ session('success') }}</div>
                 @endif
@@ -347,31 +388,48 @@
                         </ul>
                     </div>
                 @endif
-                
+
                 <div class="row align-items-center">
                     <div class="col-lg-6 mb-4 mb-lg-0">
-                        <h4>Send us a message</h4>
-                        <form action="{{ route('contact.store') }}" method="POST">
-                            @csrf
-                            <div class="row">
-                                <div class="col-md-6 mb-3"><input type="text" name="first_name" class="form-control" placeholder="First Name" required value="{{ old('first_name') }}"></div>
-                                <div class="col-md-6 mb-3"><input type="text" name="last_name" class="form-control" placeholder="Last Name" required value="{{ old('last_name') }}"></div>
-                            </div>
-                            <div class="mb-3"><input type="email" name="email" class="form-control" placeholder="Email Address" required value="{{ old('email') }}"></div>
-                            <div class="mb-3"><input type="text" name="company" class="form-control" placeholder="Company (optional)" value="{{ old('company') }}"></div>
-                            <div class="mb-3"><textarea class="form-control" name="message" rows="5" placeholder="Tell us how we can help..." required>{{ old('message') }}</textarea></div>
-                            <button type="submit" class="btn btn-primary btn-lg">Send Message</button>
-                        </form>
+                        <div class="contact-form">
+                            <h4 class="mb-4">Send us a message</h4>
+                            <form action="{{ route('contact.store') }}" method="POST">
+                                @csrf
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><input type="text" name="first_name" class="form-control" placeholder="First Name" required value="{{ old('first_name') }}"></div>
+                                    <div class="col-md-6 mb-3"><input type="text" name="last_name" class="form-control" placeholder="Last Name" required value="{{ old('last_name') }}"></div>
+                                </div>
+                                <div class="mb-3"><input type="email" name="email" class="form-control" placeholder="Email Address" required value="{{ old('email') }}"></div>
+                                <div class="mb-3"><input type="text" name="company" class="form-control" placeholder="Company (optional)" value="{{ old('company') }}"></div>
+                                <div class="mb-3"><textarea class="form-control" name="message" rows="5" placeholder="Tell us how we can help..." required>{{ old('message') }}</textarea></div>
+                                <button type="submit" class="btn btn-primary btn-lg">Send Message</button>
+                            </form>
+                        </div>
                     </div>
                     <div class="col-lg-5 offset-lg-1">
-                        <div class="contact-info-card mb-3">
-                            <div class="d-flex align-items-center"><i class="fas fa-envelope fa-2x text-primary me-3"></i><div><strong>Email Us</strong><br><a href="mailto:hello@tasker.com">hello@tasker.com</a><br><small>Contact us via email.</small></div></div>
+                        <div class="contact-info-card">
+                            <div class="icon-wrapper"><i class="fas fa-envelope"></i></div>
+                            <div>
+                                <strong>Email Us</strong><br>
+                                <a href="mailto:hello@tasker.com">hello@tasker.com</a><br>
+                                <small class="text-muted">Contact us via email.</small>
+                            </div>
                         </div>
-                        <div class="contact-info-card mb-3">
-                             <div class="d-flex align-items-center"><i class="fas fa-phone fa-2x text-primary me-3"></i><div><strong>Call Us</strong><br>+977 9878763542<br><small>Monday to Friday, 9AM-6PM PST</small></div></div>
+                        <div class="contact-info-card">
+                            <div class="icon-wrapper"><i class="fas fa-phone"></i></div>
+                            <div>
+                                <strong>Call Us</strong><br>
+                                +977 9878763542<br>
+                                <small class="text-muted">Monday to Friday, 9AM-6PM PST</small>
+                            </div>
                         </div>
                          <div class="contact-info-card">
-                             <div class="d-flex align-items-center"><i class="fas fa-map-marker-alt fa-2x text-primary me-3"></i><div><strong>Visit Us</strong><br>Pulchowk, Lalitpur, 44600<br><small>Monday to Friday, 9AM-6PM PST</small></div></div>
+                            <div class="icon-wrapper"><i class="fas fa-map-marker-alt"></i></div>
+                            <div>
+                                <strong>Visit Us</strong><br>
+                                Pulchowk, Lalitpur, 44600<br>
+                                <small class="text-muted">Monday to Friday, 9AM-6PM PST</small>
+                            </div>
                         </div>
                     </div>
                 </div>
