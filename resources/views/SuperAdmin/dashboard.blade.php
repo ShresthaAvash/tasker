@@ -109,9 +109,6 @@
             </div>
             {{-- MODIFIED: Added a container div for better layout control --}}
             <div class="card-body quick-actions">
-                <a href="{{ route('superadmin.organizations.create') }}" class="btn btn-app bg-primary">
-                    <i class="fas fa-building"></i> Add Organization
-                </a>
                 <a href="{{ route('superadmin.plans.create') }}" class="btn btn-app bg-success">
                     <i class="fas fa-plus-circle"></i> Add Subscription
                 </a>

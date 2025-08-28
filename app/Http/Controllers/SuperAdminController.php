@@ -174,12 +174,6 @@ class SuperAdminController extends Controller
         return view('SuperAdmin.index', compact('organizations', 'sort_by', 'sort_order'));
     }
     
-    // Show create form
-    public function create()
-    {
-        return view('SuperAdmin.create');
-    }
-
     // Store new organization
     public function store(Request $request)
     {
@@ -210,7 +204,7 @@ class SuperAdminController extends Controller
     // Show details
     public function show($id)
     {
-        $organization = User::where('type', 'O')->with('subscriptions')->findOrFail($id);
+        $organization = User::where('type', 'O')->with('subscriptions.plan')->findOrFail($id);
         return view('SuperAdmin.view', compact('organization'));
     }
 
@@ -308,5 +302,24 @@ class SuperAdminController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Could not resume subscription. ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * --- THIS IS THE NEW METHOD ---
+     * Display the subscription history for a specific organization.
+     */
+    public function subscriptionHistory(User $user)
+    {
+        if ($user->type !== 'O') {
+            abort(404, 'User is not an organization.');
+        }
+
+        // Eager load the plan relationship on each subscription
+        $subscriptions = $user->subscriptions()->with('plan')->get();
+
+        return view('SuperAdmin.subscriptions.history', [
+            'organization' => $user,
+            'subscriptions' => $subscriptions,
+        ]);
     }
 };

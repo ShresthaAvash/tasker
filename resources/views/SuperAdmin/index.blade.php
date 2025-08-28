@@ -12,10 +12,6 @@
 <div class="card card-primary card-outline">
     <div class="card-header">
         <h3 class="card-title">Organizations</h3>
-        <div class="card-tools">
-            {{-- MODIFIED: Changed btn-info to btn-primary for the blue theme --}}
-            <a href="{{ route('superadmin.organizations.create') }}" class="btn btn-primary btn-sm">Add New Organization</a>
-        </div>
     </div>
     <div class="card-body">
         @if(session('success'))
