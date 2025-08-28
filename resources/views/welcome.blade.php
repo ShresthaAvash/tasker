@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="<?php echo e(str_replace('_', '-', app()->getLocale())); ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,9 +13,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Scripts & Styles -->
-    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
+    <?php echo app('Illuminate\Foundation\Vite')(['resources/sass/app.scss', 'resources/js/app.js']); ?>
 
-    {{-- Custom Styles for the new landing page design --}}
+    
     <style>
         :root {
             --primary-blue: #0d6efd;
@@ -53,7 +53,24 @@
             color: #ffffff; /* Icon color to white */
         }
         .hero-section .btn { padding: 12px 30px; font-size: 1.1rem; font-weight: 600; border-radius: 8px; }
-        .hero-image-wrapper { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .hero-image-wrapper {
+            padding: 20px;
+        }
+
+        .hero-image-wrapper img {
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35);
+            max-height: 1000px;   /* Increased height */
+            width: 110%;         /* Makes it fill available space */
+            border: 3px solid #fff;
+            transition: all 0.3s ease-in-out;
+        }
+
+        
+        .hero-image-wrapper img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 30px 60px -15px rgba(0,0,0,0.4);
+        }
 
         /* Feature & Step Cards */
         .feature-card, .step-card-wrapper { background: #fff; border: 1px solid #e3e6f0; border-radius: 16px; padding: 30px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -61,7 +78,7 @@
         .feature-card .icon { font-size: 2.5rem; color: var(--primary-blue); margin-bottom: 20px; }
         .step-card { text-align: center; }
         .step-number { background-color: var(--primary-blue); color: #fff; width: 40px; height: 40px; line-height: 40px; border-radius: 50%; margin: 0 auto 20px auto; font-weight: 700; }
-       
+        
         /* Pricing Section Styling */
         .pricing-section {
             padding: 80px 0;
@@ -225,11 +242,11 @@
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        @auth
-                            <a class="btn btn-primary" href="{{ route('dashboard') }}">Dashboard</a>
-                        @else
-                            <a class="nav-link" href="{{ route('login') }}">Login</a>
-                        @endauth
+                        <?php if(auth()->guard()->check()): ?>
+                            <a class="btn btn-primary" href="<?php echo e(route('dashboard')); ?>">Dashboard</a>
+                        <?php else: ?>
+                            <a class="nav-link" href="<?php echo e(route('login')); ?>">Login</a>
+                        <?php endif; ?>
                     </li>
                 </ul>
             </div>
@@ -237,7 +254,6 @@
     </nav>
 
     <main>
-        {{-- Hero Section --}}
         <section class="hero-section" id="home">
             <div class="container">
                 <div class="row align-items-center">
@@ -255,14 +271,14 @@
                     </div>
                     <div class="col-lg-6 text-center d-none d-lg-block">
                         <div class="hero-image-wrapper">
-                            <img src="https://i.imgur.com/yO8pP5k.png" class="img-fluid rounded" alt="Tasker Dashboard Preview">
+                            <img src="<?php echo e(asset('images/homepage.png')); ?>" class="img-fluid" alt="Tasker Dashboard Preview">
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        {{-- About Section --}}
+        
         <section class="section text-center" id="about">
             <div class="container">
                 <h2 class="section-title">About <span class="text-primary">Tasker</span></h2>
@@ -275,7 +291,7 @@
             </div>
         </section>
         
-        {{-- How It Works Section --}}
+        
         <section class="section text-center bg-light" id="how-it-works">
             <div class="container">
                 <h2 class="section-title">How <span class="text-primary">Tasker</span> Works</h2>
@@ -289,7 +305,7 @@
             </div>
         </section>
 
-        {{-- Why Choose Tasker Section --}}
+        
         <section class="section" id="why-tasker">
             <div class="container">
                 <h2 class="section-title text-center">Why Choose <span class="text-primary">Tasker</span>?</h2>
@@ -302,7 +318,7 @@
             </div>
         </section>
 
-        {{-- Pricing Section --}}
+        
         <section class="pricing-section" id="pricing">
             <div class="container">
                 <div class="pricing-header text-center">
@@ -310,31 +326,33 @@
                     <p>Scale your productivity with Tasker. From personal task management to enterprise-grade solutions.</p>
                 </div>
         
-                @if(session('info'))
+                <?php if(session('info')): ?>
                     <div class="alert alert-info mb-4 col-md-8 mx-auto">
-                        {{ session('info') }}
+                        <?php echo e(session('info')); ?>
+
                     </div>
-                @endif
+                <?php endif; ?>
         
                 <div class="pricing-container">
-                    @forelse($plans as $plan)
-                        @php
+                    <?php $__empty_1 = true; $__currentLoopData = $plans; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $plan): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <?php
                             $isHighlighted = $loop->iteration == 2;
-                        @endphp
-                        <div class="pricing-card {{ $isHighlighted ? 'highlight' : '' }}">
-                            @if($isHighlighted)
+                        ?>
+                        <div class="pricing-card <?php echo e($isHighlighted ? 'highlight' : ''); ?>">
+                            <?php if($isHighlighted): ?>
                                 <div class="most-popular-badge">Most Popular</div>
-                            @endif
+                            <?php endif; ?>
         
-                            <h5 class="plan-name">{{ $plan->name }}</h5>
+                            <h5 class="plan-name"><?php echo e($plan->name); ?></h5>
                             <h2 class="price">
-                                £{{ number_format($plan->type == 'annually' && $plan->price > 0 ? $plan->price / 12 : $plan->price, 2) }}
+                                £<?php echo e(number_format($plan->type == 'annually' && $plan->price > 0 ? $plan->price / 12 : $plan->price, 2)); ?>
+
                             </h2>
                             <p class="price-period">
-                                Per {{ $plan->type == 'annually' ? 'year' : 'month' }} +VAT
+                                Per <?php echo e($plan->type == 'annually' ? 'year' : 'month'); ?> +VAT
                             </p>
         
-                            <p class="plan-description">{{ $plan->description }}</p>
+                            <p class="plan-description"><?php echo e($plan->description); ?></p>
         
                             <ul class="feature-list">
                                 <li><i class="fas fa-check-circle"></i> Unlimited client & staff</li>
@@ -345,63 +363,48 @@
                                 <li><i class="fas fa-check-circle"></i> Mobile support</li>
                             </ul>
                            
-                            @php
+                            <?php
                                 $buttonClass = $isHighlighted ? '' : 'btn-outline';
-                            @endphp
+                            ?>
         
-                            @auth
-                                @if(Auth::user()->subscribed('default') && Auth::user()->subscription('default')->stripe_price === $plan->stripe_price_id)
+                            <?php if(auth()->guard()->check()): ?>
+                                <?php if(Auth::user()->subscribed('default') && Auth::user()->subscription('default')->stripe_price === $plan->stripe_price_id): ?>
                                     <button type="button" class="btn-purchase mt-auto" disabled>Current Plan</button>
-                                @else
-                                     <a href="{{ route('subscription.checkout', ['plan' => $plan->id]) }}" class="btn-purchase mt-auto {{ $buttonClass }}">Get Started</a>
-                                @endif
-                            @else
-                                <a href="{{ route('register', ['plan' => $plan->id]) }}" class="btn-purchase mt-auto {{ $buttonClass }}">Get Started</a>
-                            @endauth
+                                <?php else: ?>
+                                     <a href="<?php echo e(route('subscription.checkout', ['plan' => $plan->id])); ?>" class="btn-purchase mt-auto <?php echo e($buttonClass); ?>">Get Started</a>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <a href="<?php echo e(route('register', ['plan' => $plan->id])); ?>" class="btn-purchase mt-auto <?php echo e($buttonClass); ?>">Get Started</a>
+                            <?php endif; ?>
                         </div>
-                    @empty
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <div class="col-12">
                             <div class="alert alert-warning text-center">
                                 No subscription plans have been configured by the administrator yet. Please check back later.
                             </div>
                         </div>
-                    @endforelse
+                    <?php endif; ?>
                 </div>
             </div>
         </section>
 
-        {{-- Get in Touch Section --}}
+        
         <section class="section contact-section" id="contact">
             <div class="container">
                 <h2 class="section-title text-center">Get in <span class="text-primary">Touch</span></h2>
                 <p class="section-subtitle">Have questions about Tasker? We're here to help. Reach out to our team and we'll get back to you as soon as possible.</p>
-
-                @if(session('success'))
-                    <div class="alert alert-success col-lg-6 mx-auto mb-4">{{ session('success') }}</div>
-                @endif
-                @if($errors->any())
-                    <div class="alert alert-danger col-lg-6 mx-auto mb-4">
-                        <ul>
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
                 <div class="row align-items-center">
                     <div class="col-lg-6 mb-4 mb-lg-0">
                         <div class="contact-form">
                             <h4 class="mb-4">Send us a message</h4>
-                            <form action="{{ route('contact.store') }}" method="POST">
-                                @csrf
+                            <form action="#" method="POST">
                                 <div class="row">
-                                    <div class="col-md-6 mb-3"><input type="text" name="first_name" class="form-control" placeholder="First Name" required value="{{ old('first_name') }}"></div>
-                                    <div class="col-md-6 mb-3"><input type="text" name="last_name" class="form-control" placeholder="Last Name" required value="{{ old('last_name') }}"></div>
+                                    <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="First Name" required></div>
+                                    <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="Last Name" required></div>
                                 </div>
-                                <div class="mb-3"><input type="email" name="email" class="form-control" placeholder="Email Address" required value="{{ old('email') }}"></div>
-                                <div class="mb-3"><input type="text" name="company" class="form-control" placeholder="Company (optional)" value="{{ old('company') }}"></div>
-                                <div class="mb-3"><textarea class="form-control" name="message" rows="5" placeholder="Tell us how we can help..." required>{{ old('message') }}</textarea></div>
+                                <div class="mb-3"><input type="email" class="form-control" placeholder="Email Address" required></div>
+                                <div class="mb-3"><input type="text" class="form-control" placeholder="Company (optional)"></div>
+                                <div class="mb-3"><textarea class="form-control" rows="5" placeholder="Tell us how we can help..."></textarea></div>
                                 <button type="submit" class="btn btn-primary btn-lg">Send Message</button>
                             </form>
                         </div>
@@ -467,7 +470,7 @@
         </div>
     </footer>
 
-    {{-- JavaScript for Smooth Scrolling and Active Nav Link Highlighting --}}
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // This enables the Bootstrap scrollspy feature
