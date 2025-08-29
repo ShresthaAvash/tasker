@@ -230,6 +230,7 @@ return [
             'can'     => 'is-superadmin',
             'submenu' => [
                 [ 'text' => 'All Organizations', 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
+                [ 'text' => 'Add Organization', 'route'  => 'superadmin.organizations.create', 'icon' => 'fas fa-fw fa-plus', ],
                 [
                     'text' => 'Subscribed Organizations',
                     'route'  => 'superadmin.subscriptions.subscribed',
@@ -344,17 +345,12 @@ return [
             'can'   => 'is-staff',
             'active' => ['staff/calendar*']
         ],
+        // MODIFIED: Simplified "Tasks" to a single direct link
         [
-            'text'    => 'Tasks',
-            'icon'    => 'fas fa-fw fa-tasks',
-            'can'     => 'is-staff',
-            'submenu' => [
-                [
-                    'text'   => 'Task List',
-                    'route'  => 'staff.tasks.index',
-                    'icon'   => 'fas fa-fw fa-list-alt',
-                ],
-            ],
+            'text'   => 'Tasks',
+            'route'  => 'staff.tasks.index',
+            'icon'   => 'fas fa-fw fa-tasks',
+            'can'    => 'is-staff',
             'active' => ['staff/tasks*']
         ],
         [

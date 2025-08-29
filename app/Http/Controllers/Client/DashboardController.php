@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\AssignedTask;
 use App\Models\ClientDocument;
+use Illuminate\Support\Collection; // Import Collection for chart data
 
 class DashboardController extends Controller
 {
@@ -32,6 +33,16 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        return view('Client.dashboard', compact('stats', 'recentDocuments'));
+        // NEW: Prepare data for the pie chart
+        $chartData = collect([
+            'to_do' => $stats['to_do'],
+            'ongoing' => $stats['ongoing'],
+            'completed' => $stats['completed'],
+        ]);
+
+        $chartLabels = $chartData->keys()->map(fn($s) => ucwords(str_replace('_', ' ', $s)));
+        $chartDataValues = $chartData->values(); // Use a different variable name to avoid conflict with $chartData collection
+
+        return view('Client.dashboard', compact('stats', 'recentDocuments', 'chartLabels', 'chartDataValues'));
     }
 }

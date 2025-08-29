@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-<div class="card card-info card-outline">
+<div class="card card-primary card-outline"> 
     <div class="card-header">
         <h3 class="card-title">My Recent Activity</h3>
     </div>
@@ -24,7 +24,6 @@
                 <tr>
                     <td>{{ $activity->action }}</td>
                     <td>
-                        {{-- --- THIS IS THE FIX --- --}}
                         {{-- It now converts the stored UTC time to your app's timezone --}}
                         {{ \Carbon\Carbon::parse($activity->created_at)->setTimezone(config('app.timezone'))->format('d M Y, h:i A') }}
                     </td>
