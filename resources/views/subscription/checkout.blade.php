@@ -17,10 +17,14 @@
         animation: fadeInUp 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
     }
 
+    /* LEFT COLUMN */
     .order-summary {
-        background-color: #f8f9fa;
+        background: linear-gradient(135deg, #f9fafb, #f3f4f6);
         padding: 2.5rem;
         border-right: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
 
     .app-logo {
@@ -30,16 +34,85 @@
         color: #111827;
         text-decoration: none;
         font-weight: 700;
-        font-size: 1.5rem;
+        font-size: 1.6rem;
     }
 
-    .order-summary .price {
-        font-size: 3rem;
+    .summary-header {
+        margin-bottom: 2.5rem;
+    }
+
+    .order-title {
         font-weight: 700;
-        color: #111827;
-        flex-shrink: 0; /* Prevents the price from shrinking */
+        font-size: 1.25rem;
+        margin-bottom: 1.5rem;
+        color: #1f2937;
     }
 
+    .plan-box {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    .plan-box h5 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: #111827;
+    }
+
+    .price {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #111827;
+        line-height: 1.2;
+        margin-bottom: 0.5rem;
+    }
+
+    .plan-desc {
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+
+    .features {
+        margin: 2rem 0;
+        padding-left: 0;
+        list-style: none;
+    }
+
+    .features li {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-size: 0.95rem;
+        color: #374151;
+    }
+
+    .features i {
+        margin-right: 0.75rem;
+        font-size: 1rem;
+        color: #10b981;
+    }
+
+    .secure-box {
+        background: #f3f4f6;
+        border-radius: 10px;
+        padding: 0.9rem 1.2rem;
+        font-size: 0.9rem;
+        text-align: center;
+        color: #374151;
+        font-weight: 500;
+    }
+
+    .secure-box i {
+        margin-right: 0.5rem;
+    }
+
+    /* RIGHT COLUMN */
     .payment-form {
         padding: 2.5rem;
     }
@@ -98,36 +171,30 @@
     <div class="row g-0">
         <!-- Left Column: Order Summary -->
         <div class="col-lg-5 order-summary">
-            <div class="d-flex flex-column h-100">
-                <div class="mb-5">
+            <div>
+                <div class="summary-header">
                     <a href="/" class="app-logo">
                         <i class="fa-solid fa-shield-halved fa-2x text-primary"></i>
                         <span>Tasker</span>
                     </a>
                 </div>
-                <h4 class="card-title mb-4">Order Summary</h4>
-                
-                {{-- --- THIS IS THE MODIFIED SECTION --- --}}
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    {{-- Added me-3 class to create a margin on the right --}}
-                    <h5 class="mb-0 me-3">{{ $plan->name }}</h5> 
-                    <span class="price">£{{ number_format($plan->price, 2) }}</span>
-                </div>
-                {{-- --- END OF MODIFICATION --- --}}
+                <h4 class="order-title">Order Summary</h4>
 
-                <p class="text-muted">{{ $plan->description }}</p>
-                
-                <hr class="my-4">
-                
-                <ul class="list-unstyled mb-4">
-                    <li class="mb-2 d-flex align-items-center"><i class="fas fa-check-circle text-success me-2"></i>Full Feature Access</li>
-                    <li class="mb-2 d-flex align-items-center"><i class="fas fa-check-circle text-success me-2"></i>Billed {{ $plan->type }}</li>
-                    <li class="mb-2 d-flex align-items-center"><i class="fas fa-check-circle text-success me-2"></i>Cancel Anytime</li>
+                <div class="plan-box">
+                    <h5>{{ $plan->name }}</h5>
+                    <div class="price">£{{ number_format($plan->price, 0) }}</div>
+                    <p class="plan-desc">{{ $plan->description }}</p>
+                </div>
+
+                <ul class="features">
+                    <li><i class="fas fa-check-circle"></i> Full Feature Access</li>
+                    <li><i class="fas fa-check-circle"></i> Billed {{ $plan->type }}</li>
+                    <li><i class="fas fa-check-circle"></i> Cancel Anytime</li>
                 </ul>
+            </div>
 
-                <div class="mt-auto alert alert-secondary text-center border-0" role="alert">
-                    <i class="fas fa-lock me-2"></i> Secure SSL Encrypted Payment
-                </div>
+            <div class="secure-box mt-auto">
+                <i class="fas fa-lock"></i> Secure SSL Encrypted Payment
             </div>
         </div>
 
@@ -165,7 +232,8 @@
                 <div class="d-grid">
                     <button id="card-button" class="btn btn-primary btn-lg" data-secret="{{ $intent->client_secret }}">
                         <span class="button-text">
-                            <i class="fas fa-lock"></i> Subscribe Now (£{{ number_format($plan->price, 2) }}/{{ $plan->type == 'monthly' ? 'mo' : 'yr' }})
+                            <i class="fas fa-lock"></i> 
+                            Subscribe Now (£{{ number_format($plan->price, 0) }}/{{ $plan->type == 'monthly' ? 'mo' : 'yr' }})
                         </span>
                     </button>
                 </div>
@@ -192,9 +260,7 @@
             fontFamily: 'Inter, sans-serif',
             fontSmoothing: 'antialiased',
             fontSize: '16px',
-            '::placeholder': {
-                color: '#aab7c4'
-            }
+            '::placeholder': { color: '#aab7c4' }
         },
         invalid: {
             color: '#fa755a',
@@ -230,7 +296,7 @@
         if (error) {
             cardErrors.textContent = error.message;
             cardButton.disabled = false;
-            cardButton.innerHTML = `<span class="button-text"><i class="fas fa-lock"></i> Subscribe Now (£{{ number_format($plan->price, 2) }}/{{ $plan->type == 'monthly' ? 'mo' : 'yr' }})</span>`;
+            cardButton.innerHTML = `<span class="button-text"><i class="fas fa-lock"></i> Subscribe Now (£{{ number_format($plan->price, 0) }}/{{ $plan->type == 'monthly' ? 'mo' : 'yr' }})</span>`;
         } else {
             cardErrors.textContent = '';
             let tokenInput = document.createElement('input');
