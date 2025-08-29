@@ -41,7 +41,7 @@
                             <th>Status</th>
                             <th>Price</th>
                             <th>Subscribed On</th>
-                            <th>Ended On</th>
+                            <th>Renews / Ends On</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -57,7 +57,17 @@
                                 </td>
                                 <td>${{ number_format(optional($subscription->plan)->price, 2) }} / {{ optional($subscription->plan)->type }}</td>
                                 <td>{{ $subscription->created_at->format('d M Y') }}</td>
-                                <td>{{ $subscription->ends_at ? $subscription->ends_at->format('d M Y') : 'Current' }}</td>
+                                <td>
+                                    @if ($date = $subscription->calculated_ends_at)
+                                        @if($subscription->canceled())
+                                            <span class="text-danger">Ends on {{ $date->format('d M Y') }}</span>
+                                        @else
+                                            Renews on {{ $date->format('d M Y') }}
+                                        @endif
+                                    @else
+                                        N/A
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
