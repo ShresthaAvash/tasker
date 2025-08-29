@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Subscription;
 use App\Models\Plan;
+use App\Models\AssignedTask; // Import AssignedTask model
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 class SuperAdminController extends Controller
@@ -75,12 +76,16 @@ class SuperAdminController extends Controller
             ->get();
         // --- END OF MODIFICATION ---
 
+        // Removed chart data calculation as per user request.
+
+
         return view('SuperAdmin.dashboard', compact(
             'organizationCount',
             'subscriptionPlansCount',
             'subscribedOrgsCount',
             'recentlyJoined', // Pass the new variable
             'totalEarnings'
+            // Removed chartLabels and chartData from compact
         ));
     }
 
@@ -258,9 +263,10 @@ class SuperAdminController extends Controller
             ->with(['subscriptions' => fn($q) => $q->orderBy('created_at', 'desc'), 'subscriptions.plan']);
 
         if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('email', 'like', '%' . $request->search . '%');
+            $searchTerm = $request->search;
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%");
             });
         }
         

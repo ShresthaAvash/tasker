@@ -84,6 +84,11 @@
         .card-tabs .nav-tabs .nav-link { color: #007bff; }
         
         /* Notification dropdown styles */
+        @import url('https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap');
+        body {
+            font-family: 'Figtree', sans-serif !important;
+        }
+
         #notification-bell .dropdown-menu { min-width: 450px !important; position: absolute !important; left: auto !important; right: 0 !important; }
         .notification-item { display: flex !important; justify-content: space-between !important; align-items: center !important; white-space: normal !important; padding-top: 10px; padding-bottom: 10px; }
         .notification-text { flex-grow: 1; padding-right: 15px; }
@@ -106,6 +111,89 @@
             white-space: pre-wrap;
             max-height: 40vh;
             overflow-y: auto;
+        }
+
+        /* --- Custom Sidebar Styles for Blue Theme and Font Consistency --- */
+        /* For active main menu items and active parent menu items (like 'Organizations' when expanded) */
+        .main-sidebar .nav-sidebar .nav-item > .nav-link.active,
+        .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link { /* menu-open is for expanded parent */
+            background-color: #0c6ffd !important; /* Primary blue background */
+            color: #ffffff !important;           /* White text */
+        }
+
+        .main-sidebar .nav-sidebar .nav-item > .nav-link.active p,
+        .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link p,
+        .main-sidebar .nav-sidebar .nav-item > .nav-link.active i,
+        .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link i {
+            color: #ffffff !important;           /* White text and icons */
+        }
+
+        /* For active child menu items within a submenu */
+        .main-sidebar .nav-sidebar .nav-treeview .nav-item > .nav-link.active {
+            background-color: #0c6ffd !important; /* Primary blue background */
+            color: #ffffff !important;           /* White text */
+        }
+
+        .main-sidebar .nav-sidebar .nav-treeview .nav-item > .nav-link.active p,
+        .main-sidebar .nav-sidebar .nav-treeview .nav-item > .nav-link.active i {
+            color: #ffffff !important;           /* White text and icons */
+        }
+
+        /* Ensure consistent font size for all sidebar items */
+        .main-sidebar .nav-sidebar .nav-link,
+        .main-sidebar .nav-sidebar .nav-link p,
+        .main-sidebar .nav-sidebar .nav-link i.nav-icon { /* Target specific icon for size */
+            font-size: 0.95rem; /* Consistent font size */
+        }
+        /* Ensure caret icons don't get too small if we target all <i> */
+        .main-sidebar .nav-sidebar .nav-link i.right {
+            font-size: 0.8rem !important; /* Smaller caret icon */
+        }
+
+        .main-sidebar .nav-header {
+            font-size: 0.85rem; /* Headers can be slightly smaller */
+            padding: 0.8rem 1rem;
+            color: #6c757d; /* Default header text color */
+        }
+
+        /* --- Dashboard Quick Actions Specific Styling --- */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Responsive grid */
+            gap: 15px; /* Space between buttons */
+            padding: 10px; /* Add some padding around the buttons */
+        }
+
+        .action-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 10px;
+            font-size: 0.95rem;
+            height: 90px; /* Fixed height for consistency */
+            text-align: center;
+            border-radius: 8px;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            color: #fff !important; /* Ensure text is white for themed buttons */
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+        }
+
+        .action-button i {
+            font-size: 1.8rem; /* Larger icon size */
+            margin-bottom: 5px;
+        }
+
+        /* Specific fix for list-group-item borders in Recently Joined Organizations */
+        .card-body .list-group-item {
+            border-bottom: 1px solid rgba(0, 0, 0, .125) !important; /* Ensure border is visible */
+        }
+        .card-body .list-group-item:last-child {
+            border-bottom: none !important; /* No border on the last item */
         }
     </style>
 @stop
@@ -135,7 +223,7 @@
             $('.content-wrapper .content').prepend(trackerHtml);
             $('#global-live-tracker').fadeIn();
             const duration = parseInt(timerData.duration, 10) || 0;
-            const startTime = new Date(timerData.startedAt).getTime();
+            const startTime = new Date(timerStartedAt).getTime();
             const display = $('#global-live-tracker-display');
             if (globalTimerInterval) clearInterval(globalTimerInterval);
             const updateDisplay = () => {

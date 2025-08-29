@@ -230,7 +230,6 @@ return [
             'can'     => 'is-superadmin',
             'submenu' => [
                 [ 'text' => 'All Organizations', 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
-                [ 'text' => 'Add Organization', 'route'  => 'superadmin.organizations.create', 'icon' => 'fas fa-fw fa-plus', ],
                 [
                     'text' => 'Subscribed Organizations',
                     'route'  => 'superadmin.subscriptions.subscribed',

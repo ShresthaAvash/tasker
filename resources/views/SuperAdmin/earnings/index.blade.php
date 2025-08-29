@@ -49,7 +49,7 @@
     </div>
 </div>
 
-<div class="card card-info card-outline card-tabs">
+<div class="card card-primary card-outline card-tabs">
     <div class="card-header p-0 pt-1 border-bottom-0">
         {{-- --- THIS IS THE MODIFIED TAB STRUCTURE --- --}}
         <ul class="nav nav-tabs" id="earnings-tabs" role="tablist">
