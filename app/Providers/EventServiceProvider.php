@@ -9,6 +9,8 @@ use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
 // REMOVED: The 'use' statements for BuildingMenu and BuildMenuNotifications
+use Laravel\Cashier\Events\SubscriptionUpdated; // <-- ADD THIS
+use App\Listeners\NotifyAdminOfSubscriptionCancel; // <-- ADD THIS
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -26,7 +28,11 @@ class EventServiceProvider extends ServiceProvider
             LogSuccessfulLogin::class,
         ],
 
-        // --- THE BuildingMenu LISTENER HAS BEEN REMOVED FROM THIS ARRAY ---
+        // --- THIS IS THE FIX: Listen for Cashier's event with our new listener ---
+        SubscriptionUpdated::class => [
+            NotifyAdminOfSubscriptionCancel::class,
+        ],
+        // --- END OF FIX ---
     ];
 
     /**

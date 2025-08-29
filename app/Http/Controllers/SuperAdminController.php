@@ -66,8 +66,10 @@ class SuperAdminController extends Controller
 
         // --- THIS IS THE MODIFIED LOGIC ---
         // Get the 5 most recently joined (created) organizations with an active subscription
+        // Eager load the 'subscriptions' relationship to prevent N+1 queries in the view.
         $recentlyJoined = User::where('type', 'O')
             ->whereHas('subscriptions', fn($q) => $q->where('stripe_status', 'active'))
+            ->with('subscriptions') // <-- EAGER LOADING ADDED
             ->latest() // Orders by created_at descending
             ->take(5)
             ->get();
