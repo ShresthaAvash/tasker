@@ -397,14 +397,15 @@
                     <div class="col-lg-6 mb-4 mb-lg-0">
                         <div class="contact-form">
                             <h4 class="mb-4">Send us a message</h4>
-                            <form action="#" method="POST">
+                            <form action="<?php echo e(route('contact.store')); ?>" method="POST">
+                                @csrf
                                 <div class="row">
-                                    <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="First Name" required></div>
-                                    <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="Last Name" required></div>
+                                    <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="First Name" name="first_name" required></div>
+                                    <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="Last Name" name="last_name" required></div>
                                 </div>
-                                <div class="mb-3"><input type="email" class="form-control" placeholder="Email Address" required></div>
-                                <div class="mb-3"><input type="text" class="form-control" placeholder="Company (optional)"></div>
-                                <div class="mb-3"><textarea class="form-control" rows="5" placeholder="Tell us how we can help..."></textarea></div>
+                                <div class="mb-3"><input type="email" class="form-control" placeholder="Email Address" name="email" required></div>
+                                <div class="mb-3"><input type="text" class="form-control" placeholder="Company (optional)" name="company"></div>
+                                <div class="mb-3"><textarea class="form-control" rows="5" placeholder="Tell us how we can help..." name="message" required></textarea></div>
                                 <button type="submit" class="btn btn-primary btn-lg">Send Message</button>
                             </form>
                         </div>
@@ -451,7 +452,7 @@
                     <a href="#pricing" class="mx-2">Pricing</a>
                     <a href="#how-it-works" class="mx-2">How It Works</a>
                     <a href="#about" class="mx-2">About Tasker</a>
-                    <a href="{{ route('login') }}" class="mx-2">Login</a>
+                    <a href="<?php echo e(route('login')); ?>" class="mx-2">Login</a>
                 </div>
                 <div class="col-lg-3 text-center text-lg-end">
                     <p class="small mb-2">Powered by Gtech Vision</p>
@@ -465,7 +466,7 @@
         </div>
         <div class="footer-bottom">
             <div class="container text-center">
-                <small>© {{ date('Y') }} Tasker. All rights reserved.</small>
+                <small>© <?php echo e(date('Y')); ?> Tasker. All rights reserved.</small>
             </div>
         </div>
     </footer>

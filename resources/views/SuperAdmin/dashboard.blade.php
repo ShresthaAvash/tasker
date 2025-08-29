@@ -84,7 +84,7 @@
                 <h3 class="card-title">Recently Joined Organizations</h3>
             </div>
             <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
+                <ul class="list-group">
                     @forelse($recentlyJoined as $org)
                         <li class="list-group-item">
                             <strong>{{ $org->name }}</strong>
@@ -102,21 +102,30 @@
             </div>
         </div>
     </div>
+    {{-- Removed the entire "Task Status Overview" card as per user request --}}
     <div class="col-md-4">
         <div class="card card-outline card-primary">
             <div class="card-header">
                 <h3 class="card-title">Quick Actions</h3>
             </div>
-            {{-- MODIFIED: Added a container div for better layout control --}}
-            <div class="card-body quick-actions">
-                <a href="{{ route('superadmin.plans.create') }}" class="btn btn-app bg-success">
+            {{-- MODIFIED: Added a container div for better layout control and custom buttons --}}
+            <div class="card-body quick-actions-grid">
+                <a href="{{ route('superadmin.plans.create') }}" class="btn action-button bg-success">
                     <i class="fas fa-plus-circle"></i> Add Subscription
                 </a>
-                <a href="{{ route('superadmin.subscriptions.subscribed') }}" class="btn btn-app bg-warning">
-                    <i class="fas fa-list-alt"></i> View Subscribed
+                <a href="{{ route('superadmin.subscriptions.subscribed') }}" class="btn action-button bg-warning">
+                    <i class="fas fa-user-check"></i> View Subscribed
                 </a>
             </div>
         </div>
     </div>
 </div>
+
+@stop
+
+{{-- Removed Chart.js script as the pie chart is no longer needed --}}
+@section('js')
+<script>
+    // No Chart.js script needed since the pie chart was removed.
+</script>
 @stop
