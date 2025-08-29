@@ -229,7 +229,8 @@ return [
             'icon'    => 'fas fa-fw fa-building',
             'can'     => 'is-superadmin',
             'submenu' => [
-                [ 'text' => 'All Organizations', 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
+                [ 'text' => 'All Organizations', 
+                'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
                 [
                     'text' => 'Subscribed Organizations',
                     'route'  => 'superadmin.subscriptions.subscribed',
