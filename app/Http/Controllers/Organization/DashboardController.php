@@ -1,4 +1,4 @@
-<?php
+<?php 
 
 namespace App\Http\Controllers\Organization;
 
@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Models\Service;
 use App\Models\Task;
 use App\Models\AssignedTask;
+use App\Models\ClientDocument; // Import the ClientDocument model
+use Illuminate\Support\Collection; // Import the Collection class
 
 class DashboardController extends Controller
 {
@@ -141,9 +143,24 @@ class DashboardController extends Controller
         $ongoingAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'ongoing')->count();
         $ongoingTaskCount = $ongoingPersonalCount + $ongoingAssignedCount;
 
+        // NEW: Calculate documents count for clients associated with this staff member
+        $associatedClientIds = AssignedTask::whereHas('staff', function ($q) use ($staffId) {
+                $q->where('users.id', $staffId);
+            })
+            ->distinct()
+            ->pluck('client_id');
+
+        $documentsCount = ClientDocument::whereIn('client_id', $associatedClientIds)->count();
+
         // Data for Pie Chart
         $chartLabels = ['Ongoing Tasks', 'Completed Tasks'];
-        $chartData = [$ongoingTaskCount, $completedTaskCount];
+        $chartData = collect([ // Convert to a Collection here
+            'ongoing' => $ongoingTaskCount,
+            'completed' => $completedTaskCount,
+        ]);
+        $chartLabels = $chartData->keys()->map(fn($s) => ucwords(str_replace('_', ' ', $s)));
+        $chartData = $chartData->values();
+
 
         // Fetch Upcoming Personal tasks
         $personalTasks = Task::where('staff_id', $staffId)
@@ -179,6 +196,6 @@ class DashboardController extends Controller
         $allTasks = $personalTasks->concat($assignedTasks);
         $upcomingTasks = $allTasks->sortBy('start')->take(10);
         
-        return view('Organization.staff.dashboard', compact('activeTaskCount', 'completedTaskCount', 'upcomingTasks', 'chartLabels', 'chartData'));
+        return view('Organization.staff.dashboard', compact('activeTaskCount', 'completedTaskCount', 'upcomingTasks', 'chartLabels', 'chartData', 'documentsCount'));
     }
 }

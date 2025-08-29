@@ -1,3 +1,4 @@
+{{-- Full code for: tasker\resources\views\Organization\staff\dashboard.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Staff Dashboard')
@@ -14,7 +15,7 @@
 <div class="row">
     {{-- Active Tasks Info Box --}}
     <div class="col-lg-4 col-md-6">
-        <div class="small-box bg-warning">
+        <div class="small-box bg-primary"> {{-- Changed to bg-primary (blue) --}}
             <div class="inner">
                 <h3>{{ $activeTaskCount }}</h3>
                 <p>My Active Tasks</p>
@@ -39,6 +40,22 @@
             </div>
             <a href="{{ route('staff.tasks.index') }}" class="small-box-footer">
                 View All Tasks <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    {{-- NEW: My Documents Info Box --}}
+    <div class="col-lg-4 col-md-6">
+        <div class="small-box bg-warning"> {{-- Changed to bg-warning (yellow) --}}
+            <div class="inner">
+                <h3>{{ $documentsCount }}</h3>
+                <p>My Documents</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <a href="{{ route('staff.documents.index') }}" class="small-box-footer">
+                View All Documents <i class="fas fa-arrow-circle-right"></i>
             </a>
         </div>
     </div>
@@ -74,12 +91,16 @@
 
     {{-- NEW: Column for Pie Chart --}}
     <div class="col-md-4">
-        <div class="card card-info">
+        <div class="card card-primary"> {{-- Changed from card-info to card-primary (blue) for header --}}
             <div class="card-header">
                 <h3 class="card-title">Task Overview</h3>
             </div>
             <div class="card-body">
-                <canvas id="taskStatusChart"></canvas>
+                @if($chartData->sum() > 0) {{-- Check if there's any data to display --}}
+                    <canvas id="taskStatusChart"></canvas>
+                @else
+                    <p class="text-center text-muted p-3">No task data available right now.</p>
+                @endif
             </div>
         </div>
     </div>
@@ -92,24 +113,27 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(function () {
-            var ctx = document.getElementById('taskStatusChart').getContext('2d');
-            var taskStatusChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: @json($chartLabels),
-                    datasets: [{
-                        data: @json($chartData),
-                        backgroundColor: [ 'rgba(255, 193, 7, 0.7)', 'rgba(40, 167, 69, 0.7)' ],
-                        borderColor: [ 'rgba(255, 193, 7, 1)', 'rgba(40, 167, 69, 1)' ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    legend: { position: 'top' },
-                }
-            });
+            // Only render the chart if there is data
+            if ({{ $chartData->sum() }} > 0) {
+                var ctx = document.getElementById('taskStatusChart').getContext('2d');
+                var taskStatusChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: @json($chartLabels),
+                        datasets: [{
+                            data: @json($chartData),
+                            backgroundColor: [ 'rgba(255, 193, 7, 0.7)', 'rgba(40, 167, 69, 0.7)' ],
+                            borderColor: [ 'rgba(255, 193, 7, 1)', 'rgba(40, 167, 69, 1)' ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        legend: { position: 'top' },
+                    }
+                });
+            }
         });
     </script>
 @stop
