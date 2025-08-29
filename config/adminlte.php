@@ -18,7 +18,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'use_ico_only' => false,
+    'use_icon_only' => true,
     'use_full_favicon' => false,
 
     /*
@@ -37,11 +37,11 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'logo' => '<b>Tasker</b>',
-    'logo_img' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
-    'logo_img_class' => 'brand-image img-circle elevation-3',
+    'logo' => '<b>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</b>',
+    'logo_img' => 'vendor/adminlte/dist/img/tasker-logo.png',
+    // 'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
-    'logo_img_xl_class' => 'brand-image-xs',
+    // 'logo_img_xl_class' => 'brand-image-xs',
     'logo_img_alt' => 'Tasker Logo',
 
     /*
@@ -200,22 +200,8 @@ return [
 
     'menu' =>
     [
-        // User menu items located in the top-right navbar.
-        [
-            'text'        => 'Profile',
-            'route'       => 'profile.edit',
-            'icon'        => 'fas fa-fw fa-user',
-            'topnav_user' => true,
-        ],
-        [
-            'text'         => 'Activity Log',
-            'route'        => 'profile.activity_log',
-            'icon'         => 'fas fa-fw fa-list',
-            'topnav_user'  => true,
-        ],
 
         // --- Sidebar Menu Items ---
-        ['header' => 'MAIN NAVIGATION'],
 
         // SUPER ADMIN MENU
         [
@@ -379,6 +365,7 @@ return [
             'icon' => 'fas fa-fw fa-chart-pie',
             'can'  => 'is-client',
         ],
+        
     ],
 
     /*

@@ -118,32 +118,25 @@ class DashboardController extends Controller
     {
         $staffId = Auth::id();
 
-        // Calculate all counts first.
+        // --- THIS IS THE DEFINITIVE FIX FOR STAFF DASHBOARD COUNTS & CHART ---
         
-        // 1. Active Personal Tasks Count
-        $activePersonalCount = Task::where('staff_id', $staffId)
-            ->whereNull('job_id')
-            ->where('status', 'active')
-            ->count();
+        // Calculate all counts based on 'to_do', 'ongoing', and 'completed' statuses
+        $toDoPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'to_do')->count();
+        $toDoAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'to_do')->count();
+        $toDoTaskCount = $toDoPersonalCount + $toDoAssignedCount;
 
-        // 2. Active Assigned Tasks Count
-        $activeAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
-            ->where('status', '!=', 'completed')
-            ->count();
-        
-        $activeTaskCount = $activePersonalCount + $activeAssignedCount;
-
-        // 3. Completed Tasks Count (Both Personal and Assigned)
-        $completedPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'completed')->count();
-        $completedAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'completed')->count();
-        $completedTaskCount = $completedPersonalCount + $completedAssignedCount;
-        
-        // Count ongoing tasks
         $ongoingPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'ongoing')->count();
         $ongoingAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'ongoing')->count();
         $ongoingTaskCount = $ongoingPersonalCount + $ongoingAssignedCount;
 
-        // NEW: Calculate documents count for clients associated with this staff member
+        $completedPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'completed')->count();
+        $completedAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'completed')->count();
+        $completedTaskCount = $completedPersonalCount + $completedAssignedCount;
+
+        // Active tasks are now To Do + Ongoing
+        $activeTaskCount = $toDoTaskCount + $ongoingTaskCount;
+
+        // Calculate documents count for clients associated with this staff member
         $associatedClientIds = AssignedTask::whereHas('staff', function ($q) use ($staffId) {
                 $q->where('users.id', $staffId);
             })
@@ -152,20 +145,21 @@ class DashboardController extends Controller
 
         $documentsCount = ClientDocument::whereIn('client_id', $associatedClientIds)->count();
 
-        // Data for Pie Chart
-        $chartLabels = ['Ongoing Tasks', 'Completed Tasks'];
-        $chartData = collect([ // Convert to a Collection here
+        // Data for Pie Chart: To Do vs Ongoing Tasks
+        $chartData = collect([
+            'to_do' => $toDoTaskCount,
             'ongoing' => $ongoingTaskCount,
-            'completed' => $completedTaskCount,
         ]);
-        $chartLabels = $chartData->keys()->map(fn($s) => ucwords(str_replace('_', ' ', $s)));
-        $chartData = $chartData->values();
 
+        $chartLabels = $chartData->keys()->map(fn($s) => ucwords(str_replace('_', ' ', $s)));
+        $chartDataValues = $chartData->values();
+
+        // --- END OF FIX ---
 
         // Fetch Upcoming Personal tasks
         $personalTasks = Task::where('staff_id', $staffId)
             ->whereNull('job_id')
-            ->where('status', 'active')
+            ->whereIn('status', ['to_do', 'ongoing']) // Show both types of active tasks
             ->whereNotNull('start')
             ->where('start', '>=', now())
             ->orderBy('start', 'asc')
@@ -179,7 +173,7 @@ class DashboardController extends Controller
 
         // Fetch Upcoming Assigned client tasks
         $assignedTasks = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
-            ->where('status', '!=', 'completed')
+            ->whereIn('status', ['to_do', 'ongoing'])
             ->whereNotNull('start')
             ->where('start', '>=', now())
             ->with(['client', 'service', 'job'])
@@ -196,6 +190,6 @@ class DashboardController extends Controller
         $allTasks = $personalTasks->concat($assignedTasks);
         $upcomingTasks = $allTasks->sortBy('start')->take(10);
         
-        return view('Organization.staff.dashboard', compact('activeTaskCount', 'completedTaskCount', 'upcomingTasks', 'chartLabels', 'chartData', 'documentsCount'));
+        return view('Organization.staff.dashboard', compact('activeTaskCount', 'completedTaskCount', 'upcomingTasks', 'chartLabels', 'chartDataValues', 'documentsCount'));
     }
 }
