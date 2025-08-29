@@ -37,12 +37,6 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#features">Features</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('pricing') }}">Pricing</a>
-                    </li>
                     @auth
                         <li class="nav-item">
                             {{-- --- THIS IS THE MODIFIED LINE --- --}}

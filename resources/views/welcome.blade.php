@@ -15,7 +15,6 @@
     <!-- Scripts & Styles -->
     <?php echo app('Illuminate\Foundation\Vite')(['resources/sass/app.scss', 'resources/js/app.js']); ?>
 
-    
     <style>
         :root {
             --primary-blue: #0d6efd;
@@ -35,41 +34,55 @@
         /* Navbar */
         .navbar-custom { background-color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.06); padding: 1rem 0; }
         .navbar-brand { font-weight: 700; }
-        .navbar .nav-link { color: var(--text-dark); font-weight: 500; transition: color 0.2s; }
+        .navbar .nav-link { color: var(--text-dark); font-weight: 500; transition: color 0.2s;  margin: 0 15px;   }
         .navbar .nav-link:hover, .navbar .nav-link.active { color: var(--primary-blue); }
         .navbar .btn-login { border: 2px solid var(--primary-blue); font-weight: 600; padding: 0.5rem 1.5rem; border-radius: 50px; }
         .navbar .btn-login:hover { background-color: var(--primary-blue); color: #fff; }
 
         /* Hero Section */
-        .hero-section { background-color: var(--primary-blue); color: #fff; padding: 120px 0; }
-        .hero-section h1 { font-size: 3.8rem; font-weight: 700; line-height: 1.2; }
-        .hero-section .lead { font-size: 1.25rem; color: #ffffff; opacity: 1; }
+        .hero-section {
+            position: relative;
+            background: url("{{ asset('images/homepage.png') }}") no-repeat right center;
+            background-size: cover;
+            color: #fff;
+            padding: 120px 0;
+            overflow: hidden;
+        }
+
+        /* Gradient overlay for fade effect */
+        .hero-section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 65%; /* How much gradient covers */
+            height: 100%;
+            background: linear-gradient(to right, var(--primary-blue) 30%, rgba(13, 110, 253, 0) 100%);
+            z-index: 1;
+        }
+
+        .hero-section .container {
+            position: relative;
+            z-index: 2; /* Keep text above gradient */
+        }
+
+        .hero-section h1 {
+            font-size: 3.8rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .hero-section .lead { font-size: 1.25rem; color: #ffffff; }
         .hero-section .highlight { color: #ffdd57; }
         .hero-section .feature-list li {
             margin-bottom: 1rem;
-            color: #ffffff; /* Text color to white */
+            color: #ffffff;
         }
-        .hero-section .feature-list li .fas {
-            color: #ffffff; /* Icon color to white */
-        }
-        .hero-section .btn { padding: 12px 30px; font-size: 1.1rem; font-weight: 600; border-radius: 8px; }
-        .hero-image-wrapper {
-            padding: 20px;
-        }
-
-        .hero-image-wrapper img {
-            border-radius: 12px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35);
-            max-height: 1000px;   /* Increased height */
-            width: 110%;         /* Makes it fill available space */
-            border: 3px solid #fff;
-            transition: all 0.3s ease-in-out;
-        }
-
-        
-        .hero-image-wrapper img:hover {
-            transform: scale(1.02);
-            box-shadow: 0 30px 60px -15px rgba(0,0,0,0.4);
+        .hero-section .feature-list li .fas { color: #ffffff; }
+        .hero-section .btn {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
         }
 
         /* Feature & Step Cards */
@@ -78,81 +91,25 @@
         .feature-card .icon { font-size: 2.5rem; color: var(--primary-blue); margin-bottom: 20px; }
         .step-card { text-align: center; }
         .step-number { background-color: var(--primary-blue); color: #fff; width: 40px; height: 40px; line-height: 40px; border-radius: 50%; margin: 0 auto 20px auto; font-weight: 700; }
-        
+
         /* Pricing Section Styling */
-        .pricing-section {
-            padding: 80px 0;
-            background-color: #f8f9fa; /* Light grey background */
-        }
-        .pricing-header {
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
-            margin-bottom: 50px;
-        }
-        .pricing-header h2 {
-            font-weight: 700;
-            font-size: 2.8rem;
-            color: #1a202c;
-        }
-        .pricing-header p {
-            font-size: 1.15rem;
-            color: #6c757d;
-        }
-        .pricing-container {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 30px; /* Space between cards */
-        }
-        .pricing-card {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 40px 30px; /* Vertical and horizontal padding */
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center; /* Center content horizontally */
-            flex: 0 0 340px; /* Fixed width for cards */
-            position: relative;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-        .pricing-card:not(.highlight):hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-        }
-        .pricing-card.highlight {
-            background: linear-gradient(180deg, #4f46e5 0%, #3b82f6 100%);
-            border: none;
-            color: #fff;
-            transform: scale(1.05); /* Makes the highlighted card slightly larger */
-        }
-        .pricing-card.highlight:hover {
-            transform: scale(1.08); /* Slightly larger hover effect */
-        }
+        .pricing-section { padding: 80px 0; background-color: #f8f9fa; }
+        .pricing-header { max-width: 700px; margin-left: auto; margin-right: auto; margin-bottom: 50px; }
+        .pricing-header h2 { font-weight: 700; font-size: 2.8rem; color: #1a202c; }
+        .pricing-header p { font-size: 1.15rem; color: #6c757d; }
+        .pricing-container { display: flex; justify-content: center; flex-wrap: wrap; gap: 30px; }
+        .pricing-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 40px 30px; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; flex: 0 0 340px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .pricing-card:not(.highlight):hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+        .pricing-card.highlight { background: linear-gradient(180deg, #4f46e5 0%, #3b82f6 100%); border: none; color: #fff; transform: scale(1.05); }
+        .pricing-card.highlight:hover { transform: scale(1.08); }
         .pricing-card.highlight .plan-name,
         .pricing-card.highlight .price,
         .pricing-card.highlight .price-period,
-        .pricing-card.highlight .plan-description {
-            color: #fff;
-        }
+        .pricing-card.highlight .plan-description { color: #fff; }
         .pricing-card.highlight .feature-list li { color: #e0ecff; }
         .pricing-card.highlight .feature-list .fa-check-circle { color: #fff; }
         .pricing-card.highlight .btn-purchase { background: #fff; color: #2563eb; }
-        .most-popular-badge {
-            position: absolute;
-            top: -14px; /* Position badge above the card */
-            left: 50%;
-            transform: translateX(-50%);
-            background: #e3f2fd;
-            color: #0a58ca;
-            padding: 5px 15px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            border-radius: 14px; /* Pill shape */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+        .most-popular-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #e3f2fd; color: #0a58ca; padding: 5px 15px; font-size: 0.8rem; font-weight: 700; border-radius: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .plan-name { font-weight: 600; font-size: 1.1rem; margin-bottom: 10px; color: #1a202c; }
         .price { font-size: 3rem; font-weight: 700; color: #1a202c; }
         .price-period { font-size: 1rem; color: #6c757d; font-weight: 500; margin-bottom: 20px; }
@@ -160,63 +117,16 @@
         .feature-list { list-style: none; padding: 0; margin: 15px 0 30px 0; text-align: left; width: 100%; flex-grow: 1; }
         .feature-list li { margin-bottom: 14px; display: flex; align-items: center; font-size: 0.95rem; color: #4a5568;}
         .feature-list .fa-check-circle { color: #3b82f6; margin-right: 12px; font-size: 1.1rem; }
-        .btn-purchase {
-            width: 100%;
-            padding: 14px;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 8px;
-            background: #3b82f6;
-            color: #fff;
-            border: 1px solid #3b82f6;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-        .btn-purchase.btn-outline {
-            background: transparent;
-            color: #3b82f6;
-        }
-        .btn-purchase:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
+        .btn-purchase { width: 100%; padding: 14px; font-size: 1rem; font-weight: 600; border-radius: 8px; background: #3b82f6; color: #fff; border: 1px solid #3b82f6; transition: all 0.2s ease; text-decoration: none; display: inline-block; text-align: center; }
+        .btn-purchase.btn-outline { background: transparent; color: #3b82f6; }
+        .btn-purchase:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
         /* Contact & Footer */
         .contact-section { background-color: var(--section-bg); }
-        .contact-info-card {
-            background: #fff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .contact-info-card .icon-wrapper {
-            flex-shrink: 0;
-            width: 50px;
-            height: 50px;
-            background-color: var(--light-blue);
-            color: var(--primary-blue);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            margin-right: 20px;
-            font-size: 1.5rem;
-        }
-        .contact-form .form-control {
-            border-radius: 8px;
-            padding: 12px 15px;
-            border: 1px solid #ced4da;
-        }
-        .contact-form .btn-primary {
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-weight: 600;
-        }
+        .contact-info-card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; align-items: center; margin-bottom: 20px; }
+        .contact-info-card .icon-wrapper { flex-shrink: 0; width: 50px; height: 50px; background-color: var(--light-blue); color: var(--primary-blue); display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-right: 20px; font-size: 1.5rem; }
+        .contact-form .form-control { border-radius: 8px; padding: 12px 15px; border: 1px solid #ced4da; }
+        .contact-form .btn-primary { padding: 12px 30px; border-radius: 8px; font-weight: 600; }
         .footer { background: linear-gradient(45deg, #0d6efd, #0a58ca); color: #fff; padding-top: 60px; }
         .footer a { color: #fff; text-decoration: none; }
         .footer .social-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.1); display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.3s; }
@@ -254,6 +164,7 @@
     </nav>
 
     <main>
+        <!-- ✅ Updated Hero Section -->
         <section class="hero-section" id="home">
             <div class="container">
                 <div class="row align-items-center">
@@ -269,15 +180,9 @@
                         </ul>
                         <a href="#pricing" class="btn btn-light me-2">Get Started Now</a>
                     </div>
-                    <div class="col-lg-6 text-center d-none d-lg-block">
-                        <div class="hero-image-wrapper">
-                            <img src="<?php echo e(asset('images/homepage.png')); ?>" class="img-fluid" alt="Tasker Dashboard Preview">
-                        </div>
-                    </div>
-                </div>
+                </div> 
             </div>
         </section>
-
         
         <section class="section text-center" id="about">
             <div class="container">
@@ -397,15 +302,14 @@
                     <div class="col-lg-6 mb-4 mb-lg-0">
                         <div class="contact-form">
                             <h4 class="mb-4">Send us a message</h4>
-                            <form action="<?php echo e(route('contact.store')); ?>" method="POST">
-                                @csrf
+                            <form action="#" method="POST">
                                 <div class="row">
-                                    <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="First Name" name="first_name" required></div>
-                                    <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="Last Name" name="last_name" required></div>
+                                    <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="First Name" required></div>
+                                    <div class="col-md-6 mb-3"><input type="text" class="form-control" placeholder="Last Name" required></div>
                                 </div>
-                                <div class="mb-3"><input type="email" class="form-control" placeholder="Email Address" name="email" required></div>
-                                <div class="mb-3"><input type="text" class="form-control" placeholder="Company (optional)" name="company"></div>
-                                <div class="mb-3"><textarea class="form-control" rows="5" placeholder="Tell us how we can help..." name="message" required></textarea></div>
+                                <div class="mb-3"><input type="email" class="form-control" placeholder="Email Address" required></div>
+                                <div class="mb-3"><input type="text" class="form-control" placeholder="Company (optional)"></div>
+                                <div class="mb-3"><textarea class="form-control" rows="5" placeholder="Tell us how we can help..."></textarea></div>
                                 <button type="submit" class="btn btn-primary btn-lg">Send Message</button>
                             </form>
                         </div>
@@ -452,7 +356,7 @@
                     <a href="#pricing" class="mx-2">Pricing</a>
                     <a href="#how-it-works" class="mx-2">How It Works</a>
                     <a href="#about" class="mx-2">About Tasker</a>
-                    <a href="<?php echo e(route('login')); ?>" class="mx-2">Login</a>
+                    <a href="{{ route('login') }}" class="mx-2">Login</a>
                 </div>
                 <div class="col-lg-3 text-center text-lg-end">
                     <p class="small mb-2">Powered by Gtech Vision</p>
@@ -466,7 +370,7 @@
         </div>
         <div class="footer-bottom">
             <div class="container text-center">
-                <small>© <?php echo e(date('Y')); ?> Tasker. All rights reserved.</small>
+                <small>© {{ date('Y') }} Tasker. All rights reserved.</small>
             </div>
         </div>
     </footer>
