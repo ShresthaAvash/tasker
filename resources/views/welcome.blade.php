@@ -121,14 +121,32 @@
         .btn-purchase.btn-outline { background: transparent; color: #3b82f6; }
         .btn-purchase:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
-        /* Contact & Footer */
+        /* Contact Section */
         .contact-section { background-color: var(--section-bg); }
         .contact-info-card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; align-items: center; margin-bottom: 20px; }
         .contact-info-card .icon-wrapper { flex-shrink: 0; width: 50px; height: 50px; background-color: var(--light-blue); color: var(--primary-blue); display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-right: 20px; font-size: 1.5rem; }
         .contact-form .form-control { border-radius: 8px; padding: 12px 15px; border: 1px solid #ced4da; }
         .contact-form .btn-primary { padding: 12px 30px; border-radius: 8px; font-weight: 600; }
+        
+        /* Map Container Styling */
+        .map-container {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            height: 450px;
+        }
+        .map-container iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        /* Footer Styling */
         .footer { background: linear-gradient(45deg, #0d6efd, #0a58ca); color: #fff; padding-top: 60px; }
         .footer a { color: #fff; text-decoration: none; }
+        .footer h5 { font-weight: 600; margin-bottom: 1rem; }
+        .footer .list-unstyled a { color: rgba(255,255,255,0.8); transition: color 0.2s; }
+        .footer .list-unstyled a:hover { color: #fff; }
         .footer .social-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.1); display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.3s; }
         .footer .social-icon:hover { background: rgba(255,255,255,0.2); }
         .footer-bottom { background-color: rgba(0,0,0,0.1); padding: 15px 0; margin-top: 40px; }
@@ -164,7 +182,7 @@
     </nav>
 
     <main>
-        <!-- ✅ Updated Hero Section -->
+        <!-- Hero Section -->
         <section class="hero-section" id="home">
             <div class="container">
                 <div class="row align-items-center">
@@ -184,6 +202,7 @@
             </div>
         </section>
         
+        <!-- About Section -->
         <section class="section text-center" id="about">
             <div class="container">
                 <h2 class="section-title">About <span class="text-primary">Tasker</span></h2>
@@ -197,6 +216,7 @@
         </section>
         
         
+        <!-- How It Works Section -->
         <section class="section text-center bg-light" id="how-it-works">
             <div class="container">
                 <h2 class="section-title">How <span class="text-primary">Tasker</span> Works</h2>
@@ -210,7 +230,7 @@
             </div>
         </section>
 
-        
+        <!-- Why Tasker Section -->
         <section class="section" id="why-tasker">
             <div class="container">
                 <h2 class="section-title text-center">Why Choose <span class="text-primary">Tasker</span>?</h2>
@@ -223,7 +243,7 @@
             </div>
         </section>
 
-        
+        <!-- Pricing Section -->
         <section class="pricing-section" id="pricing">
             <div class="container">
                 <div class="pricing-header text-center">
@@ -293,7 +313,7 @@
             </div>
         </section>
 
-        
+        <!-- Contact Section -->
         <section class="section contact-section" id="contact">
             <div class="container">
                 <h2 class="section-title text-center">Get in <span class="text-primary">Touch</span></h2>
@@ -341,29 +361,55 @@
                         </div>
                     </div>
                 </div>
+                {{-- --- THIS IS THE FIX --- --}}
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <div class="map-container">
+                            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3532.992233623543!2d85.31688657512295!3d27.68661607619504!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb19b023de2181%3A0x7af7c237a360a8b!2sG-Tech%20Vision!5e0!3m2!1sen!2snp!4v1693557375630!5m2!1sen!2snp" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
 
     <footer class="footer">
         <div class="container">
-            <div class="row align-items-center">
+            <div class="row">
+                <!-- About Section -->
                 <div class="col-lg-4 text-center text-lg-start mb-4 mb-lg-0">
                     <h4 class="fw-bold">TASKER</h4>
-                    <p class="mb-0">Streamline your workflow. Organize tasks, track progress, and collaborate in one place.</p>
+                    <p class="mb-0 text-white-50">Streamline your workflow. Organize tasks, track progress, and collaborate in one place.</p>
                 </div>
-                <div class="col-lg-5 text-center mb-4 mb-lg-0">
-                    <a href="#pricing" class="mx-2">Pricing</a>
-                    <a href="#how-it-works" class="mx-2">How It Works</a>
-                    <a href="#about" class="mx-2">About Tasker</a>
-                    <a href="{{ route('login') }}" class="mx-2">Login</a>
+
+                <!-- Quick Links -->
+                <div class="col-lg-2 offset-lg-1 text-center text-lg-start mb-4 mb-lg-0">
+                    <h5 class="mb-3">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#pricing">Pricing</a></li>
+                        <li class="mb-2"><a href="#how-it-works">How It Works</a></li>
+                        <li class="mb-2"><a href="#why-tasker">Why Tasker</a></li>
+                    </ul>
                 </div>
-                <div class="col-lg-3 text-center text-lg-end">
-                    <p class="small mb-2">Powered by Gtech Vision</p>
+                
+                <!-- Company Links -->
+                <div class="col-lg-2 text-center text-lg-start mb-4 mb-lg-0">
+                    <h5 class="mb-3">Company</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#about">About Tasker</a></li>
+                        <li class="mb-2"><a href="#contact">Contact</a></li>
+                        <li class="mb-2"><a href="{{ route('login') }}">Login</a></li>
+                    </ul>
+                </div>
+
+                <!-- Social Media Section -->
+                <div class="col-lg-3 text-center text-lg-start">
+                    <h5 class="mb-3">Our Socials</h5>
+                    <p class="text-white-50">Follow us for updates and news.</p>
                     <div>
-                        <a href="#" class="social-icon mx-1"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" class="social-icon mx-1"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="social-icon mx-1"><i class="fab fa-twitter"></i></a>
+                        <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" class="social-icon mx-1"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" class="social-icon mx-1"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.twitter.com" target="_blank" rel="noopener noreferrer" class="social-icon mx-1"><i class="fab fa-twitter"></i></a>
                     </div>
                 </div>
             </div>
@@ -374,7 +420,6 @@
             </div>
         </div>
     </footer>
-
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
