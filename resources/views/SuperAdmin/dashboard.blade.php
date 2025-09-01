@@ -6,7 +6,7 @@
     <h1>Dashboard</h1>
 @stop
 
-{{-- THIS IS THE FIX: Added the modern dashboard CSS --}}
+{{-- THIS IS THE FIX: Added the correct CSS for the card footers --}}
 @section('css')
 <style>
     /* General Page & Card Styling */
@@ -35,16 +35,18 @@
         padding: 2.5rem;
         transition: all 0.3s ease;
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        justify-content: space-between;
         height: 100%;
-    }
-    a.stat-card-link, a.stat-card-link:hover {
-        text-decoration: none;
-        color: inherit;
     }
     .stat-card-modern:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+    .stat-card-content {
+        display: flex;
+        align-items: center;
+        width: 100%;
     }
     .stat-card-modern .icon-wrapper {
         flex-shrink: 0;
@@ -59,12 +61,6 @@
     .stat-card-modern .icon-wrapper i {
         font-size: 2rem;
     }
-    .stat-card-modern .stat-info-wrapper {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-    }
     .stat-card-modern .stat-info .stat-title {
         color: #6c757d;
         font-size: 1rem;
@@ -77,17 +73,28 @@
         color: #212529;
         line-height: 1.2;
     }
-    .stat-card-modern .hover-arrow {
-        font-size: 1.5rem;
-        color: #adb5bd;
-        opacity: 0;
-        transform: translateX(-10px);
-        transition: all 0.3s ease;
+    .stat-card-footer {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #f0f0f0;
+        text-align: center;
     }
-    .stat-card-modern:hover .hover-arrow {
-        opacity: 1;
-        transform: translateX(0);
+    .stat-card-footer a {
+        color: #6c757d;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: color 0.2s ease-in-out;
+    }
+    .stat-card-footer a:hover {
         color: #0d6efd;
+    }
+    .stat-card-footer i {
+        margin-left: 0.25rem;
+        transition: transform 0.2s ease-in-out;
+    }
+    .stat-card-footer a:hover i {
+        transform: translateX(3px);
     }
 
     /* Icon Colors */
@@ -137,7 +144,7 @@
         padding: 1rem;
         font-size: 1rem;
         font-weight: 600;
-        border-radius: .75rem; /* More rounded buttons */
+        border-radius: .75rem;
         transition: all 0.2s ease-in-out;
         border: 1px solid transparent;
     }
@@ -171,79 +178,79 @@
 @stop
 
 @section('content')
-{{-- THIS IS THE FIX: Replaced the old "small-box" divs with the new "stat-card-modern" structure --}}
+{{-- THIS IS THE FIX: The entire HTML structure for the info boxes has been replaced --}}
 <div class="row">
     <div class="col-lg-3 col-md-6 mb-4">
-        <a href="{{ route('superadmin.organizations.index') }}" class="stat-card-link d-block h-100">
-            <div class="stat-card-modern h-100">
+        <div class="stat-card-modern h-100">
+            <div class="stat-card-content">
                 <div class="icon-wrapper bg-primary-light">
                     <i class="fas fa-building text-primary"></i>
                 </div>
-                <div class="stat-info-wrapper">
-                    <div class="stat-info">
-                        <p class="stat-title">Total Organizations</p>
-                        <h3 class="stat-number">{{ $organizationCount }}</h3>
-                    </div>
-                    <div class="hover-arrow">
-                        <i class="fas fa-arrow-right"></i>
-                    </div>
+                <div class="stat-info">
+                    <p class="stat-title">Total Organizations</p>
+                    <h3 class="stat-number">{{ $organizationCount }}</h3>
                 </div>
             </div>
-        </a>
+            <div class="stat-card-footer">
+                <a href="{{ route('superadmin.organizations.index') }}">
+                    View All Organizations <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
     </div>
     <div class="col-lg-3 col-md-6 mb-4">
-        <a href="{{ route('superadmin.plans.index') }}" class="stat-card-link d-block h-100">
-            <div class="stat-card-modern h-100">
+        <div class="stat-card-modern h-100">
+            <div class="stat-card-content">
                 <div class="icon-wrapper bg-success-light">
                     <i class="fas fa-tags text-success"></i>
                 </div>
-                <div class="stat-info-wrapper">
-                    <div class="stat-info">
-                        <p class="stat-title">Subscription Plans</p>
-                        <h3 class="stat-number">{{ $subscriptionPlansCount }}</h3>
-                    </div>
-                    <div class="hover-arrow">
-                        <i class="fas fa-arrow-right"></i>
-                    </div>
+                <div class="stat-info">
+                    <p class="stat-title">Subscription Plans</p>
+                    <h3 class="stat-number">{{ $subscriptionPlansCount }}</h3>
                 </div>
             </div>
-        </a>
+            <div class="stat-card-footer">
+                <a href="{{ route('superadmin.plans.index') }}">
+                    View All Plans <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
     </div>
     <div class="col-lg-3 col-md-6 mb-4">
-        <a href="{{ route('superadmin.subscriptions.subscribed') }}" class="stat-card-link d-block h-100">
-            <div class="stat-card-modern h-100">
+        <div class="stat-card-modern h-100">
+            <div class="stat-card-content">
                 <div class="icon-wrapper bg-warning-light">
                     <i class="fas fa-user-check text-warning"></i>
                 </div>
-                <div class="stat-info-wrapper">
-                    <div class="stat-info">
-                        <p class="stat-title">Subscribed Orgs</p>
-                        <h3 class="stat-number">{{ $subscribedOrgsCount }}</h3>
-                    </div>
-                    <div class="hover-arrow">
-                        <i class="fas fa-arrow-right"></i>
-                    </div>
+                <div class="stat-info">
+                    <p class="stat-title">Subscribed Orgs</p>
+                    <h3 class="stat-number">{{ $subscribedOrgsCount }}</h3>
                 </div>
             </div>
-        </a>
+            <div class="stat-card-footer">
+                <a href="{{ route('superadmin.subscriptions.subscribed') }}">
+                    View Subscribers <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
     </div>
     <div class="col-lg-3 col-md-6 mb-4">
-        <a href="{{ route('superadmin.earnings') }}" class="stat-card-link d-block h-100">
-            <div class="stat-card-modern h-100">
+        <div class="stat-card-modern h-100">
+            <div class="stat-card-content">
                 <div class="icon-wrapper bg-danger-light">
                     <i class="fas fa-dollar-sign text-danger"></i>
                 </div>
-                <div class="stat-info-wrapper">
-                    <div class="stat-info">
-                        <p class="stat-title">Total Earnings</p>
-                        <h3 class="stat-number">${{ number_format($totalEarnings, 2) }}</h3>
-                    </div>
-                    <div class="hover-arrow">
-                        <i class="fas fa-arrow-right"></i>
-                    </div>
+                <div class="stat-info">
+                    <p class="stat-title">Total Earnings</p>
+                    <h3 class="stat-number">${{ number_format($totalEarnings, 2) }}</h3>
                 </div>
             </div>
-        </a>
+            <div class="stat-card-footer">
+                <a href="{{ route('superadmin.earnings') }}">
+                    View Earnings Report <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
