@@ -55,10 +55,20 @@ class DashboardController extends Controller
             ->get();
             
         // Data for the pie chart from assignments, not templates
-        $taskStatusCounts = AssignedTask::whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
+        $dbStatusCounts = AssignedTask::whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
             ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->pluck('count', 'status');
+        
+        // Define the desired order and default values for the chart to ensure 'Ongoing' is always present.
+        $allStatuses = collect([
+            'to_do' => 0,
+            'ongoing' => 0,
+            'completed' => 0,
+        ]);
+
+        // Merge the database results with the defaults. This ensures all keys exist, even with a count of 0.
+        $taskStatusCounts = $allStatuses->merge($dbStatusCounts);
         
         // --- END OF FIX ---
 

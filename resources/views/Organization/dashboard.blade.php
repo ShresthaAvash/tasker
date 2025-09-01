@@ -302,7 +302,9 @@
                         labels: @json($chartLabels),
                         datasets: [{
                             data: @json($chartData),
-                            backgroundColor: [ '#0d6efd', '#ffc107', '#28a745', '#dc3545', '#6c757d' ],
+                            // --- THIS IS THE FIX ---
+                            // Assigns blue to "To Do", green to "Ongoing", and yellow to "Completed"
+                            backgroundColor: [ '#0d6efd', '#28a745', '#ffc107', '#dc3545', '#6c757d' ],
                             borderColor: '#ffffff',
                             borderWidth: 2
                         }]
