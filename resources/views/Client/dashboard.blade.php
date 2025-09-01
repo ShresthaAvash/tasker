@@ -255,9 +255,9 @@
                         datasets: [{
                             data: @json($chartDataValues),
                             backgroundColor: [
-                                '#ffc107', // Warning (yellow) for To Do
-                                '#0dcaf0', // Info (teal) for Ongoing
-                                '#198754'  // Success (green) for Completed
+                                '#0d6efd', // Blue for To Do
+                                '#ffc107', // Yellow for Ongoing
+                                '#28a745'  // --- THIS IS THE FIX --- Green for Completed
                             ],
                             borderColor: '#ffffff',
                             borderWidth: 2

@@ -237,8 +237,10 @@
                         labels: @json($chartLabels),
                         datasets: [{
                             data: @json($chartDataValues),
-                            backgroundColor: [ '#ffc107', '#17a2b8' ], // Yellow for To Do, Teal for Ongoing
-                            borderColor: [ '#ffffff', '#ffffff' ],
+                            // --- THIS IS THE FIX ---
+                            // To Do => Blue, Ongoing => Yellow, Completed => Green
+                            backgroundColor: [ '#0d6efd', '#ffc107', '#28a745' ],
+                            borderColor: [ '#ffffff', '#ffffff', '#ffffff' ],
                             borderWidth: 2
                         }]
                     },

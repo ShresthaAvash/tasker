@@ -303,8 +303,8 @@
                         datasets: [{
                             data: @json($chartData),
                             // --- THIS IS THE FIX ---
-                            // Assigns blue to "To Do", green to "Ongoing", and yellow to "Completed"
-                            backgroundColor: [ '#0d6efd', '#28a745', '#ffc107', '#dc3545', '#6c757d' ],
+                            // To Do => Blue, Ongoing => Yellow, Completed => Green
+                            backgroundColor: [ '#0d6efd', '#ffc107', '#28a745' ],
                             borderColor: '#ffffff',
                             borderWidth: 2
                         }]

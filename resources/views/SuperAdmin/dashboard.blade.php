@@ -6,7 +6,7 @@
     <h1>Dashboard</h1>
 @stop
 
-{{-- NEW: Custom CSS for the final modern dashboard UI --}}
+{{-- THIS IS THE FIX: Added the modern dashboard CSS --}}
 @section('css')
 <style>
     /* General Page & Card Styling */
@@ -171,7 +171,7 @@
 @stop
 
 @section('content')
-{{-- Top Row Info Boxes - Redesigned with larger cards --}}
+{{-- THIS IS THE FIX: Replaced the old "small-box" divs with the new "stat-card-modern" structure --}}
 <div class="row">
     <div class="col-lg-3 col-md-6 mb-4">
         <a href="{{ route('superadmin.organizations.index') }}" class="stat-card-link d-block h-100">
