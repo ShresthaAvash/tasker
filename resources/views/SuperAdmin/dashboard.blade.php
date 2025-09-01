@@ -6,7 +6,6 @@
     <h1>Dashboard</h1>
 @stop
 
-{{-- THIS IS THE FIX: Added the correct CSS for the card footers --}}
 @section('css')
 <style>
     /* General Page & Card Styling */
@@ -178,7 +177,6 @@
 @stop
 
 @section('content')
-{{-- THIS IS THE FIX: The entire HTML structure for the info boxes has been replaced --}}
 <div class="row">
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="stat-card-modern h-100">
@@ -227,9 +225,10 @@
                     <h3 class="stat-number">{{ $subscribedOrgsCount }}</h3>
                 </div>
             </div>
+            {{-- --- THIS IS THE FIX --- --}}
             <div class="stat-card-footer">
                 <a href="{{ route('superadmin.subscriptions.subscribed') }}">
-                    View Subscribers <i class="fas fa-arrow-circle-right"></i>
+                    View All Organizations <i class="fas fa-arrow-circle-right"></i>
                 </a>
             </div>
         </div>

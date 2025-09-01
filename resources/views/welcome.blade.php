@@ -161,12 +161,14 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                {{-- --- THIS IS THE FIX --- --}}
                 <ul class="navbar-nav mx-auto">
                     <li class="nav-item"><a class="nav-link" href="#home">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
                     <li class="nav-item"><a class="nav-link" href="#how-it-works">How it works</a></li>
                     <li class="nav-item"><a class="nav-link" href="#why-tasker">Why Tasker</a></li>
                     <li class="nav-item"><a class="nav-link" href="#pricing">Subscription</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item">
@@ -361,7 +363,6 @@
                         </div>
                     </div>
                 </div>
-                {{-- --- THIS IS THE FIX --- --}}
                 <div class="row mt-5">
                     <div class="col-12">
                         <div class="map-container">
