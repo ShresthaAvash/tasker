@@ -78,7 +78,7 @@
     </li>
 @endsection
 
-@section('css')
+@push('css')
     <style>
         /* --- THEME COLOR FIXES --- */
         .card-primary.card-tabs .nav-tabs .nav-link.active,
@@ -100,22 +100,74 @@
             padding-top: 0.6rem !important;
             padding-bottom: 0.6rem !important;
         }
-        .main-sidebar .nav-sidebar .nav-treeview > .nav-item > .nav-link.active {
-            background-color: #e9ecef !important;
-            color: #212529 !important;
-        }
-    </style>
-@stop
 
-@section('js')
+        /* --- THIS IS THE DEFINITIVE FIX FOR SIDEBAR HIGHLIGHTING --- */
+
+        /* 1. Remove the gray background from any parent menu item that is open. */
+        .sidebar-light-primary .nav-sidebar > .nav-item.menu-open > .nav-link {
+            background-color: transparent !important;
+        }
+
+        /* 2. Remove the background and border from ANY active link. */
+        .nav-sidebar .nav-link.active {
+            background-color: transparent !important;
+            box-shadow: none !important;
+            border-left: 3px solid transparent !important;
+        }
+
+        /* 3. Style the active CHILD link's text and icon to be blue. */
+        .nav-sidebar .nav-treeview .nav-link.active,
+        .nav-sidebar .nav-treeview .nav-link.active > i {
+            color: #0c6ffd !important;
+            font-weight: 600;
+        }
+        .nav-sidebar .nav-treeview .nav-link.active > p {
+             font-weight: 600;
+        }
+
+        /* 4. Style active TOP-LEVEL links (like Dashboard) to be blue. */
+        .nav-sidebar > .nav-item:not(.has-treeview) > .nav-link.active,
+        .nav-sidebar > .nav-item:not(.has-treeview) > .nav-link.active > i {
+            color: #0c6ffd !important;
+        }
+        .nav-sidebar > .nav-item:not(.has-treeview) > .nav-link.active > p {
+             font-weight: 600;
+        }
+
+        .nav-link.menu-open.active{
+
+            color: #0c6ffd !important;
+        } 
+    </style>
+@endpush
+
+@push('js')
 <script>
     $(document).ready(function() {
+        
         // --- GLOBAL AJAX SETUP WITH CSRF TOKEN ---
         $.ajaxSetup({
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
         });
+
+        // --- THIS IS THE DEFINITIVE FIX FOR THE SIDEBAR ---
+        // This script ensures all sidebar submenus are expanded by default on every page load.
+        setTimeout(function() {
+            // Find all sidebar treeview items.
+            $('.sidebar .nav-item.has-treeview').each(function () {
+                // Force the 'menu-open' class on the parent li.
+                $(this).addClass('menu-open');
+                // Ensure the child ul (nav-treeview) is visible.
+                $(this).children('.nav-treeview').css('display', 'block');
+            });
+
+            // Ensure the main sidebar is not in its collapsed 'mini' state on page load.
+            if ($('body').hasClass('sidebar-collapse')) {
+                $('body').removeClass('sidebar-collapse');
+            }
+        }, 300); // A small delay is crucial to ensure this runs AFTER AdminLTE's script.
         
         // ============== GLOBAL TIMER SCRIPT START ==============
         let globalTimerInterval;
@@ -254,5 +306,4 @@
         // ============== NOTIFICATION SCRIPT END ==============
     });
 </script>
-@yield('page_content_js')
-@stop
+@endpush

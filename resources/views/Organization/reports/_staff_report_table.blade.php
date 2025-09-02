@@ -1,99 +1,101 @@
 @php
-    function formatToHms($seconds) {
-        if ($seconds < 0) $seconds = 0;
-        $h = floor($seconds / 3600);
-        $m = floor(($seconds % 3600) / 60);
-        $s = $seconds % 60;
-        return sprintf('%02d:%02d:%02d', $h, $m, $s);
+    if (!function_exists('formatToHms')) {
+        function formatToHms($seconds) {
+            if ($seconds <= 0) return '00:00:00';
+            $h = floor($seconds / 3600);
+            $m = floor(($seconds % 3600) / 60);
+            $s = $seconds % 60;
+            return sprintf('%02d:%02d:%02d', $h, $m, $s);
+        }
+    }
+
+    if (!function_exists('getAggregateStatusForStaff')) {
+        function getAggregateStatusForStaff($tasks) {
+            if (empty($tasks)) return 'Not Started Yet';
+            
+            $taskCollection = collect($tasks);
+            $statuses = $taskCollection->pluck('status')->unique();
+            $hasTime = $taskCollection->sum('duration') > 0;
+
+            if ($statuses->contains('ongoing') || ($hasTime && !$statuses->every(fn($status) => $status === 'completed'))) return 'In Progress';
+            if ($statuses->every(fn($status) => $status === 'completed')) return 'Completed';
+            return 'Not Started Yet';
+        }
     }
 @endphp
 
-<div class="accordion" id="staffReportAccordion">
-    @forelse($reportData as $staffData)
-        @php
-            // This logic checks if all tasks for a staff member are in the 'to_do' state with zero time logged.
-            $allStaffTasksAreToDo = collect($staffData->services)->flatMap(fn($service) => collect($service['jobs'])->flatMap(fn($job) => $job['tasks']))->every(fn($task) => isset($task['status']) && $task['status'] === 'to_do' && $task['duration'] == 0);
-        @endphp
-        <div class="card shadow-sm mb-3">
-            <div class="card-header p-0 report-header-staff" id="heading-staff-{{ $loop->index }}">
-                <a href="#collapse-staff-{{ $loop->index }}" class="d-flex justify-content-between align-items-center p-3" data-toggle="collapse" aria-expanded="true" style="text-decoration: none;">
-                    <span><i class="fas fa-user-circle mr-2"></i> Staff: {{ $staffData->staff_name }}</span>
-                    @if($staffData->total_duration == 0 && $allStaffTasksAreToDo)
-                        <span class="font-weight-normal text-white-50">Not Started Yet</span>
-                    @else
-                        <span class="total-time-display">{{ formatToHms($staffData->total_duration) }}</span>
-                    @endif
-                </a>
+@forelse($reportData as $staffData)
+    @php
+        $allStaffTasks = collect($staffData->services)->flatMap(fn($service) => collect($service['jobs'])->flatMap(fn($job) => $job['tasks']));
+        $staffStatus = getAggregateStatusForStaff($allStaffTasks);
+        $staffStatusClass = 'status-' . Str::slug($staffStatus);
+    @endphp
+
+    <div class="staff-block">
+        <div class="block-header staff-header d-flex justify-content-between align-items-center">
+            <h5 class="block-title"><i class="fas fa-user-circle"></i> Staff: {{ $staffData->staff_name }}</h5>
+            <span class="block-status">{{ formatToHms($staffData->total_duration) }}</span>
+        </div>
+
+        @foreach($staffData->services as $service)
+            @php
+                $allServiceTasks = collect($service['jobs'])->flatMap(fn($job) => $job['tasks']);
+                $serviceStatus = getAggregateStatusForStaff($allServiceTasks);
+            @endphp
+            <div class="block-header service-header d-flex justify-content-between align-items-center">
+                <h6 class="block-title"><i class="fas fa-concierge-bell"></i> Service: {{ $service['name'] }}</h6>
+                <span class="block-status">{{ formatToHms($service['total_duration']) }}</span>
             </div>
-            <div id="collapse-staff-{{ $loop->index }}" class="collapse show">
-                <div class="card-body p-2">
-                    @foreach($staffData->services as $service)
+
+            @foreach($service['jobs'] as $job)
+                @php
+                    $jobStatus = getAggregateStatusForStaff(collect($job['tasks']));
+                @endphp
+                 <div class="block-header job-header d-flex justify-content-between align-items-center">
+                    <h6 class="block-title"><i class="fas fa-briefcase"></i> Job: {{ $job['name'] }}</h6>
+                    <span class="block-status">{{ formatToHms($job['total_duration']) }}</span>
+                </div>
+
+                <div class="task-list">
+                    @foreach($job['tasks'] as $task)
                          @php
-                            $allServiceTasksAreToDo = collect($service['jobs'])->flatMap(fn($job) => $job['tasks'])->every(fn($task) => isset($task['status']) && $task['status'] === 'to_do' && $task['duration'] == 0);
+                            $taskStatus = $task['status'] ?? 'to_do';
+                            $taskStatusClass = 'status-' . Str::slug($taskStatus, '-');
+                            $taskStatusText = match($taskStatus) {
+                                'ongoing' => 'In Progress',
+                                'to_do' => 'To Do',
+                                default => 'Completed',
+                            };
                         @endphp
-                        <div class="card mb-2">
-                             <div class="card-header p-0 report-header-service" id="heading-service-{{ $loop->parent->index }}-{{ $loop->index }}">
-                                <a href="#collapse-service-{{ $loop->parent->index }}-{{ $loop->index }}" class="d-flex justify-content-between align-items-center p-3" data-toggle="collapse" aria-expanded="true" style="text-decoration: none;">
-                                    <span><i class="fas fa-concierge-bell mr-2"></i> Service: {{ $service['name'] }}</span>
-                                    @if($service['total_duration'] == 0 && $allServiceTasksAreToDo)
-                                        <span class="font-weight-normal text-white-50">Not Started Yet</span>
-                                    @else
-                                        <span class="total-time-display">{{ formatToHms($service['total_duration']) }}</span>
-                                    @endif
-                                </a>
-                            </div>
-                            <div id="collapse-service-{{ $loop->parent->index }}-{{ $loop->index }}" class="collapse show">
-                                <div class="card-body p-2">
-                                    @foreach($service['jobs'] as $job)
-                                        @php
-                                            $allJobTasksAreToDo = collect($job['tasks'])->every(fn($task) => isset($task['status']) && $task['status'] === 'to_do' && $task['duration'] == 0);
-                                        @endphp
-                                        <div class="card mb-2">
-                                             <div class="card-header p-0 report-header-job" id="heading-job-{{ $loop->parent->parent->index }}-{{ $loop->parent->index }}-{{ $loop->index }}">
-                                                <a href="#collapse-job-{{ $loop->parent->parent->index }}-{{ $loop->parent->index }}-{{ $loop->index }}" class="d-flex justify-content-between align-items-center p-3" data-toggle="collapse" aria-expanded="true" style="text-decoration: none;">
-                                                    <span><i class="fas fa-briefcase mr-2"></i> Job: {{ $job['name'] }}</span>
-                                                    @if($job['total_duration'] == 0 && $allJobTasksAreToDo)
-                                                        <span class="font-weight-normal text-muted">Not Started Yet</span>
-                                                    @else
-                                                        <span class="total-time-display">{{ formatToHms($job['total_duration']) }}</span>
-                                                    @endif
-                                                </a>
-                                            </div>
-                                            <div id="collapse-job-{{ $loop->parent->parent->index }}-{{ $loop->parent->index }}-{{ $loop->index }}" class="collapse show">
-                                                <ul class="list-group list-group-flush">
-                                                    @foreach($job['tasks'] as $task)
-                                                        @php
-                                                            $statusClass = ['to_do' => 'badge-secondary', 'ongoing' => 'badge-warning', 'completed' => 'badge-success'][($task['status'] ?? 'to_do')] ?? 'badge-light';
-                                                        @endphp
-                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <strong>{{ $task['name'] }}</strong>
-                                                                <span class="badge {{ $statusClass }} ml-2">{{ ucfirst(str_replace('_', ' ', ($task['status'] ?? 'To do'))) }}</span>
-                                                            </div>
-                                                            <span class="font-weight-bold">
-                                                                @if(isset($task['status']) && $task['status'] === 'to_do' && $task['duration'] == 0)
-                                                                    <span class="text-muted font-weight-normal">Not Started Yet</span>
-                                                                @else
-                                                                    {{ formatToHms($task['duration']) }}
-                                                                @endif
-                                                            </span>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    @endforeach
+                        <div class="task-item">
+                            <div class="task-main-row">
+                                <div class="task-details">
+                                    <i class="far fa-file-alt"></i>
+                                    <div>
+                                        <div class="task-name">{{ $task['name'] }}</div>
+                                        <small class="text-muted">Time: {{ formatToHms($task['duration']) }}</small>
+                                    </div>
+                                </div>
+                                <div class="task-status">
+                                   <span class="status-pill {{ $taskStatusClass }}">{{ $taskStatusText }}</span>
                                 </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
-            </div>
+            @endforeach
+        @endforeach
+    </div>
+@empty
+    <div class="card">
+        <div class="card-body text-center p-5 text-muted">
+            <h4>No Staff Data Found</h4>
+            <p>No tasks match the selected criteria.</p>
         </div>
-    @empty
-        <div class="text-center p-4 text-muted">
-            <h4>No Staff Time Found</h4>
-            <p>No time has been logged by staff members for the selected criteria.</p>
-        </div>
-    @endforelse
-</div>
+    </div>
+@endforelse
+
+<style> 
+ .status-in-progress { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+
+</style>

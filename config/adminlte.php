@@ -209,20 +209,24 @@ return [
             'route'  => 'superadmin.dashboard',
             'icon' => 'fas fa-fw fa-tachometer-alt',
             'can'  => 'is-superadmin',
+            'active' => ['superadmin/dashboard'],
         ],
         [
             'text'    => 'Organizations',
             'icon'    => 'fas fa-fw fa-building',
             'can'     => 'is-superadmin',
-            'active'  => ['superadmin/organizations*'],
-            'classes' => 'menu-open',
             'submenu' => [
-                [ 'text' => 'All Organizations',
-                'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
+                [
+                    'text' => 'All Organizations',
+                    'route'  => 'superadmin.organizations.index',
+                    'icon' => 'fas fa-fw fa-list',
+                    'active'  => ['superadmin/organizations*'],
+                ],
                 [
                     'text' => 'Subscribed Organizations',
                     'route'  => 'superadmin.subscriptions.subscribed',
                     'icon' => 'fas fa-fw fa-user-check',
+                    'active'  => ['superadmin/subscriptions*'],
                 ],
             ],
         ],
@@ -230,13 +234,12 @@ return [
             'text'    => 'Subscriptions',
             'icon'    => 'fas fa-fw fa-tags',
             'can'     => 'is-superadmin',
-            'active'  => ['superadmin/plans*', 'superadmin/earnings*'],
-            'classes' => 'menu-open',
             'submenu' => [
                 [
                     'text' => 'List Subscription Plans',
                     'route'  => 'superadmin.plans.index',
                     'icon' => 'fas fa-fw fa-list',
+                    'active'  => ['superadmin/plans*'],
                 ],
                 [
                     'text' => 'Add Subscription Plan',
@@ -247,6 +250,7 @@ return [
                     'text' => 'Earnings Report',
                     'route'  => 'superadmin.earnings',
                     'icon' => 'fas fa-fw fa-chart-line',
+                    'active'  => ['superadmin/earnings*'],
                 ],
             ],
         ],
@@ -256,67 +260,94 @@ return [
             'icon' => 'fas fa-fw fa-envelope',
             'can'  => 'is-superadmin',
         ],
+
         // ORGANIZATION MENU
         [
             'text' => 'Dashboard',
             'route'  => 'organization.dashboard',
             'icon' => 'fas fa-fw fa-tachometer-alt',
             'can'  => 'is-organization',
+            'active' => ['organization/dashboard'],
         ],
         [
             'text'    => 'Clients',
             'icon'    => 'fas fa-fw fa-users',
             'can'     => 'is-organization',
-            'active'  => ['organization/clients*'],
-            'classes' => 'menu-open',
             'submenu' => [
                 [
                     'text' => 'List Clients',
                     'route'  => 'clients.index',
                     'icon' => 'fas fa-fw fa-list',
+                    'active' => ['organization/clients', 'organization/clients/*/edit'],
                 ],
-                [ 'text' => 'Add Client', 'route'  => 'clients.create', 'icon' => 'fas fa-fw fa-plus', ],
+                [
+                    'text' => 'Add Client',
+                    'route'  => 'clients.create',
+                    'icon' => 'fas fa-fw fa-plus',
+                    'active' => ['organization/clients/create'],
+                ],
             ],
         ],
         [
             'text'    => 'Staff',
             'icon'    => 'fas fa-fw fa-user-tie',
             'can'     => 'is-organization',
-            'active'  => ['organization/staff*'],
-            'classes' => 'menu-open',
             'submenu' => [
-                [ 'text' => 'List Staff', 'route'  => 'staff.index', 'icon' => 'fas fa-fw fa-users-cog', ],
-                [ 'text' => 'Add Staff', 'route'  => 'staff.create', 'icon' => 'fas fa-fw fa-plus', ],
-                [ 'text' => 'Staff Designations', 'route'  => 'staff-designations.index', 'icon' => 'fas fa-fw fa-id-badge', ],
+                [
+                    'text' => 'List Staff',
+                    'route'  => 'staff.index',
+                    'icon' => 'fas fa-fw fa-users-cog',
+                    'active' => ['organization/staff', 'organization/staff/*/edit'],
+                ],
+                [
+                    'text' => 'Add Staff',
+                    'route'  => 'staff.create',
+                    'icon' => 'fas fa-fw fa-plus',
+                    'active' => ['organization/staff/create'],
+                ],
+                [
+                    'text' => 'Staff Designations',
+                    'route'  => 'staff-designations.index',
+                    'icon' => 'fas fa-fw fa-id-badge',
+                    'active' => ['organization/staff-designations*'],
+                ],
             ],
         ],
         [
             'text'    => 'Services',
             'icon'    => 'fas fa-fw fa-concierge-bell',
             'can'     => 'is-organization',
-            'active'  => ['organization/services*'],
-            'classes' => 'menu-open',
             'submenu' => [
-                [ 'text' => 'List Services', 'route'  => 'services.index', 'icon' => 'fas fa-fw fa-list', ],
-                [ 'text' => 'Add Service', 'route'  => 'services.create', 'icon' => 'fas fa-fw fa-plus', ],
+                [
+                    'text' => 'List Services',
+                    'route'  => 'services.index',
+                    'icon' => 'fas fa-fw fa-list',
+                    'active' => ['organization/services', 'organization/services/[0-9]+', 'organization/services/[0-9]+/edit'],
+                ],
+                [
+                    'text' => 'Add Service',
+                    'route'  => 'services.create',
+                    'icon' => 'fas fa-fw fa-plus',
+                    'active' => ['organization/services/create'],
+                ],
             ],
         ],
         [
             'text'    => 'Reports',
             'icon'    => 'fas fa-fw fa-chart-pie',
             'can'     => 'is-organization',
-            'active'  => ['organization/reports*'],
-            'classes' => 'menu-open',
             'submenu' => [
                 [
                     'text' => 'Client Report',
                     'route'  => 'organization.reports.time',
                     'icon' => 'fas fa-fw fa-user-tie',
+                    'active' => ['organization/reports/time*'],
                 ],
                 [
                     'text' => 'Staff Report',
                     'route'  => 'organization.reports.staff',
                     'icon' => 'fas fa-fw fa-users-cog',
+                    'active' => ['organization/reports/staff*'],
                 ],
             ],
         ],
@@ -354,6 +385,7 @@ return [
             'route'  => 'staff.documents.index',
             'icon' => 'fas fa-fw fa-file-alt',
             'can'  => 'is-staff',
+            'active'  => ['staff/documents*'],
         ],
 
         // CLIENT MENU
@@ -362,18 +394,21 @@ return [
             'route'  => 'client.dashboard',
             'icon' => 'fas fa-fw fa-tachometer-alt',
             'can'  => 'is-client',
+            'active'  => ['client/dashboard*'],
         ],
         [
             'text' => 'Documents',
             'route'  => 'client.documents.index',
             'icon' => 'fas fa-fw fa-file-alt',
             'can'  => 'is-client',
+            'active'  => ['client/documents*'],
         ],
         [
             'text' => 'My Reports',
             'route'  => 'client.reports.index',
             'icon' => 'fas fa-fw fa-chart-pie',
             'can'  => 'is-client',
+            'active'  => ['client/reports*'],
         ],
         
     ],

@@ -6,17 +6,65 @@
 @section('css')
     @parent 
     <style>
-        .card-header a { text-decoration: none !important; display: block; }
-        /* This is the primary blue for the service header */
-        .report-header-service { background-color: #007bff; color: white; }
-        .report-header-service a, .report-header-service .total-time-display { color: white !important; }
-        .report-header-job { background-color: #e9ecef; color: #343a40; }
-        .report-header-job .total-time-display { color: #343a40 !important; }
-        .total-time-display { font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 1.1rem; }
-        .collapse-icon { transition: transform 0.2s ease-in-out; }
-        a[aria-expanded="false"] .collapse-icon { transform: rotate(-90deg); }
-        .list-group-item strong { font-weight: 500; }
+        .filter-card {
+            background-color: #fff;
+            border-radius: .375rem; /* Sharper corners */
+            box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .report-group {
+            background-color: #fff;
+            border-radius: .375rem; /* Sharper corners */
+            box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .report-header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            text-decoration: none !important;
+            color: inherit;
+        }
+        .report-header:hover {
+            background-color: #f8f9fa;
+        }
+        .report-header.service { background-color: #0d6efd; color: white; }
+        .report-header.job { background-color: #f8f9fa; border-top: 1px solid #e9ecef; border-bottom: 1px solid #e9ecef; }
+        
+        .report-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0; }
+        .report-time { font-size: 0.9rem; color: #6c757d; font-weight: 500; }
+        .report-header.service .report-time { color: rgba(255,255,255,0.8); }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .task-item:last-child { border-bottom: none; }
+        .task-icon { color: #6c757d; margin-right: 1rem; }
+        .task-details { flex-grow: 1; }
+        .task-name { font-weight: 500; }
+        .task-meta { font-size: 0.85rem; color: #6c757d; }
+        .task-status {
+            padding: 0.25em 0.6em;
+            font-size: .75em;
+            font-weight: 700;
+            border-radius: .25rem; /* Sharper status pills */
+            text-align: center;
+            min-width: 80px;
+        }
+        .status-to_do { background-color: #f8d7da; color: #721c24; }
+        .status-ongoing { background-color: #d1ecf1; color: #0c5460; }
+        .status-completed { background-color: #d4edda; color: #155724; }
+
         .staff-breakdown { background-color: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; }
+        .collapse-icon { transition: transform 0.3s ease; }
+        a[aria-expanded="false"] .collapse-icon { transform: rotate(-180deg); } /* Changed rotation for up/down arrow */
     </style>
 @stop
 
@@ -28,54 +76,40 @@
 @stop
 
 @section('content')
-<div class="card card-primary card-outline">
-    <div class="card-body">
-        <div class="row mb-4 align-items-center bg-light p-3 rounded d-print-none">
-            <div class="col-md-3">
-                <input type="text" id="search-input" class="form-control" placeholder="Search by Service, Job, or Task..." value="{{ $search ?? '' }}">
-            </div>
-            <div class="col-md-3">
-                <select id="status-filter" class="form-control" multiple="multiple"></select>
-            </div>
-            <div class="col-md-4">
-                <div id="dropdown-filters" class="row">
-                    <div class="col">
-                        <select id="year-filter" class="form-control">
-                            @foreach($years as $year)
-                                <option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>{{ $year }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col">
-                        <select id="month-filter" class="form-control">
-                            @foreach($months as $num => $name)
-                                <option value="{{ $num }}" {{ $num == $currentMonth ? 'selected' : '' }}>{{ $name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+<div class="filter-card d-print-none">
+    <div class="row align-items-center">
+        <div class="col-md-9">
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="text" id="search-input" class="form-control" placeholder="Search by Service, Job, or Task..." value="{{ $search ?? '' }}">
                 </div>
-                <div id="custom-range-filters" class="row" style="display: none;">
-                    <div class="col">
-                        <input type="date" id="start-date-filter" class="form-control" value="{{ $startDate->format('Y-m-d') }}">
-                    </div>
-                    <div class="col">
-                        <input type="date" id="end-date-filter" class="form-control" value="{{ $endDate->format('Y-m-d') }}">
+                <div class="col-md-3">
+                    <select id="status-filter" class="form-control" multiple="multiple"></select>
+                </div>
+                <div class="col-md-5">
+                    <div class="d-flex align-items-center">
+                        <div id="dropdown-filters" class="row flex-grow-1">
+                            <div class="col"><select id="year-filter" class="form-control">@foreach($years as $year)<option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>{{ $year }}</option>@endforeach</select></div>
+                            <div class="col"><select id="month-filter" class="form-control">@foreach($months as $num => $name)<option value="{{ $num }}" {{ $num == $currentMonth ? 'selected' : '' }}>{{ $name }}</option>@endforeach</select></div>
+                        </div>
+                        <div id="custom-range-filters" class="row flex-grow-1" style="display: none;">
+                            <div class="col"><input type="date" id="start-date-filter" class="form-control" value="{{ $startDate->format('Y-m-d') }}"></div>
+                            <div class="col"><input type="date" id="end-date-filter" class="form-control" value="{{ $endDate->format('Y-m-d') }}"></div>
+                        </div>
+                        <div class="custom-control custom-switch ml-3">
+                            <input type="checkbox" class="custom-control-input" id="custom-range-switch" {{ $use_custom_range ? 'checked' : '' }}>
+                            <label class="custom-control-label" for="custom-range-switch">Custom</label>
+                        </div>
+                         <button class="btn btn-secondary ml-3" id="reset-filters">Reset</button>
                     </div>
                 </div>
             </div>
-            <div class="col-md-2 d-flex justify-content-end align-items-center">
-                 <div class="custom-control custom-switch mr-3 pt-1">
-                    <input type="checkbox" class="custom-control-input" id="custom-range-switch" {{ $use_custom_range ? 'checked' : '' }}>
-                    <label class="custom-control-label" for="custom-range-switch">Custom</label>
-                </div>
-                <button class="btn btn-secondary" id="reset-filters">Reset</button>
-            </div>
-        </div>
-
-        <div id="client-report-table-container">
-            @include('Client._report_table', ['groupedTasks' => $groupedTasks])
         </div>
     </div>
+</div>
+
+<div id="client-report-table-container">
+    @include('Client._report_table', ['groupedTasks' => $groupedTasks])
 </div>
 @stop
 
@@ -85,13 +119,13 @@ $(document).ready(function() {
     let debounceTimer;
 
     $('#status-filter').select2({
-        placeholder: 'Filter by Status',
+        placeholder: 'Filter by Status: All',
         data: [
             { id: 'to_do', text: 'To Do' },
-            { id: 'ongoing', text: 'Ongoing' },
+            { id: 'ongoing', text: 'In Progress' },
             { id: 'completed', text: 'Completed' }
         ]
-    }).val(@json($statuses)).trigger('change');
+    }).val({!! json_encode($statuses) !!}).trigger('change');
 
     function fetch_report_data() {
         clearTimeout(debounceTimer);
@@ -116,8 +150,13 @@ $(document).ready(function() {
     }
 
     function toggleDateFilters(useCustom) {
-        $('#dropdown-filters').toggle(!useCustom);
-        $('#custom-range-filters').toggle(useCustom);
+        if (useCustom) {
+            $('#dropdown-filters').hide();
+            $('#custom-range-filters').show();
+        } else {
+            $('#dropdown-filters').show();
+            $('#custom-range-filters').hide();
+        }
     }
 
     $('#custom-range-switch').on('change', function() {
@@ -129,10 +168,9 @@ $(document).ready(function() {
         const today = new Date();
         $('#search-input').val('');
         $('#status-filter').val(null).trigger('change.select2');
-        $('#custom-range-switch').prop('checked', false);
+        $('#custom-range-switch').prop('checked', false).trigger('change');
         $('#year-filter').val(today.getFullYear());
         $('#month-filter').val(today.getMonth() + 1);
-        toggleDateFilters(false);
         fetch_report_data();
     });
 
