@@ -67,6 +67,7 @@ public function fetchEvents(Request $request)
         if ($task->is_recurring && $task->start && $task->recurring_frequency) {
             $cursor = $task->start->copy();
             $seriesEndDate = $task->end;
+            $instanceData = (array) ($task->completed_at_dates ?? []);
 
             while($cursor->lt($viewStart)) {
                 switch ($task->recurring_frequency) {
@@ -83,10 +84,17 @@ public function fetchEvents(Request $request)
                     break;
                 }
                 
-                $singleEvent = clone $task;
-                $singleEvent->start = $cursor->copy();
-                $singleEvent->end = $cursor->copy()->endOfDay();
-                $events[] = $this->formatEvent($singleEvent, $typePrefix, $cursor);
+                $instanceDateString = $cursor->toDateString();
+                $instanceSpecifics = $instanceData[$instanceDateString] ?? [];
+                $instanceStatus = $instanceSpecifics['status'] ?? $task->status;
+
+                if ($instanceStatus !== 'completed') {
+                    $singleEvent = clone $task;
+                    $singleEvent->start = $cursor->copy();
+                    $singleEvent->end = $cursor->copy()->endOfDay();
+                    $singleEvent->status = $instanceStatus;
+                    $events[] = $this->formatEvent($singleEvent, $typePrefix, $cursor);
+                }
 
                 switch ($task->recurring_frequency) {
                     case 'daily': $cursor->addDay(); break;

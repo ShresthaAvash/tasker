@@ -9,13 +9,8 @@
 
 @section('css')
 <style>
-    /* Change the color of the sortable table headers to the new theme blue */
-    .table thead th a.sort-link {
-        color: #0c6ffd;
-    }
-    .table thead th a.sort-link i {
-        color: #0c6ffd;
-    }
+    .table thead th a.sort-link { color: #0c6ffd; }
+    .table thead th a.sort-link i { color: #0c6ffd; }
 </style>
 @stop
 
@@ -64,13 +59,7 @@ $(document).ready(function() {
         $('#services-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
         $.ajax({
             url: "{{ route('services.index') }}",
-            data: { 
-                page: page, 
-                sort_by: sort_by, 
-                sort_order: sort_order, 
-                search: search,
-                statuses: statuses 
-            },
+            data: { page, sort_by, sort_order, search, statuses },
             success: function(data) {
                 $('#services-table-container').html(data);
             }
@@ -78,37 +67,35 @@ $(document).ready(function() {
     }
 
     function trigger_fetch() {
+        const search = $('#search-input').val();
+        const statuses = $('#status-filter').val();
+        const sort_by = $('#sort_by').val() || 'created_at';
+        const sort_order = $('#sort_order').val() || 'desc';
+        fetch_services_data(1, sort_by, sort_order, search, statuses);
+    }
+    
+    function trigger_fetch_debounced() {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function() {
-            const search = $('#search-input').val();
-            const statuses = $('#status-filter').val();
-            const sort_by = $('#sort_by').val() || 'created_at';
-            const sort_order = $('#sort_order').val() || 'desc';
-            fetch_services_data(1, sort_by, sort_order, search, statuses);
-        }, 300);
+        debounceTimer = setTimeout(trigger_fetch, 300);
     }
 
-    // Initial load
-    trigger_fetch();
+    $('#search-input').on('keyup', trigger_fetch_debounced);
+    $('#status-filter').on('change', trigger_fetch);
 
-    $('#search-input, #status-filter').on('keyup change', trigger_fetch);
-
-    const container = '#services-table-container';
-
-    $(document).on('click', `${container} .sort-link`, function(e) {
+    $(document).on('click', '#services-table-container .sort-link', function(e) {
         e.preventDefault();
         $('#sort_by').val($(this).data('sortby'));
         $('#sort_order').val($(this).data('sortorder'));
         trigger_fetch();
     });
 
-    $(document).on('click', `${container} .pagination a`, function(e) {
+    $(document).on('click', '#services-table-container .pagination a', function(e) {
         e.preventDefault();
-        const page = $(this).attr('href').split('page=')[1];
+        const page = new URLSearchParams($(this).attr('href').split('?')[1]).get('page');
         fetch_services_data(page, $('#sort_by').val(), $('#sort_order').val(), $('#search-input').val(), $('#status-filter').val());
     });
 
-    setTimeout(function() { $('#success-alert').fadeOut('slow'); }, 5000);
+    setTimeout(() => $('#success-alert').fadeOut('slow'), 5000);
 });
 </script>
 @stop

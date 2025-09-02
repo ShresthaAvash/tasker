@@ -66,6 +66,31 @@ class User extends Authenticatable
     {
         return $this->hasMany(\App\Models\Subscription::class)->orderBy('created_at', 'desc');
     }
+
+    /**
+     * Get the URL to the user's profile photo.
+     *
+     * @return string
+     */
+    public function adminlte_image()
+    {
+        if ($this->photo) {
+            return asset('storage/' . $this->photo);
+        }
+        // Fallback to a default icon or Gravatar
+        return 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($this->email))) . '?d=mp';
+    }
+
+    /**
+     * Get the URL to the user's profile edit page.
+     *
+     * @return string
+     */
+    public function adminlte_profile_url()
+    {
+        // Return the route name, not the full URL
+        return 'profile.edit';
+    }
     // --- END OF THE FIX ---
 
 

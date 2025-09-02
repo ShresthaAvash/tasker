@@ -20,13 +20,34 @@ class ReportController extends Controller
         $statuses = $request->input('statuses', []);
 
         $tasksQuery = AssignedTask::query()
-            ->whereHas('client', function ($q) use ($organizationId, $search) {
-                $q->where('organization_id', $organizationId);
-                if ($search) {
-                    $q->where('name', 'like', '%' . $search . '%');
-                }
-            })
+            ->whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
+            ->whereNotNull('start')
+            ->where('start', '<=', $endDate)
+            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
             ->with(['client', 'service', 'job', 'staff']);
+
+        if ($search) {
+            $tasksQuery->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%') // Search task name
+                  ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('job', fn($jq) => $jq->where('name', 'like', "%{$search}%"));
+            });
+        }
+        
+        // --- THIS IS THE FIX: Efficiently filter tasks at the database level ---
+        // We get all recurring tasks within the date range, but only non-recurring tasks that match the status.
+        // This is because recurring task instances have their status in a JSON field, which must be filtered in PHP.
+        $tasksQuery->where(function ($query) use ($statuses) {
+            $query->where('is_recurring', true)
+                  ->orWhere(function ($q) use ($statuses) {
+                      $q->where('is_recurring', false)
+                        ->when(!empty($statuses), function ($sq) use ($statuses) {
+                            $sq->whereIn('status', $statuses);
+                        });
+                  });
+        });
+        // --- END OF FIX ---
 
         $tasks = $tasksQuery->get();
         $expandedTasks = $this->expandTasksForReport($tasks, $startDate, $endDate, $statuses);
@@ -48,21 +69,47 @@ class ReportController extends Controller
         [$startDate, $endDate] = $this->resolveDatesFromRequest($request);
         $statuses = $request->input('statuses', []);
 
-        $staffMembersQuery = User::where('organization_id', $organizationId)->where('type', 'T')->orderBy('name');
-        if ($search) {
-            $staffMembersQuery->where('name', 'like', '%' . $search . '%');
-        }
-        $staffMembers = $staffMembersQuery->get()->keyBy('id');
+        $allStaffMembers = User::where('organization_id', $organizationId)
+                           ->where('type', 'T')
+                           ->orderBy('name')
+                           ->get()
+                           ->keyBy('id');
+
         $reportData = collect();
 
-        if ($staffMembers->isNotEmpty()) {
+        if ($allStaffMembers->isNotEmpty()) {
             $tasksQuery = AssignedTask::query()
-                ->whereHas('staff', fn($q) => $q->whereIn('users.id', $staffMembers->pluck('id')))
-                ->with(['service', 'job', 'staff' => fn($q) => $q->select('users.id', 'users.name')]);
+                ->whereHas('staff', fn($q) => $q->whereIn('users.id', $allStaffMembers->pluck('id')))
+                ->whereNotNull('start')
+                ->where('start', '<=', $endDate)
+                ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
+                ->with(['client', 'service', 'job', 'staff' => fn($q) => $q->select('users.id', 'users.name')]);
+
+            if ($search) {
+                $tasksQuery->where(function($q) use ($search) {
+                    $q->whereHas('staff', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
+                      ->orWhere('name', 'like', '%' . $search . '%')
+                      ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"))
+                      ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
+                      ->orWhereHas('job', fn($jq) => $jq->where('name', 'like', "%{$search}%"));
+                });
+            }
+            
+            // --- THIS IS THE FIX: Efficiently filter tasks at the database level ---
+            $tasksQuery->where(function ($query) use ($statuses) {
+                $query->where('is_recurring', true)
+                    ->orWhere(function ($q) use ($statuses) {
+                        $q->where('is_recurring', false)
+                            ->when(!empty($statuses), function ($sq) use ($statuses) {
+                                $sq->whereIn('status', $statuses);
+                            });
+                    });
+            });
+            // --- END OF FIX ---
 
             $tasks = $tasksQuery->get();
             $expandedTasks = $this->expandTasksForReport($tasks, $startDate, $endDate, $statuses);
-            $reportData = $this->groupTasksByStaff($expandedTasks, $staffMembers);
+            $reportData = $this->groupTasksByStaff($expandedTasks, $allStaffMembers);
         }
 
         if ($request->ajax()) {
@@ -74,68 +121,81 @@ class ReportController extends Controller
         ));
     }
 
+    // --- THIS IS THE DEFINITIVE FIX FOR THE REPORT LOGIC ---
     private function expandTasksForReport(Collection $tasks, Carbon $startDate, Carbon $endDate, array $statuses): Collection
     {
         $instances = new Collection();
 
         foreach ($tasks as $task) {
+            // Case 1: Non-recurring tasks
             if (!$task->is_recurring) {
-                if (empty($statuses) || in_array($task->status, $statuses)) {
+                // Check if it falls within the date range. The DB query is broad, so we need to be precise here.
+                if ($task->start && $task->start->between($startDate, $endDate)) {
                     $instances->push($task);
                 }
                 continue;
             }
 
+            // Case 2: Recurring tasks
             $instanceData = (array)($task->completed_at_dates ?? []);
             $cursor = $task->start->copy();
             $seriesEndDate = $task->end;
 
+            // Efficiently move cursor to the start of the reporting window
             while ($cursor->lt($startDate)) {
                 if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
                 switch ($task->recurring_frequency) {
-                    case 'daily': $cursor->addDay(); break; case 'weekly': $cursor->addWeek(); break;
-                    case 'monthly': $cursor->addMonthWithNoOverflow(); break; case 'yearly': $cursor->addYearWithNoOverflow(); break;
-                    default: break 2;
+                    case 'daily': $cursor->addDay(); break;
+                    case 'weekly': $cursor->addWeek(); break;
+                    case 'monthly': $cursor->addMonthWithNoOverflow(); break;
+                    case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                    default: break 2; // Break out of both loops
                 }
             }
 
+            // Generate instances within the reporting window
             while ($cursor->lte($endDate)) {
                 if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
 
                 $instanceDateString = $cursor->toDateString();
                 $instanceSpecifics = $instanceData[$instanceDateString] ?? [];
-                $instanceStatus = $instanceSpecifics['status'] ?? $task->status;
+                
+                $instance = clone $task;
+                $instance->name = $task->name . ' (' . $cursor->format('M j') . ')';
+                $instance->status = $instanceSpecifics['status'] ?? $task->status;
+                
+                $totalDurationForInstance = 0;
+                $clonedStaff = new \Illuminate\Database\Eloquent\Collection();
+                $userDurations = $instanceSpecifics['durations'] ?? [];
 
-                if (empty($statuses) || in_array($instanceStatus, $statuses)) {
-                    $instance = clone $task;
-                    $instance->name = $task->name . ' (' . $cursor->format('M j') . ')';
-                    $instance->status = $instanceStatus;
-                    
-                    $totalDurationForInstance = 0;
-                    $clonedStaff = new \Illuminate\Database\Eloquent\Collection(); // Use Eloquent Collection
-                    $userDurations = $instanceSpecifics['durations'] ?? [];
-
-                    foreach($task->staff as $staffMember) {
-                        $clonedMember = clone $staffMember;
-                        $clonedMember->pivot = clone $staffMember->pivot;
-                        $duration = $userDurations['user_' . $staffMember->id] ?? 0;
-                        $clonedMember->pivot->duration_in_seconds = $duration;
-                        $totalDurationForInstance += $duration;
-                        $clonedStaff->push($clonedMember);
-                    }
-                    $instance->setRelation('staff', $clonedStaff);
-                    $instance->duration_in_seconds = $totalDurationForInstance;
-                    
-                    $instances->push($instance);
+                foreach($task->staff as $staffMember) {
+                    $clonedMember = clone $staffMember;
+                    $clonedMember->pivot = clone $staffMember->pivot;
+                    $duration = $userDurations['user_' . $staffMember->id] ?? 0;
+                    $clonedMember->pivot->duration_in_seconds = $duration;
+                    $totalDurationForInstance += $duration;
+                    $clonedStaff->push($clonedMember);
                 }
+                $instance->setRelation('staff', $clonedStaff);
+                $instance->duration_in_seconds = $totalDurationForInstance;
+                
+                $instances->push($instance);
                 
                 switch ($task->recurring_frequency) {
-                    case 'daily': $cursor->addDay(); break; case 'weekly': $cursor->addWeek(); break;
-                    case 'monthly': $cursor->addMonthWithNoOverflow(); break; case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                    case 'daily': $cursor->addDay(); break;
+                    case 'weekly': $cursor->addWeek(); break;
+                    case 'monthly': $cursor->addMonthWithNoOverflow(); break;
+                    case 'yearly': $cursor->addYearWithNoOverflow(); break;
                     default: break 2;
                 }
             }
         }
+
+        // Now, filter the final collection of all instances by status
+        if (!empty($statuses)) {
+            return $instances->filter(fn($instance) => in_array($instance->status, $statuses));
+        }
+
         return $instances;
     }
     
@@ -193,7 +253,6 @@ class ReportController extends Controller
         foreach ($staffMembers as $staff) {
             $staffServices = []; $staffTotalDuration = 0;
             foreach ($tasks as $task) {
-                // --- THIS IS THE FIX: Changed find() to firstWhere() ---
                 if ($staffOnTask = $task->staff->firstWhere('id', $staff->id)) {
                     $serviceId = $task->service->id ?? 'uncategorized';
                     $jobId = $task->job->id ?? 'uncategorized';

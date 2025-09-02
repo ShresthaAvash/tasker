@@ -9,18 +9,15 @@
 
 @section('content')
 <div id="action-bar" class="mb-3" style="display: none;">
-    {{-- I've updated this button to use the correct blue color --}}
     <button id="show-message-modal-btn" class="btn btn-primary" data-toggle="modal" data-target="#messageModal">
         <i class="fas fa-paper-plane"></i> Send Message to <span id="selected-count">0</span> Client(s)
     </button>
 </div>
 
-{{-- This card now uses card-primary for the blue outline --}}
 <div class="card card-primary card-outline">
     <div class="card-header">
         <h3 class="card-title">All Clients</h3>
         <div class="card-tools">
-            {{-- This button is now your theme blue --}}
             <a href="{{ route('clients.create') }}" class="btn btn-primary btn-sm">Add New Client</a>
         </div>
     </div>
@@ -29,7 +26,6 @@
             <div class="alert alert-success" id="success-alert">{{ session('success') }}</div>
         @endif
         
-        <!-- Filter and Search Row -->
         <div class="row mb-3">
             <div class="col-md-8">
                 <input type="text" name="search" id="search-input" class="form-control" placeholder="Search by name or email..." value="{{ request('search') }}">
@@ -42,21 +38,18 @@
             </div>
         </div>
 
-        <!-- This container will be updated by AJAX -->
         <div id="clients-table-container">
             @include('Organization.clients._clients_table', ['clients' => $clients, 'sort_by' => $sort_by, 'sort_order' => $sort_order])
         </div>
     </div>
 </div>
 
-<!-- Send Message Modal -->
 <div class="modal fade" id="messageModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <form action="{{ route('clients.sendMessage') }}" method="POST">
                 @csrf
                 <div id="modal-hidden-inputs"></div>
-                {{-- The modal header is now your theme blue --}}
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">Send Message</h5>
                     <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
@@ -79,7 +72,6 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    {{-- The send button is now your theme blue --}}
                     <button type="submit" class="btn btn-primary">Send Message</button>
                 </div>
             </form>
@@ -103,50 +95,39 @@ $(document).ready(function() {
 
         $.ajax({
             url: "{{ route('clients.index') }}",
-            data: {
-                page: page,
-                sort_by: sort_by,
-                sort_order: sort_order,
-                search: search,
-                statuses: statuses
-            },
+            data: { page, sort_by, sort_order, search, statuses },
             success: function(data) {
                 $('#clients-table-container').html(data);
                 updateMessagingUI();
             },
             error: function() {
-                alert('Could not load client data. Please refresh the page.');
                 $('#clients-table-container').html('<p class="text-danger text-center">Failed to load data.</p>');
             }
         });
     }
 
     function trigger_fetch() {
+        const search = $('#search-input').val();
+        const statuses = $('#status-filter').val();
+        const sort_by = $('#sort_by').val() || 'created_at';
+        const sort_order = $('#sort_order').val() || 'desc';
+        fetch_clients_data(1, sort_by, sort_order, search, statuses);
+    }
+
+    function trigger_fetch_debounced() {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function() {
-            const search = $('#search-input').val();
-            const statuses = $('#status-filter').val();
-            const sort_by = $('#sort_by').val() || 'created_at';
-            const sort_order = $('#sort_order').val() || 'desc';
-            fetch_clients_data(1, sort_by, sort_order, search, statuses);
-        }, 300);
+        debounceTimer = setTimeout(trigger_fetch, 300);
     }
     
     function updateMessagingUI() {
         $('.client-checkbox').each(function() {
             const clientId = $(this).data('id');
-            if (selectedClients.has(clientId)) {
-                $(this).prop('checked', true);
-            }
+            $(this).prop('checked', selectedClients.has(clientId));
         });
         updateMasterCheckbox();
         const selectedCount = selectedClients.size;
         $('#selected-count').text(selectedCount);
-        if (selectedCount > 0) {
-            $('#action-bar').slideDown();
-        } else {
-            $('#action-bar').slideUp();
-        }
+        $('#action-bar').toggle(selectedCount > 0);
     }
 
     function updateMasterCheckbox() {
@@ -156,8 +137,28 @@ $(document).ready(function() {
         $('#master-checkbox').prop('indeterminate', checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes);
     }
     
-    // Initial fetch on page load
-    trigger_fetch();
+    $('#search-input').on('keyup', trigger_fetch_debounced);
+    $('#status-filter').on('change', trigger_fetch);
+
+    $(document).on('click', '#clients-table-container .sort-link', function(e) {
+        e.preventDefault();
+        $('#sort_by').val($(this).data('sortby'));
+        $('#sort_order').val($(this).data('sortorder'));
+        trigger_fetch();
+    });
+
+    $(document).on('click', '#clients-table-container .pagination a', function(e) {
+        e.preventDefault();
+        const page = new URLSearchParams($(this).attr('href').split('?')[1]).get('page');
+        fetch_clients_data(page, $('#sort_by').val(), $('#sort_order').val(), $('#search-input').val(), $('#status-filter').val());
+    });
+    
+    $(document).on('change', '#master-checkbox', function() {
+        const isChecked = $(this).is(':checked');
+        $('.client-checkbox').each(function() {
+            $(this).prop('checked', isChecked).trigger('change');
+        });
+    });
 
     $(document).on('change', '.client-checkbox', function() {
         const clientId = $(this).data('id');
@@ -169,44 +170,16 @@ $(document).ready(function() {
         }
         updateMessagingUI();
     });
-
-    $(document).on('change', '#master-checkbox', function() {
-        const isChecked = $(this).is(':checked');
-        $('.client-checkbox').each(function() {
-            $(this).prop('checked', isChecked).trigger('change');
-        });
-    });
     
     $('#show-message-modal-btn').on('click', function() {
-        const recipientList = $('#recipient-list');
-        const hiddenInputsContainer = $('#modal-hidden-inputs');
-        recipientList.text(Array.from(selectedClients.values()).join(', '));
-        hiddenInputsContainer.empty();
+        $('#recipient-list').text(Array.from(selectedClients.values()).join(', '));
+        $('#modal-hidden-inputs').empty();
         selectedClients.forEach((name, id) => {
-            hiddenInputsContainer.append(`<input type="hidden" name="client_ids[]" value="${id}">`);
+            $('#modal-hidden-inputs').append(`<input type="hidden" name="client_ids[]" value="${id}">`);
         });
     });
 
-    $('#search-input, #status-filter').on('keyup change', trigger_fetch);
-
-    $(document).on('click', '#clients-table-container .sort-link', function(e) {
-        e.preventDefault();
-        const sort_by = $(this).data('sortby');
-        const sort_order = $(this).data('sortorder');
-        $('#sort_by').val(sort_by);
-        $('#sort_order').val(sort_order);
-        trigger_fetch();
-    });
-
-    $(document).on('click', '#clients-table-container .pagination a', function(e) {
-        e.preventDefault();
-        const page = $(this).attr('href').split('page=')[1];
-        fetch_clients_data(page, $('#sort_by').val(), $('#sort_order').val(), $('#search-input').val(), $('#status-filter').val());
-    });
-
-    setTimeout(function() {
-        $('#success-alert').fadeOut('slow');
-    }, 5000);
+    setTimeout(() => $('#success-alert').fadeOut('slow'), 5000);
 });
 </script>
 @stop

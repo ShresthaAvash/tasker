@@ -9,7 +9,6 @@
         .card-header a { text-decoration: none !important; display: block; }
         .report-header-staff { background-color: #6c757d; color: white; }
         .report-header-staff a, .report-header-staff .total-time-display { color: white !important; }
-        /* This is the correct blue color for the service bar */
         .report-header-service { background-color: #007afe; color: white; } 
         .report-header-service a, .report-header-service .total-time-display { color: white !important; }
         .report-header-job { background-color: #e9ecef; color: #343a40; }
@@ -31,13 +30,14 @@
 @section('content')
 <div class="card card-primary card-outline">
     <div class="card-body">
-        <div class="row mb-4 align-items-center bg-light p-3 rounded d-print-none">
+        
+        <div class="row mb-3 align-items-center bg-light p-3 rounded d-print-none">
             <div class="col-md-3">
-                <input type="text" id="search-input" class="form-control" placeholder="Search by Staff Name..." value="{{ $search ?? '' }}">
+                <input type="text" id="search-input" class="form-control" placeholder="Search by Staff, Client, Task...">
             </div>
-            {{-- THIS IS THE CORRECTED HTML for the filter dropdown --}}
+            
             <div class="col-md-3">
-                <select id="status-filter" multiple="multiple"></select>
+                <select id="status-filter" class="form-control" multiple="multiple"></select>
             </div>
             <div class="col-md-4">
                 <div id="dropdown-filters" class="row">
@@ -51,7 +51,7 @@
                     <div class="col">
                         <select id="month-filter" class="form-control">
                             @foreach($months as $num => $name)
-                                <option value="{{ $num }}" {{ $num == $currentMonth ? 'selected' : '' }}>{{ $name }}</option>
+                                <option value="{{ $num }}" {{ (string)$num === (string)$currentMonth ? 'selected' : '' }}>{{ $name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -86,37 +86,41 @@
 $(document).ready(function() {
     let debounceTimer;
 
-    // --- THIS IS THE CORRECTED JAVASCRIPT for the filter dropdown ---
     $('#status-filter').select2({
-        placeholder: 'Filter by Status (default all)',
-        width: '100%',
+        placeholder: 'Filter by Status',
         data: [
             { id: 'to_do', text: 'To Do' },
             { id: 'ongoing', text: 'Ongoing' },
             { id: 'completed', text: 'Completed' }
         ]
-    }).val(@json($statuses)).trigger('change');
+    }).val({!! json_encode($statuses) !!}).trigger('change');
 
     function fetch_report_data(page = 1) {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function() {
-            $('#staff-report-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
-            let data = {
-                search: $('#search-input').val(),
-                statuses: $('#status-filter').val(),
-                use_custom_range: $('#custom-range-switch').is(':checked').toString(),
-                start_date: $('#start-date-filter').val(),
-                end_date: $('#end-date-filter').val(),
-                year: $('#year-filter').val(),
-                month: $('#month-filter').val()
-            };
-            $.ajax({
-                url: "{{ route('organization.reports.staff') }}",
-                data: data,
-                success: (response) => $('#staff-report-table-container').html(response),
-                error: () => $('#staff-report-table-container').html('<p class="text-danger text-center">Failed to load data.</p>')
-            });
-        }, 500);
+        $('#staff-report-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
+        
+        let data = {
+            page: page,
+            search: $('#search-input').val(),
+            statuses: $('#status-filter').val(),
+            use_custom_range: $('#custom-range-switch').is(':checked').toString(),
+            start_date: $('#start-date-filter').val(),
+            end_date: $('#end-date-filter').val(),
+            year: $('#year-filter').val(),
+            month: $('#month-filter').val()
+        };
+        
+        $.ajax({
+            url: "{{ route('organization.reports.staff') }}",
+            data: data,
+            success: (response) => $('#staff-report-table-container').html(response),
+            error: () => $('#staff-report-table-container').html('<p class="text-danger text-center">Failed to load data.</p>')
+        });
+    }
+    
+    function trigger_fetch_debounced() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetch_report_data(1), 500);
     }
 
     function toggleDateFilters(useCustom) {
@@ -124,35 +128,34 @@ $(document).ready(function() {
         $('#custom-range-filters').toggle(useCustom);
     }
 
+    // --- EVENT LISTENERS ---
+    $('#search-input').on('keyup', trigger_fetch_debounced);
+    
+    $('#status-filter, #year-filter, #month-filter, #start-date-filter, #end-date-filter').on('change', () => fetch_report_data(1));
+
     $('#custom-range-switch').on('change', function() {
         toggleDateFilters(this.checked);
-        fetch_report_data();
+        fetch_report_data(1);
     });
     
     $('#reset-filters').on('click', function() {
         const today = new Date();
         $('#search-input').val('');
-        $('#status-filter').val(null).trigger('change.select2');
-        $('#custom-range-switch').prop('checked', false);
+        $('#status-filter').val(null).trigger('change');
+        $('#custom-range-switch').prop('checked', false).trigger('change');
         $('#year-filter').val(today.getFullYear());
-        $('#month-filter').val(today.getMonth() + 1);
-        toggleDateFilters(false);
-        fetch_report_data();
-    });
-
-    // Initial setup
-    toggleDateFilters($('#custom-range-switch').is(':checked'));
-    
-    // Event Listeners
-    $('#search-input, #status-filter, #year-filter, #month-filter, #start-date-filter, #end-date-filter').on('keyup change', function() {
+        $('#month-filter').val('{{ now()->month }}');
         fetch_report_data(1);
     });
 
     $(document).on('click', '#staff-report-table-container .pagination a', function(e) {
         e.preventDefault();
-        const page = $(this).attr('href').split('page=')[1];
+        const page = new URLSearchParams($(this).attr('href').split('?')[1]).get('page');
         fetch_report_data(page);
     });
+
+    // Initial setup
+    toggleDateFilters($('#custom-range-switch').is(':checked'));
 });
 </script>
 @stop

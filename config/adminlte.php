@@ -39,7 +39,7 @@ return [
 
     'logo' => '<b>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</b>',
     'logo_img' => 'vendor/adminlte/dist/img/tasker-logo.png',
-    // 'logo_img_class' => 'brand-image img-circle elevation-3',
+    'logo_img_class' => 'brand-image',
     'logo_img_xl' => null,
     // 'logo_img_xl_class' => 'brand-image-xs',
     'logo_img_alt' => 'Tasker Logo',
@@ -86,11 +86,11 @@ return [
     */
 
     'usermenu_enabled' => true,
-    'usermenu_header' => true,
+    'usermenu_header' => false,
     'usermenu_header_class' => 'bg-primary',
-    'usermenu_image' => false,
+    'usermenu_image' => true,
     'usermenu_desc' => false,
-    'usermenu_profile_url' => false,
+    'usermenu_profile_url' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -131,7 +131,7 @@ return [
     'classes_content_header' => '',
     'classes_content' => '',
     'classes_sidebar' => 'sidebar-light-primary',
-    'classes_sidebar_nav' => '',
+    'classes_sidebar_nav' => 'nav-child-indent',
     'classes_topnav' => 'navbar-white navbar-light',
     'classes_topnav_nav' => 'navbar-expand',
     'classes_topnav_container' => 'container',
@@ -149,7 +149,7 @@ return [
     'sidebar_collapse_remember_no_transition' => true,
     'sidebar_scrollbar_theme' => 'os-theme-light',
     'sidebar_scrollbar_auto_hide' => 'l',
-    'sidebar_nav_accordion' => true,
+    'sidebar_nav_accordion' => false,
     'sidebar_nav_animation_speed' => 300,
 
     /*
@@ -214,8 +214,10 @@ return [
             'text'    => 'Organizations',
             'icon'    => 'fas fa-fw fa-building',
             'can'     => 'is-superadmin',
+            'active'  => ['superadmin/organizations*'],
+            'classes' => 'menu-open',
             'submenu' => [
-                [ 'text' => 'All Organizations', 
+                [ 'text' => 'All Organizations',
                 'route'  => 'superadmin.organizations.index', 'icon' => 'fas fa-fw fa-list', ],
                 [
                     'text' => 'Subscribed Organizations',
@@ -228,6 +230,8 @@ return [
             'text'    => 'Subscriptions',
             'icon'    => 'fas fa-fw fa-tags',
             'can'     => 'is-superadmin',
+            'active'  => ['superadmin/plans*', 'superadmin/earnings*'],
+            'classes' => 'menu-open',
             'submenu' => [
                 [
                     'text' => 'List Subscription Plans',
@@ -263,12 +267,13 @@ return [
             'text'    => 'Clients',
             'icon'    => 'fas fa-fw fa-users',
             'can'     => 'is-organization',
+            'active'  => ['organization/clients*'],
+            'classes' => 'menu-open',
             'submenu' => [
-                [ 
-                    'text' => 'List Clients', 
-                    'route'  => 'clients.index', 
+                [
+                    'text' => 'List Clients',
+                    'route'  => 'clients.index',
                     'icon' => 'fas fa-fw fa-list',
-                    'active' => ['organization/clients', 'organization/clients/*/edit'] 
                 ],
                 [ 'text' => 'Add Client', 'route'  => 'clients.create', 'icon' => 'fas fa-fw fa-plus', ],
             ],
@@ -277,6 +282,8 @@ return [
             'text'    => 'Staff',
             'icon'    => 'fas fa-fw fa-user-tie',
             'can'     => 'is-organization',
+            'active'  => ['organization/staff*'],
+            'classes' => 'menu-open',
             'submenu' => [
                 [ 'text' => 'List Staff', 'route'  => 'staff.index', 'icon' => 'fas fa-fw fa-users-cog', ],
                 [ 'text' => 'Add Staff', 'route'  => 'staff.create', 'icon' => 'fas fa-fw fa-plus', ],
@@ -287,6 +294,8 @@ return [
             'text'    => 'Services',
             'icon'    => 'fas fa-fw fa-concierge-bell',
             'can'     => 'is-organization',
+            'active'  => ['organization/services*'],
+            'classes' => 'menu-open',
             'submenu' => [
                 [ 'text' => 'List Services', 'route'  => 'services.index', 'icon' => 'fas fa-fw fa-list', ],
                 [ 'text' => 'Add Service', 'route'  => 'services.create', 'icon' => 'fas fa-fw fa-plus', ],
@@ -296,6 +305,8 @@ return [
             'text'    => 'Reports',
             'icon'    => 'fas fa-fw fa-chart-pie',
             'can'     => 'is-organization',
+            'active'  => ['organization/reports*'],
+            'classes' => 'menu-open',
             'submenu' => [
                 [
                     'text' => 'Client Report',
@@ -331,7 +342,6 @@ return [
             'can'   => 'is-staff',
             'active' => ['staff/calendar*']
         ],
-        // MODIFIED: Simplified "Tasks" to a single direct link
         [
             'text'   => 'Tasks',
             'route'  => 'staff.tasks.index',

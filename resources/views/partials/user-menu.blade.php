@@ -1,13 +1,18 @@
 <li class="nav-item dropdown user-menu">
-    {{-- This is the part you click on, which shows the user's name --}}
-    <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">
-        <span class="d-none d-md-inline">{{ Auth::user()->name }}</span>
+    {{-- This is the menu toggler --}}
+    <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+        @if(Auth::user()->photo)
+            {{-- If user has a photo, display it --}}
+            <img src="{{ asset('storage/' . Auth::user()->photo) }}" class="user-image img-circle elevation-2" alt="{{ Auth::user()->name }}">
+        @else
+            {{-- Otherwise, display a generic user icon --}}
+             <i class="fas fa-user-circle fa-lg"></i>
+        @endif
     </a>
 
-    {{-- --- THIS IS THE FIX --- --}}
-    {{-- This new structure creates a simple list instead of a blue header --}}
+    {{-- This is the dropdown menu --}}
     <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-        
+
         {{-- Profile Link --}}
         <a href="{{ route('profile.edit') }}" class="dropdown-item">
             <i class="fas fa-user mr-2"></i> Profile

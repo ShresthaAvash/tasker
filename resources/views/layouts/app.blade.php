@@ -3,6 +3,10 @@
 
 @section('title', 'Dashboard')
 
+@section('meta_tags')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+@endsection
+
 @section('content_header')
     {{-- Allows child views to override the page title --}}
     <h1>@yield('page_title', 'Dashboard')</h1>
@@ -12,9 +16,17 @@
     @yield('page-content')
 @endsection
 
+{{-- Custom menu items are injected here --}}
+@section('usermenu_body')
+    <div class="row">
+        <div class="col-12 text-center">
+            <a href="{{ route('profile.activity_log') }}"><i class="fas fa-list mr-2"></i> Activity Log</a>
+        </div>
+    </div>
+@stop
+
 {{-- This section adds all custom items to the top-right of the navigation bar --}}
 @section('content_top_nav_right')
-
     <li class="nav-item dropdown" id="notification-bell">
         <a class="nav-link" data-toggle="dropdown" href="#">
             <i class="far fa-bell"></i>
@@ -68,13 +80,7 @@
 
 @section('css')
     <style>
-        /* Base styles for a cleaner look */
-        .main-sidebar, .brand-link { background-color: #ffffff !important; }
-        .brand-link .brand-text { color: #343a40 !important; }
-        .main-sidebar { border-right: 1px solid #dee2e6 !important; }
-
         /* --- THEME COLOR FIXES --- */
-        /* This rule ensures that active tabs in cards use your primary blue color */
         .card-primary.card-tabs .nav-tabs .nav-link.active,
         .card-tabs .nav-tabs .nav-link.active {
             background-color: #0c6ffd !important;
@@ -82,49 +88,35 @@
             color: #ffffff !important;
         }
         .card-tabs .nav-tabs .nav-link { color: #007bff; }
-        
-        /* Notification dropdown styles */
-        #notification-bell .dropdown-menu { min-width: 450px !important; position: absolute !important; left: auto !important; right: 0 !important; }
-        .notification-item { display: flex !important; justify-content: space-between !important; align-items: center !important; white-space: normal !important; padding-top: 10px; padding-bottom: 10px; }
-        .notification-text { flex-grow: 1; padding-right: 15px; }
 
-        /* Modal styles for notifications */
-        #notificationDetailModal .modal-header {
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
+        /* --- SIDEBAR FIXES --- */
+        .brand-link .brand-image {
+            max-height: 38px !important;
+            width: auto !important;
+            margin-left: 0.2rem !important;
+            margin-top: -3px !important;
         }
-        #notificationDetailModal .modal-title {
-            font-weight: 600;
+        .brand-link {
+            padding-top: 0.6rem !important;
+            padding-bottom: 0.6rem !important;
         }
-        #notificationDetailModal .modal-body {
-            background-color: #fff;
+        .main-sidebar .nav-sidebar .nav-treeview > .nav-item > .nav-link.active {
+            background-color: #e9ecef !important;
+            color: #212529 !important;
         }
-        #notification-modal-message {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            white-space: pre-wrap;
-            max-height: 40vh;
-            overflow-y: auto;
-        }
-
-        /* --- THIS IS THE FIX FOR THE SIDEBAR MENU --- */
-        .nav-sidebar .nav-treeview > .nav-item > .nav-link.active {
-    background-color: #e9ecef !important; /* A darker grey color */
-    color: #212529 !important; /* A dark text color */
-}
-        /* --- END OF FIX --- */
     </style>
 @stop
 
-{{-- Global JS including the new timer logic --}}
 @section('js')
 <script>
     $(document).ready(function() {
-        if ($('body').hasClass('sidebar-collapse')) {
-            $('body').removeClass('sidebar-collapse');
-        }
-
+        // --- GLOBAL AJAX SETUP WITH CSRF TOKEN ---
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+        
         // ============== GLOBAL TIMER SCRIPT START ==============
         let globalTimerInterval;
         function formatTime(totalSeconds) {
@@ -160,7 +152,6 @@
             $.ajax({
                 type: 'POST',
                 url: `/staff/tasks/${taskId}/stop-timer`,
-                data: { _token: '{{ csrf_token() }}' },
                 success: function(response) {
                     localStorage.removeItem('runningTimer');
                     if (globalTimerInterval) clearInterval(globalTimerInterval);
@@ -177,7 +168,7 @@
         window.renderGlobalTracker = renderGlobalTracker;
         // ============== GLOBAL TIMER SCRIPT END ==============
         
-        // ============== NEW NOTIFICATION SCRIPT START ==============
+        // ============== NOTIFICATION SCRIPT START ==============
         const notificationModalHTML = `
             <div class="modal fade" id="notificationDetailModal" tabindex="-1" role="dialog">
                 <div class="modal-dialog modal-lg" role="document">
@@ -218,7 +209,7 @@
             let isRead = item.data('read') === 'true';
 
             if (!isRead) {
-                $.post(`/notifications/${currentNotificationId}/read`, { _token: '{{ csrf_token() }}' })
+                $.post(`/notifications/${currentNotificationId}/read`)
                     .done(function() {
                         item.removeClass('bg-light font-weight-bold').data('read', 'true');
                         let count = parseInt($('#notification-badge-count').text()) - 1;
@@ -228,20 +219,17 @@
                     });
             }
 
-            // Populate and show modal
             if (type === 'MessageFromOrganization') {
                 $('#notification-modal-subject').text(info.subject);
                 $('#notification-modal-from').text(info.organization_name);
                 $('#notification-modal-message').text(info.message);
                 $('#notification-modal-recipients-wrapper').hide();
-
             } else if (type === 'MessageSentToClients') {
                 $('#notification-modal-subject').text(info.subject);
                 $('#notification-modal-from').text('System Confirmation');
                 $('#notification-modal-message').text(info.full_message);
                 $('#notification-modal-recipients').text(recipients);
                 $('#notification-modal-recipients-wrapper').show();
-
             } else {
                  $('#notification-modal-subject').text('System Notification');
                  $('#notification-modal-from').text('System');
@@ -255,19 +243,16 @@
 
         $('#mark-unread-btn').on('click', function() {
             if (!currentNotificationId) return;
-            $.post(`/notifications/${currentNotificationId}/unread`, { _token: '{{ csrf_token() }}' })
+            $.post(`/notifications/${currentNotificationId}/unread`)
                 .done(function(response) {
-                    // Update UI
                     $(`.notification-item[data-id="${currentNotificationId}"]`).addClass('bg-light font-weight-bold').data('read', 'false');
                     $('#notification-badge-count').text(response.unreadCount).show();
                     $('#notification-header-count').text(response.unreadCount);
                     $('#notificationDetailModal').modal('hide');
                 });
         });
-        // ============== NEW NOTIFICATION SCRIPT END ==============
+        // ============== NOTIFICATION SCRIPT END ==============
     });
 </script>
-
-{{-- Allow child views to push page-specific JS --}}
 @yield('page_content_js')
 @stop
