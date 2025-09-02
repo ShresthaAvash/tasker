@@ -5,11 +5,11 @@
 
 @section('css')
     @parent 
-    {{-- Reusing the same styles from the client report for consistency --}}
+    {{-- Re-using the same styles for consistency --}}
     <style>
         .filter-card {
             background-color: #fff;
-            border-radius: .75rem;
+            border-radius: .375rem;
             box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
             padding: 1.5rem;
             margin-bottom: 1.5rem;
@@ -17,77 +17,65 @@
         .report-container {
             padding: 0;
         }
-        .staff-block {
+        .report-group {
             background-color: #fff;
-            border: 1px solid #e9ecef;
             border-radius: .75rem;
             margin-bottom: 1.5rem;
-            padding: 1rem;
+            overflow: hidden;
+            box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
         }
-        .block-header {
-            padding: 1rem 1.25rem;
-            border-radius: .5rem;
-            margin-bottom: 1rem;
-        }
-        .staff-header {
-            background-color: #f8f9fa;
-            color: #343a40;
-            border: 1px solid #dee2e6;
-        }
-        .service-header {
-            background-color: #007bff;
-            color: white;
-        }
-        .job-header {
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            color: #343a40;
-            margin-bottom: 0.5rem;
-            padding: .75rem 1rem;
-        }
-        .block-title {
-            font-weight: 600;
-            margin-bottom: 0;
-            display: flex;
-            align-items: center;
-        }
-        .block-title i {
-            margin-right: .75rem;
-        }
-        .block-status {
-            font-weight: 500;
-        }
-        .task-list {
-            padding-left: 1.5rem;
-            border-left: 2px solid #e9ecef;
-            margin-left: .5rem;
-        }
-        .task-item {
-            background-color: #fff;
-            padding: 1rem 0;
-            margin-bottom: 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        .task-item:last-child {
-            border-bottom: none;
-            padding-bottom: 0.5rem;
-        }
-        .task-main-row {
+        .report-header {
+            padding: 1rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
+            text-decoration: none !important;
+            color: inherit;
+            transition: background-color 0.2s ease-in-out;
         }
-        .task-details {
+        .report-header:hover {
+            background-color: #f1f1f1;
+        }
+        .report-header.staff-header { 
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .report-header.staff-header:hover {
+            background-color: #e9ecef;
+        }
+        .report-header.service-header { 
+            background-color: #007bff;
+            color: white; 
+        }
+        .report-header.service-header:hover {
+            background-color: #0069d9;
+        }
+        .report-header.job-header { 
+            background-color: #fff;
+            border-top: 1px solid #e9ecef; 
+            border-bottom: 1px solid #e9ecef; 
+        }
+        .report-header.job-header:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .report-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0; }
+        .report-time { font-size: 0.9rem; font-weight: 500; }
+        .report-header.service-header .report-time { color: rgba(255,255,255,0.85); }
+
+        .task-item {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: .75rem;
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
         }
-        .task-details i {
-            color: #6c757d;
-        }
-        .task-name {
-            font-weight: 500;
-        }
+        .task-item:last-child { border-bottom: none; }
+        .task-details { display: flex; align-items: center; gap: .75rem; }
+        .task-details i { color: #6c757d; }
+        .task-name { font-weight: 500; }
+        
         .status-pill {
             padding: .3em .8em;
             font-size: .75em;
@@ -95,10 +83,17 @@
             border-radius: 50px;
             white-space: nowrap;
         }
-        .status-not-started-yet { background-color: #e9ecef; color: #495057; border: 1px solid #ced4da; }
-        .status-to-do { background-color: #ffe5e5; color: #c81e1e; border: 1px solid #f5c6cb; }
-        .status-ongoing { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
-        .status-completed { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-to_do, .status-to-do { background-color: #f8d7da; color: #721c24; }
+        .status-ongoing, .status-in-progress { background-color: #d1ecf1; color: #0c5460; }
+        .status-completed { background-color: #d4edda; color: #155724; }
+        .status-not-started-yet { background-color: #e9ecef; color: #495057; }
+
+        .collapse-icon { 
+            transition: transform 0.3s ease; 
+        }
+        a[aria-expanded="false"] .collapse-icon { 
+            transform: rotate(-90deg); 
+        }
     </style>
 @stop
 

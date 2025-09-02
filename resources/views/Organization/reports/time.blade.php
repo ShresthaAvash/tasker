@@ -8,97 +8,83 @@
     <style>
         .filter-card {
             background-color: #fff;
-            border-radius: .75rem;
+            border-radius: .375rem;
             box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
             padding: 1.5rem;
             margin-bottom: 1.5rem;
         }
-        .report-container {
-            padding: 0;
-        }
-        .client-block {
+        .report-block {
             background-color: #fff;
-            border: 1px solid #e9ecef;
             border-radius: .75rem;
             margin-bottom: 1.5rem;
-            padding: 1rem;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
         }
-        .block-header {
-            padding: 1rem 1.25rem;
-            border-radius: .5rem;
-            margin-bottom: 1rem;
+        .report-header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            text-decoration: none !important;
+            color: inherit;
+            transition: background-color 0.2s ease-in-out;
         }
-        .client-header {
+        .report-header:hover {
+            background-color: #f1f1f1;
+        }
+        .client-header { 
             background-color: #f8f9fa;
-            color: #343a40;
-            border: 1px solid #dee2e6;
         }
-        .service-header {
+        .service-header { 
             background-color: #007bff;
+            color: white; 
+        }
+        .service-header:hover {
+            background-color: #0069d9;
             color: white;
         }
-        .job-header {
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            color: #343a40;
-            margin-bottom: 0.5rem;
-            padding: .75rem 1rem;
+        .job-header { 
+            background-color: #fff;
+            border-top: 1px solid #e9ecef; 
         }
-        .block-title {
-            font-weight: 600;
-            margin-bottom: 0;
-            display: flex;
-            align-items: center;
-        }
-        .block-title i {
-            margin-right: .75rem;
-        }
-        .block-status {
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-        .task-list {
-            padding-left: 1.5rem;
-            border-left: 2px solid #e9ecef;
-            margin-left: .5rem;
+        
+        .report-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0; display: flex; align-items: center;}
+        .report-title i { margin-right: .75rem; }
+        .report-status { font-size: 0.9rem; font-weight: 500; color: #6c757d; }
+        .report-header.service-header .report-status { color: rgba(255,255,255,0.85); }
+
+        .task-item-container {
+            padding-left: 2.5rem; /* Indent tasks under jobs */
         }
         .task-item {
-            background-color: #fff;
-            padding: 1rem 0;
-            margin-bottom: 0;
-            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column; /* Allow staff breakdown to sit below */
+            align-items: stretch;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #f0f0f0;
         }
-        .task-item:last-child {
-            border-bottom: none;
-            padding-bottom: 0.5rem;
-        }
-        .task-main-row {
+        .task-main-info {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .task-details {
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-        }
-        .task-details i {
-            color: #6c757d;
-        }
-        .task-name {
-            font-weight: 500;
-        }
-        .task-staff {
+        .task-details { display: flex; align-items: center; gap: 1rem; flex-grow: 1; }
+        .task-name { font-weight: 500; }
+        .task-meta a { 
             font-size: 0.85rem;
-            color: #6c757d;
-            cursor: pointer;
+            color: #6c757d; 
             text-decoration: none;
             border-bottom: 1px dashed #6c757d;
         }
-        .task-staff:hover {
-            color: #007bff;
-            border-color: #007bff;
+        .task-meta a:hover { color: #007bff; }
+        
+        .task-status {
+            min-width: 100px;
+            text-align: right;
         }
+
+        /* Status Pill Styles (like Staff Report) */
         .status-pill {
             padding: .3em .8em;
             font-size: .75em;
@@ -106,14 +92,24 @@
             border-radius: 50px;
             white-space: nowrap;
         }
-        .status-not-started-yet { background-color: #e9ecef; color: #495057; border: 1px solid #ced4da; }
-        .status-to-do { background-color: #ffe5e5; color: #c81e1e; border: 1px solid #f5c6cb; }
-        .status-in-progress { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
-        .status-completed { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-
-        .staff-breakdown { background-color: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; }
-        .collapse-icon { transition: transform 0.3s ease; }
-        a[aria-expanded="false"] .collapse-icon { transform: rotate(-90deg); }
+        .status-to-do { background-color: #f8d7da; color: #721c24; }
+        .status-ongoing { background-color: #d1ecf1; color: #0c5460; }
+        .status-completed { background-color: #d4edda; color: #155724; }
+        
+        .staff-breakdown { 
+            background-color: #f8f9fa; 
+            border-radius: 4px; 
+            border: 1px solid #e9ecef; 
+            margin-top: 0.75rem;
+            margin-left: 1.75rem; /* Indent under task name */
+        }
+        
+        .collapse-icon { 
+            transition: transform 0.3s ease; 
+        }
+        a[aria-expanded="false"] .collapse-icon { 
+            transform: rotate(-90deg); 
+        }
     </style>
 @stop
 
@@ -130,6 +126,7 @@
         <div class="col-md-3">
             <input type="text" id="search-input" class="form-control" placeholder="Search by Client, Service, Job..." value="{{ $search ?? '' }}">
         </div>
+        
         <div class="col-md-3">
             <select id="status-filter" multiple="multiple"></select>
         </div>
@@ -184,7 +181,7 @@ $(document).ready(function() {
         width: '100%',
         data: [
             { id: 'to_do', text: 'To Do' },
-            { id: 'ongoing', text: 'In Progress' },
+            { id: 'ongoing', text: 'Ongoing' },
             { id: 'completed', text: 'Completed' }
         ]
     }).val({!! json_encode($statuses) !!}).trigger('change');
@@ -233,6 +230,7 @@ $(document).ready(function() {
     });
 
     toggleDateFilters($('#custom-range-switch').is(':checked'));
+    
     $('#search-input, #status-filter, #year-filter, #month-filter, #start-date-filter, #end-date-filter').on('keyup change', function() {
         fetch_report_data(1);
     });
