@@ -39,20 +39,20 @@
                 <span class="dropdown-item dropdown-header"><span id="notification-header-count">{{ Auth::user()->unreadNotifications->count() }}</span> New Notifications</span>
                 <div class="dropdown-divider"></div>
                 
+                {{-- --- THIS IS THE FIX: The HTML structure of the notification item has been simplified --- --}}
                 @forelse(Auth::user()->notifications()->take(5)->get() as $notification)
                     @php
                         $isMessageSent = $notification->type === 'App\\Notifications\\MessageSentToClients';
                     @endphp
-                    <div class="dropdown-item notification-item {{ $notification->read_at ? '' : 'bg-light font-weight-bold' }}"
+                    <a href="#" class="dropdown-item notification-item {{ $notification->read_at ? '' : 'bg-light' }}"
                          data-id="{{ $notification->id }}" 
                          data-type="{{ class_basename($notification->type) }}"
                          data-info="{{ json_encode($notification->data) }}"
                          data-full-time="{{ $notification->created_at->format('d M Y, h:i A') }}"
                          data-read="{{ $notification->read_at ? 'true' : 'false' }}"
-                         data-recipients="{{ $isMessageSent ? $notification->data['recipients'] : '' }}"
-                         style="cursor: pointer;">
+                         data-recipients="{{ $isMessageSent ? $notification->data['recipients'] : '' }}">
                         
-                        <div class="notification-text">
+                        <p class="notification-message {{ !$notification->read_at ? 'font-weight-bold' : '' }}">
                             @if($notification->type === 'App\\Notifications\\MessageFromOrganization')
                                 <i class="fas fa-envelope text-primary mr-2"></i>
                                 <strong>{{ $notification->data['subject'] }}</strong> from {{ $notification->data['organization_name'] }}
@@ -63,9 +63,11 @@
                                 <i class="fas fa-tasks text-info mr-2"></i>
                                 {{ $notification->data['message'] }}
                             @endif
-                        </div>
-                        <span class="text-nowrap text-muted text-sm">{{ $notification->created_at->diffForHumans() }}</span>
-                    </div>
+                        </p>
+                        <p class="notification-timestamp mb-0">
+                            {{ $notification->created_at->diffForHumans() }}
+                        </p>
+                    </a>
                     <div class="dropdown-divider"></div>
                 @empty
                     <span class="dropdown-item text-muted text-center">No notifications</span>
@@ -78,6 +80,7 @@
     </li>
 @endsection
 
+<<<<<<< HEAD
 @push('css')
     <style>
         /* --- THEME COLOR FIXES --- */
@@ -138,8 +141,58 @@
 
             color: #0c6ffd !important;
         } 
+
+            .card-tabs .nav-tabs .nav-link { color: #007bff; }
+    
+    /* --- THIS IS THE FIX --- */
+    #notification-bell .dropdown-menu {
+        width: 380px !important;
+        max-width: 380px !important;
+    }
+    .notification-item {
+        white-space: normal !important;
+        padding: 0.75rem 1rem !important;
+    }
+    .notification-item .notification-message {
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin-bottom: 0.25rem !important;
+    }
+    .notification-item .notification-timestamp {
+        font-size: 0.75rem;
+        color: #6c757d !important;
+    }
+    /* --- END OF FIX --- */
+
+    /* Modal styles for notifications */
+    #notificationDetailModal .modal-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    #notificationDetailModal .modal-title {
+        font-weight: 600;
+    }
+    #notificationDetailModal .modal-body {
+        background-color: #fff;
+    }
+    #notification-modal-message {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        white-space: pre-wrap;
+        max-height: 40vh;
+        overflow-y: auto;
+    }
+
+    .nav-sidebar .nav-treeview > .nav-item > .nav-link.active {
+        background-color: #e9ecef !important;
+        color: #212529 !important;
+    }
     </style>
 @endpush
+=======
+
+>>>>>>> origin/newunison
 
 @push('js')
 <script>
@@ -251,7 +304,9 @@
 
         let currentNotificationId = null;
 
-        $('#notification-bell').on('click', '.notification-item', function() {
+        // --- THIS IS THE FIX: Added e.preventDefault() ---
+        $('#notification-bell').on('click', '.notification-item', function(e) {
+            e.preventDefault();
             const item = $(this);
             currentNotificationId = item.data('id');
             const type = item.data('type');
@@ -263,7 +318,7 @@
             if (!isRead) {
                 $.post(`/notifications/${currentNotificationId}/read`)
                     .done(function() {
-                        item.removeClass('bg-light font-weight-bold').data('read', 'true');
+                        item.removeClass('bg-light font-weight-bold');
                         let count = parseInt($('#notification-badge-count').text()) - 1;
                         $('#notification-badge-count').text(count > 0 ? count : '');
                         $('#notification-header-count').text(count > 0 ? count : 0);

@@ -302,7 +302,9 @@
                         labels: @json($chartLabels),
                         datasets: [{
                             data: @json($chartData),
-                            backgroundColor: [ '#0d6efd', '#ffc107', '#28a745', '#dc3545', '#6c757d' ],
+                            // --- THIS IS THE FIX ---
+                            // To Do => Blue, Ongoing => Yellow, Completed => Green
+                            backgroundColor: [ '#0d6efd', '#ffc107', '#28a745' ],
                             borderColor: '#ffffff',
                             borderWidth: 2
                         }]

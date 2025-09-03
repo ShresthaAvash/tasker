@@ -55,10 +55,20 @@ class DashboardController extends Controller
             ->get();
             
         // Data for the pie chart from assignments, not templates
-        $taskStatusCounts = AssignedTask::whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
+        $dbStatusCounts = AssignedTask::whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
             ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->pluck('count', 'status');
+        
+        // Define the desired order and default values for the chart to ensure 'Ongoing' is always present.
+        $allStatuses = collect([
+            'to_do' => 0,
+            'ongoing' => 0,
+            'completed' => 0,
+        ]);
+
+        // Merge the database results with the defaults. This ensures all keys exist, even with a count of 0.
+        $taskStatusCounts = $allStatuses->merge($dbStatusCounts);
         
         // --- END OF FIX ---
 
@@ -117,10 +127,7 @@ class DashboardController extends Controller
     public function staffDashboard()
     {
         $staffId = Auth::id();
-
-        // --- THIS IS THE DEFINITIVE FIX FOR STAFF DASHBOARD COUNTS & CHART ---
         
-        // Calculate all counts based on 'to_do', 'ongoing', and 'completed' statuses
         $toDoPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'to_do')->count();
         $toDoAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'to_do')->count();
         $toDoTaskCount = $toDoPersonalCount + $toDoAssignedCount;
@@ -132,11 +139,9 @@ class DashboardController extends Controller
         $completedPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'completed')->count();
         $completedAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'completed')->count();
         $completedTaskCount = $completedPersonalCount + $completedAssignedCount;
-
-        // Active tasks are now To Do + Ongoing
+        
         $activeTaskCount = $toDoTaskCount + $ongoingTaskCount;
 
-        // Calculate documents count for clients associated with this staff member
         $associatedClientIds = AssignedTask::whereHas('staff', function ($q) use ($staffId) {
                 $q->where('users.id', $staffId);
             })
@@ -145,21 +150,21 @@ class DashboardController extends Controller
 
         $documentsCount = ClientDocument::whereIn('client_id', $associatedClientIds)->count();
 
-        // Data for Pie Chart: To Do vs Ongoing Tasks
+        // --- THIS IS THE FIX ---
+        // Data for Pie Chart now includes all statuses to prevent the "no data" issue.
         $chartData = collect([
             'to_do' => $toDoTaskCount,
             'ongoing' => $ongoingTaskCount,
+            'completed' => $completedTaskCount,
         ]);
+        // --- END OF FIX ---
 
         $chartLabels = $chartData->keys()->map(fn($s) => ucwords(str_replace('_', ' ', $s)));
         $chartDataValues = $chartData->values();
 
-        // --- END OF FIX ---
-
-        // Fetch Upcoming Personal tasks
         $personalTasks = Task::where('staff_id', $staffId)
             ->whereNull('job_id')
-            ->whereIn('status', ['to_do', 'ongoing']) // Show both types of active tasks
+            ->whereIn('status', ['to_do', 'ongoing'])
             ->whereNotNull('start')
             ->where('start', '>=', now())
             ->orderBy('start', 'asc')
@@ -171,7 +176,6 @@ class DashboardController extends Controller
                 return $task;
             });
 
-        // Fetch Upcoming Assigned client tasks
         $assignedTasks = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
             ->whereIn('status', ['to_do', 'ongoing'])
             ->whereNotNull('start')
@@ -185,8 +189,7 @@ class DashboardController extends Controller
                 $task->task_details = "Service: {$task->service->name} | Job: {$task->job->name} | Client: {$task->client->name}";
                 return $task;
             });
-
-        // Combine and sort tasks for the upcoming list
+        
         $allTasks = $personalTasks->concat($assignedTasks);
         $upcomingTasks = $allTasks->sortBy('start')->take(10);
         

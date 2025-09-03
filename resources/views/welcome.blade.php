@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tasker - Your Practice Management Solution</title>
+    <title>Tasker - Streamline Your Workflow</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -16,84 +16,122 @@
     <?php echo app('Illuminate\Foundation\Vite')(['resources/sass/app.scss', 'resources/js/app.js']); ?>
 
     <style>
+        /* --- START: CORE & SHARED STYLES --- */
         :root {
-            --primary-blue: #0d6efd;
-            --light-blue: #e3f2fd;
-            --dark-blue: #0a58ca;
-            --text-dark: #212529;
-            --text-light: #6c757d;
+            --primary-blue: #377DFF;
+            --text-dark: #111827;
+            --text-light: #6B7280;
             --section-bg: #f8f9fa;
+            --section-about-bg: #f9f8fa;
+            --frame-wood-color: #D1B399;
         }
 
         html { scroll-behavior: smooth; }
-        body { font-family: 'Figtree', sans-serif; }
+        body { font-family: 'Figtree', sans-serif; background-color: #fff; }
         .section { padding: 80px 0; }
         .section-title { font-weight: 700; font-size: 2.8rem; color: var(--text-dark); }
         .section-subtitle { font-size: 1.15rem; color: var(--text-light); max-width: 600px; margin: 0 auto 50px auto; }
 
         /* Navbar */
         .navbar-custom { background-color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.06); padding: 1rem 0; }
-        .navbar-brand { font-weight: 700; }
-        .navbar .nav-link { color: var(--text-dark); font-weight: 500; transition: color 0.2s;  margin: 0 15px;   }
+        .navbar-brand { font-weight: 700; font-size: 1.5rem; }
+        .navbar .nav-link { color: var(--text-dark); font-weight: 500; transition: color 0.2s;  margin: 0 15px; }
         .navbar .nav-link:hover, .navbar .nav-link.active { color: var(--primary-blue); }
-        .navbar .btn-login { border: 2px solid var(--primary-blue); font-weight: 600; padding: 0.5rem 1.5rem; border-radius: 50px; }
-        .navbar .btn-login:hover { background-color: var(--primary-blue); color: #fff; }
+        /* --- END: CORE STYLES --- */
 
-        /* Hero Section */
+
+        /* --- START: HERO SECTION STYLES --- */
         .hero-section {
-            position: relative;
-            background: url("{{ asset('images/homepage.png') }}") no-repeat right center;
-            background-size: cover;
-            color: #fff;
-            padding: 120px 0;
-            overflow: hidden;
+            padding: 100px 0;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            min-height: 90vh;
         }
 
-        /* Gradient overlay for fade effect */
-        .hero-section::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 65%; /* How much gradient covers */
-            height: 100%;
-            background: linear-gradient(to right, var(--primary-blue) 30%, rgba(13, 110, 253, 0) 100%);
-            z-index: 1;
-        }
-
-        .hero-section .container {
-            position: relative;
-            z-index: 2; /* Keep text above gradient */
-        }
-
-        .hero-section h1 {
-            font-size: 3.8rem;
+        .hero-content h1 {
             font-weight: 700;
+            font-size: 3.5rem;
+            color: var(--text-dark);
             line-height: 1.2;
-        }
-        .hero-section .lead { font-size: 1.25rem; color: #ffffff; }
-        .hero-section .highlight { color: #ffdd57; }
-        .hero-section .feature-list li {
-            margin-bottom: 1rem;
-            color: #ffffff;
-        }
-        .hero-section .feature-list li .fas { color: #ffffff; }
-        .hero-section .btn {
-            padding: 12px 30px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            border-radius: 8px;
+            margin-bottom: 24px;
         }
 
-        /* Feature & Step Cards */
+        .hero-content p {
+            font-size: 1.15rem;
+            color: var(--text-light);
+            margin-bottom: 32px;
+            max-width: 500px;
+        }
+
+        .btn-get-started {
+            background-color: var(--primary-blue);
+            border-color: var(--primary-blue);
+            color: #fff;
+            padding: 14px 32px;
+            font-weight: 600;
+            font-size: 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-get-started:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(55, 125, 255, 0.3);
+        }
+
+        .hero-image-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* --- THIS IS THE UPDATED STYLE --- */
+        .image-frame {
+            border: 12px solid var(--frame-wood-color); /* The outer wood frame */
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            max-width: 450px;
+            width: 100%;
+            overflow: hidden; /* Clips the image corners to match the frame's border-radius */
+            line-height: 0; /* Fixes potential small gap under image */
+        }
+        /* --- END OF UPDATED STYLE --- */
+
+
+        .image-frame img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        @media (max-width: 991.98px) {
+            .hero-section {
+                padding: 60px 0;
+                text-align: center;
+            }
+            .hero-content p {
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .hero-image-wrapper {
+                margin-top: 50px;
+            }
+        }
+        /* --- END: HERO SECTION STYLES --- */
+        
+        #about {
+            background-color: var(--section-about-bg);
+        }
+
+        /* --- ORIGINAL STYLES FOR ALL OTHER SECTIONS --- */
         .feature-card, .step-card-wrapper { background: #fff; border: 1px solid #e3e6f0; border-radius: 16px; padding: 30px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .feature-card:hover, .step-card-wrapper:hover { transform: translateY(-8px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .feature-card .icon { font-size: 2.5rem; color: var(--primary-blue); margin-bottom: 20px; }
         .step-card { text-align: center; }
         .step-number { background-color: var(--primary-blue); color: #fff; width: 40px; height: 40px; line-height: 40px; border-radius: 50%; margin: 0 auto 20px auto; font-weight: 700; }
-
-        /* Pricing Section Styling */
-        .pricing-section { padding: 80px 0; background-color: #f8f9fa; }
+        .pricing-section { padding: 80px 0; background-color: var(--section-bg); }
         .pricing-header { max-width: 700px; margin-left: auto; margin-right: auto; margin-bottom: 50px; }
         .pricing-header h2 { font-weight: 700; font-size: 2.8rem; color: #1a202c; }
         .pricing-header p { font-size: 1.15rem; color: #6c757d; }
@@ -102,10 +140,7 @@
         .pricing-card:not(.highlight):hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
         .pricing-card.highlight { background: linear-gradient(180deg, #4f46e5 0%, #3b82f6 100%); border: none; color: #fff; transform: scale(1.05); }
         .pricing-card.highlight:hover { transform: scale(1.08); }
-        .pricing-card.highlight .plan-name,
-        .pricing-card.highlight .price,
-        .pricing-card.highlight .price-period,
-        .pricing-card.highlight .plan-description { color: #fff; }
+        .pricing-card.highlight .plan-name, .pricing-card.highlight .price, .pricing-card.highlight .price-period, .pricing-card.highlight .plan-description { color: #fff; }
         .pricing-card.highlight .feature-list li { color: #e0ecff; }
         .pricing-card.highlight .feature-list .fa-check-circle { color: #fff; }
         .pricing-card.highlight .btn-purchase { background: #fff; color: #2563eb; }
@@ -120,25 +155,29 @@
         .btn-purchase { width: 100%; padding: 14px; font-size: 1rem; font-weight: 600; border-radius: 8px; background: #3b82f6; color: #fff; border: 1px solid #3b82f6; transition: all 0.2s ease; text-decoration: none; display: inline-block; text-align: center; }
         .btn-purchase.btn-outline { background: transparent; color: #3b82f6; }
         .btn-purchase:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-
-        /* Contact & Footer */
         .contact-section { background-color: var(--section-bg); }
         .contact-info-card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; align-items: center; margin-bottom: 20px; }
-        .contact-info-card .icon-wrapper { flex-shrink: 0; width: 50px; height: 50px; background-color: var(--light-blue); color: var(--primary-blue); display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-right: 20px; font-size: 1.5rem; }
+        .contact-info-card .icon-wrapper { flex-shrink: 0; width: 50px; height: 50px; background-color: #e3f2fd; color: var(--primary-blue); display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-right: 20px; font-size: 1.5rem; }
         .contact-form .form-control { border-radius: 8px; padding: 12px 15px; border: 1px solid #ced4da; }
         .contact-form .btn-primary { padding: 12px 30px; border-radius: 8px; font-weight: 600; }
+        .map-container { border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); height: 450px; }
+        .map-container iframe { width: 100%; height: 100%; border: 0; }
         .footer { background: linear-gradient(45deg, #0d6efd, #0a58ca); color: #fff; padding-top: 60px; }
         .footer a { color: #fff; text-decoration: none; }
+        .footer h5 { font-weight: 600; margin-bottom: 1rem; }
+        .footer .list-unstyled a { color: rgba(255,255,255,0.8); transition: color 0.2s; }
+        .footer .list-unstyled a:hover { color: #fff; }
         .footer .social-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.1); display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.3s; }
         .footer .social-icon:hover { background: rgba(255,255,255,0.2); }
         .footer-bottom { background-color: rgba(0,0,0,0.1); padding: 15px 0; margin-top: 40px; }
+
     </style>
 </head>
 <body data-bs-spy="scroll" data-bs-target="#navbarNav">
 
     <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="#">TASKER</a>
+            <a class="navbar-brand" href="#">Tasker</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -149,6 +188,7 @@
                     <li class="nav-item"><a class="nav-link" href="#how-it-works">How it works</a></li>
                     <li class="nav-item"><a class="nav-link" href="#why-tasker">Why Tasker</a></li>
                     <li class="nav-item"><a class="nav-link" href="#pricing">Subscription</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item">
@@ -164,29 +204,36 @@
     </nav>
 
     <main>
-        <!-- ✅ Updated Hero Section -->
+        <!-- ======== HERO SECTION START ======== -->
         <section class="hero-section" id="home">
             <div class="container">
                 <div class="row align-items-center">
-                    <div class="col-lg-6">
-                        <h1>Organize Your Tasks <br><span class="highlight">Anywhere, Anytime</span></h1>
-                        <p class="lead my-4">
-                            Streamline your workflow with Tasker's powerful task management platform. Boost productivity and never miss a deadline again.
+                    <div class="col-lg-6 hero-content">
+                        <h1>Streamline Your Workflow with Tasker</h1>
+                        <p>
+                            Boost your productivity and achieve your goals with our intuitive task
+                            management solution. Organize, prioritize, and track your tasks
+                            effortlessly.
                         </p>
-                        <ul class="list-unstyled feature-list lead">
-                            <li><i class="fas fa-check-circle me-2"></i> Create and organize tasks effortlessly</li>
-                            <li><i class="fas fa-check-circle me-2"></i> Collaborate with your team in real-time</li>
-                            <li><i class="fas fa-check-circle me-2"></i> Track progress with powerful analytics</li>
-                        </ul>
-                        <a href="#pricing" class="btn btn-light me-2">Get Started Now</a>
+                        <a href="#pricing" class="btn-get-started">Get Started Now</a>
                     </div>
-                </div> 
+                    
+                    <div class="col-lg-6">
+                        <div class="hero-image-wrapper">
+                            <div class="image-frame">
+                                <img src="{{ asset('images/image.png') }}" alt="Analytics dashboard shown on a tablet screen">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
+        <!-- ======== HERO SECTION END ======== -->
         
+        <!-- About Section -->
         <section class="section text-center" id="about">
             <div class="container">
-                <h2 class="section-title">About <span class="text-primary">Tasker</span></h2>
+                <h2 class="section-title">About <span style="color: var(--primary-blue);">Tasker</span></h2>
                 <p class="section-subtitle">Tasker is a comprehensive task management platform designed to help individuals and teams organize, prioritize, and complete their work more efficiently. With powerful features and an intuitive interface, managing tasks has never been easier.</p>
                 <div class="row">
                     <div class="col-md-4 mb-4"><div class="feature-card h-100"><i class="fas fa-bolt icon"></i><h3>Lightning Fast</h3><p>Experience blazing-fast performance with our optimized task management engine.</p></div></div>
@@ -196,10 +243,10 @@
             </div>
         </section>
         
-        
+        <!-- How It Works Section -->
         <section class="section text-center bg-light" id="how-it-works">
             <div class="container">
-                <h2 class="section-title">How <span class="text-primary">Tasker</span> Works</h2>
+                <h2 class="section-title">How <span style="color: var(--primary-blue);">Tasker</span> Works</h2>
                 <p class="section-subtitle">A simple, four-step process to get you from chaos to organized clarity.</p>
                 <div class="row mt-5">
                     <div class="col-md-3 mb-4"><div class="step-card-wrapper h-100"><div class="step-card"><div class="step-number">1</div><i class="fas fa-user-plus fa-3x mb-3"></i><h3>Sign Up & Setup</h3><p>Create your account in seconds and customize your workspace to match your workflow.</p></div></div></div>
@@ -210,10 +257,10 @@
             </div>
         </section>
 
-        
+        <!-- Why Tasker Section -->
         <section class="section" id="why-tasker">
             <div class="container">
-                <h2 class="section-title text-center">Why Choose <span class="text-primary">Tasker</span>?</h2>
+                <h2 class="section-title text-center">Why Choose <span style="color: var(--primary-blue);">Tasker</span>?</h2>
                 <p class="section-subtitle">Join thousands of professionals and teams who have transformed their productivity with Tasker. Here’s what makes us the preferred choice for task management.</p>
                  <div class="row">
                     <div class="col-md-4 mb-4"><div class="feature-card h-100"><i class="fas fa-lock icon"></i><h3>Enterprise Security</h3><p>Bank-grade encryption and security protocols to keep your data safe and secure.</p></div></div>
@@ -223,7 +270,7 @@
             </div>
         </section>
 
-        
+        <!-- Pricing Section -->
         <section class="pricing-section" id="pricing">
             <div class="container">
                 <div class="pricing-header text-center">
@@ -293,10 +340,10 @@
             </div>
         </section>
 
-        
+        <!-- Contact Section -->
         <section class="section contact-section" id="contact">
             <div class="container">
-                <h2 class="section-title text-center">Get in <span class="text-primary">Touch</span></h2>
+                <h2 class="section-title text-center">Get in <span style="color: var(--primary-blue);">Touch</span></h2>
                 <p class="section-subtitle">Have questions about Tasker? We're here to help. Reach out to our team and we'll get back to you as soon as possible.</p>
                 <div class="row align-items-center">
                     <div class="col-lg-6 mb-4 mb-lg-0">
@@ -341,29 +388,47 @@
                         </div>
                     </div>
                 </div>
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <div class="map-container">
+                            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3532.992233623543!2d85.31688657512295!3d27.68661607619504!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb19b023de2181%3A0x7af7c237a360a8b!2sG-Tech%20Vision!5e0!3m2!1sen!2snp!4v1693557375630!5m2!1sen!2snp" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
 
     <footer class="footer">
         <div class="container">
-            <div class="row align-items-center">
+            <div class="row">
                 <div class="col-lg-4 text-center text-lg-start mb-4 mb-lg-0">
                     <h4 class="fw-bold">TASKER</h4>
-                    <p class="mb-0">Streamline your workflow. Organize tasks, track progress, and collaborate in one place.</p>
+                    <p class="mb-0 text-white-50">Streamline your workflow. Organize tasks, track progress, and collaborate in one place.</p>
                 </div>
-                <div class="col-lg-5 text-center mb-4 mb-lg-0">
-                    <a href="#pricing" class="mx-2">Pricing</a>
-                    <a href="#how-it-works" class="mx-2">How It Works</a>
-                    <a href="#about" class="mx-2">About Tasker</a>
-                    <a href="{{ route('login') }}" class="mx-2">Login</a>
+                <div class="col-lg-2 offset-lg-1 text-center text-lg-start mb-4 mb-lg-0">
+                    <h5 class="mb-3">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#pricing">Pricing</a></li>
+                        <li class="mb-2"><a href="#how-it-works">How It Works</a></li>
+                        <li class="mb-2"><a href="#why-tasker">Why Tasker</a></li>
+                    </ul>
                 </div>
-                <div class="col-lg-3 text-center text-lg-end">
-                    <p class="small mb-2">Powered by Gtech Vision</p>
+                <div class="col-lg-2 text-center text-lg-start mb-4 mb-lg-0">
+                    <h5 class="mb-3">Company</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#about">About Tasker</a></li>
+                        <li class="mb-2"><a href="#contact">Contact</a></li>
+                        <li class="mb-2"><a href="{{ route('login') }}">Login</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 text-center text-lg-start">
+                    <h5 class="mb-3">Our Socials</h5>
+                    <p class="text-white-50">Follow us for updates and news.</p>
                     <div>
-                        <a href="#" class="social-icon mx-1"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" class="social-icon mx-1"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="social-icon mx-1"><i class="fab fa-twitter"></i></a>
+                        <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" class="social-icon mx-1"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" class="social-icon mx-1"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.twitter.com" target="_blank" rel="noopener noreferrer" class="social-icon mx-1"><i class="fab fa-twitter"></i></a>
                     </div>
                 </div>
             </div>
@@ -374,20 +439,17 @@
             </div>
         </div>
     </footer>
-
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // This enables the Bootstrap scrollspy feature
             const mainNav = document.body.querySelector('#navbarNav');
             if (mainNav) {
                 new bootstrap.ScrollSpy(document.body, {
                     target: '#navbarNav',
-                    offset: 74, // Adjust this value based on your navbar height
+                    offset: 74,
                 });
             };
 
-            // This handles the smooth scroll for all anchor links
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
                     e.preventDefault();
