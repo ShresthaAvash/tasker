@@ -368,7 +368,7 @@ return [
         ],
         [
             'text'  => 'Calendar',
-            'route' => 'organization.calendar',
+            'route' => 'staff.calendar', // MODIFIED: Changed route name
             'icon'  => 'fas fa-fw fa-calendar-alt',
             'can'   => 'is-staff',
             'active' => ['staff/calendar*']

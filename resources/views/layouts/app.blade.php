@@ -195,7 +195,9 @@
 <script>
     $(document).ready(function() {
         
-        // --- GLOBAL AJAX SETUP WITH CSRF TOKEN ---
+        // --- THIS IS THE CRITICAL FIX for CSRF TOKENS ---
+        // This script automatically adds the token to all AJAX requests.
+        // It must be present in this layout file.
         $.ajaxSetup({
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -301,7 +303,6 @@
 
         let currentNotificationId = null;
 
-        // --- THIS IS THE FIX: Added e.preventDefault() ---
         $('#notification-bell').on('click', '.notification-item', function(e) {
             e.preventDefault();
             const item = $(this);

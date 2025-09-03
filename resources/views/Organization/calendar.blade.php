@@ -1,9 +1,23 @@
-@extends('adminlte::page')
+@extends('layouts.app')
 
-@section('title', 'Calendar')
+@section('title', 'My Calendar')
+
+@section('page_title', 'My Calendar')
 
 @section('content_header')
-    <h1>Calendar</h1>
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>My Calendar</h1>
+        <div class="d-flex align-items-center">
+            <div class="form-inline mr-3">
+                <label for="month-select" class="mr-2 font-weight-normal">Go to:</label>
+                <select id="month-select" class="form-control form-control-sm"></select>
+                <select id="year-select" class="form-control form-control-sm ml-2"></select>
+            </div>
+            <a href="{{ route('staff.tasks.index') }}" class="btn btn-primary">
+                <i class="fas fa-tasks mr-1"></i> View Task List
+            </a>
+        </div>
+    </div>
 @stop
 
 @section('content')
@@ -13,12 +27,14 @@
     </div>
 </div>
 
-{{-- MODIFIED: Modal with the Delete Task button removed --}}
+{{-- Modal for event details --}}
 <div id="eventDetailModal" class="modal">
     <div class="modal-content">
         <span class="close-button">&times;</span>
         <h4 style="margin-bottom: 15px;">Task Details</h4>
         <p><strong>Title:</strong> <span id="modalTitle"></span></p>
+        <p><strong>Service:</strong> <span id="modalService"></span></p>
+        <p><strong>Job:</strong> <span id="modalJob"></span></p>
         <p><strong>Start:</strong> <span id="modalStart"></span></p>
         <p><strong>End:</strong> <span id="modalEnd"></span></p>
         <hr>
@@ -51,12 +67,14 @@
 
             <small id="color-save-status" class="form-text text-success" style="display: none;">Color Saved!</small>
         </div>
-        {{-- REMOVED: The <hr> and the delete button are gone --}}
+        <hr>
+        <a href="#" id="viewInListBtn" class="btn btn-primary btn-block"><i class="fas fa-list-alt mr-2"></i>View in Task List</a>
     </div>
 </div>
-@stop
+@endsection
 
 @section('css')
+@parent
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
     <style>
         .fc .fc-daygrid-day.fc-day-today { background-color: rgba(255, 229, 100, 0.2); }
@@ -68,44 +86,123 @@
         .color-swatch { width: 30px; height: 30px; border-radius: 50%; margin: 5px; cursor: pointer; border: 3px solid transparent; transition: border-color 0.2s; }
         .color-swatch:hover { border-color: #ccc; }
         .color-swatch.selected { border-color: #000; }
+        #calendar {
+            height: 85vh !important;
+        }
+
+        .highlight-event {
+            border: 3px solid black !important;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+        }
     </style>
 @stop
 
 @section('js')
+    @parent
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
-
         var calendarEl = document.getElementById('calendar');
         var modal = document.getElementById('eventDetailModal');
         var colorSaveStatus = document.getElementById('color-save-status');
         var modalTitle = document.getElementById('modalTitle');
+        var modalService = document.getElementById('modalService');
+        var modalJob = document.getElementById('modalJob');
         var modalStart = document.getElementById('modalStart');
         var modalEnd = document.getElementById('modalEnd');
-        // REMOVED: Delete button variable
+        var viewInListBtn = document.getElementById('viewInListBtn');
         var closeButton = document.querySelector('.close-button');
         var nonRecurringPalette = document.getElementById('non-recurring-palette');
         var recurringPalette = document.getElementById('recurring-palette');
         var currentEvent = null;
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventIdToHighlight = urlParams.get('event_id');
+        const dateToGoTo = urlParams.get('date');
+        let highlighted = false;
+
+        const monthSelect = document.getElementById('month-select');
+        const yearSelect = document.getElementById('year-select');
+
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        months.forEach((month, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = month;
+            monthSelect.appendChild(option);
+        });
+
+        const currentYear = new Date().getFullYear();
+        for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            yearSelect.appendChild(option);
+        }
+
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
+            initialDate: dateToGoTo || new Date(),
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
-            events: '{{ route("organization.calendar.events") }}',
+            events: '{{ route("staff.calendar.events") }}',
             editable: true,
+            height: '100%',
+            
+            datesSet: function(info) {
+                const currentDate = info.view.currentStart;
+                monthSelect.value = currentDate.getMonth();
+                yearSelect.value = currentDate.getFullYear();
+            },
+
+            eventDidMount: function(info) {
+                if (!highlighted && info.event.id === eventIdToHighlight) {
+                    const eventElement = info.el;
+                    eventElement.classList.add('highlight-event');
+                    eventElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    const removeHighlight = () => {
+                        if (eventElement) {
+                            eventElement.classList.remove('highlight-event');
+                        }
+                        document.body.removeEventListener('click', removeHighlight, { capture: true });
+                    };
+                    
+                    document.body.addEventListener('click', removeHighlight, { once: true, capture: true });
+                    
+                    if (history.replaceState) {
+                        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                        window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+                    }
+                    highlighted = true;
+                }
+            },
 
             eventClick: function(info) {
                 currentEvent = info.event;
                 modalTitle.textContent = currentEvent.title;
+                modalService.textContent = currentEvent.extendedProps.serviceName || 'N/A';
+                modalJob.textContent = currentEvent.extendedProps.jobName || 'N/A';
                 modalStart.textContent = currentEvent.start.toLocaleString();
                 
                 const actualEnd = currentEvent.extendedProps.actualEnd;
                 modalEnd.textContent = actualEnd ? new Date(actualEnd).toLocaleString() : 'Not set';
+                
+                const taskListPageUrl = "{{ route('staff.tasks.index') }}";
+                const eventId = currentEvent.id;
+                const eventDate = currentEvent.start; 
+                const eventYear = eventDate.getFullYear();
+                const eventMonth = eventDate.getMonth() + 1;
+
+                const viewUrl = new URL(taskListPageUrl);
+                viewUrl.searchParams.append('task_id', eventId);
+                viewUrl.searchParams.append('year', eventYear);
+                viewUrl.searchParams.append('month', eventMonth);
+                viewInListBtn.href = viewUrl.toString();
 
                 const isRecurring = currentEvent.extendedProps.isRecurring;
                 if (isRecurring) {
@@ -115,20 +212,19 @@
                     nonRecurringPalette.style.display = 'block';
                     recurringPalette.style.display = 'none';
                 }
-                
+
                 document.querySelectorAll('.color-swatch').forEach(swatch => {
                     swatch.classList.remove('selected');
                     if (swatch.dataset.color === currentEvent.backgroundColor) {
                         swatch.classList.add('selected');
                     }
                 });
-
                 modal.style.display = 'block';
             },
 
             eventDrop: function(info) {
                 $.ajax({
-                    url: "{{ route('organization.calendar.ajax') }}",
+                    url: "{{ route('staff.calendar.ajax') }}",
                     type: "POST",
                     data: {
                         type: 'update',
@@ -143,6 +239,15 @@
 
         calendar.render();
         
+        function navigateCalendar() {
+            const year = parseInt(yearSelect.value, 10);
+            const month = parseInt(monthSelect.value, 10);
+            const newDate = new Date(year, month, 1);
+            calendar.gotoDate(newDate);
+        }
+        monthSelect.addEventListener('change', navigateCalendar);
+        yearSelect.addEventListener('change', navigateCalendar);
+
         document.querySelectorAll('.color-swatch').forEach(swatch => {
             swatch.addEventListener('click', function() {
                 if (!currentEvent) return;
@@ -153,7 +258,7 @@
                 this.classList.add('selected');
 
                 $.ajax({
-                    url: "{{ route('organization.calendar.ajax') }}",
+                    url: "{{ route('staff.calendar.ajax') }}",
                     type: "POST",
                     data: { type: 'update', id: eventId, color: newColor },
                     success: function() {
@@ -163,6 +268,7 @@
                             event.setProp('backgroundColor', newColor);
                             event.setProp('borderColor', newColor);
                         });
+                        
                         $(colorSaveStatus).fadeIn().delay(1500).fadeOut();
                     },
                     error: () => alert('Failed to update color.')
@@ -170,10 +276,8 @@
             });
         });
         
-        // REMOVED: Delete button onclick handler is gone.
-
         closeButton.onclick = () => { modal.style.display = 'none'; };
         window.onclick = (event) => { if (event.target == modal) { modal.style.display = 'none'; }};
     });
     </script>
-@stop
+@endsection

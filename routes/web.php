@@ -11,7 +11,8 @@ use App\Http\Controllers\Organization\StaffController;
 use App\Http\Controllers\Organization\ServiceController;
 use App\Http\Controllers\Organization\JobController;
 use App\Http\Controllers\Organization\TaskController;
-use App\Http\Controllers\Organization\CalendarController;
+use App\Http\Controllers\Organization\CalendarController as OrganizationCalendarController;
+use App\Http\Controllers\Staff\CalendarController as StaffCalendarController;
 use App\Http\Controllers\SubscriptionPendingController;
 use App\Http\Controllers\Staff\TaskController as StaffTaskController;
 use App\Http\Controllers\NotificationController;
@@ -21,8 +22,8 @@ use App\Http\Controllers\Organization\ReportController as OrganizationReportCont
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\DocumentController as ClientDocumentController;
 use App\Http\Controllers\Client\ReportController as ClientReportController;
-use App\Http\Controllers\ContactMessageController; // <-- ADD THIS
-use App\Http\Controllers\SuperAdmin\ContactMessageController as SuperAdminContactMessageController; // <-- ADD THIS
+use App\Http\Controllers\ContactMessageController;
+use App\Http\Controllers\SuperAdmin\ContactMessageController as SuperAdminContactMessageController;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Cashier\Http\Controllers\WebhookController;
 
@@ -34,7 +35,7 @@ use Laravel\Cashier\Http\Controllers\WebhookController;
 // Public Routes
 Route::get('/', [LandingPageController::class, 'index'])->name('landing');
 Route::get('/pricing', [LandingPageController::class, 'pricing'])->name('pricing');
-Route::post('/contact', [ContactMessageController::class, 'store'])->name('contact.store'); // <-- ADD THIS
+Route::post('/contact', [ContactMessageController::class, 'store'])->name('contact.store');
 
 Route::get('/subscription/pending', [SubscriptionPendingController::class, 'index'])->name('subscription.pending');
 Route::get('/subscription/expired', [SubscriptionPendingController::class, 'expired'])->name('subscription.expired');
@@ -77,7 +78,6 @@ Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmi
     Route::patch('/subscriptions/{user}/cancel', [SuperAdminController::class, 'cancelSubscription'])->name('superadmin.subscriptions.cancel');
     Route::patch('/subscriptions/{user}/resume', [SuperAdminController::class, 'resumeSubscription'])->name('superadmin.subscriptions.resume');
     
-    // Message Routes <-- ADD THIS BLOCK
     Route::get('/messages', [SuperAdminContactMessageController::class, 'index'])->name('superadmin.messages.index');
     Route::get('/messages/{message}', [SuperAdminContactMessageController::class, 'show'])->name('superadmin.messages.show');
 });
@@ -87,18 +87,16 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
     Route::get('reports/time', [OrganizationReportController::class, 'timeReport'])->name('organization.reports.time');
     
-    // --- THIS IS THE NEW STAFF REPORT ROUTE ---
     Route::get('reports/staff', [OrganizationReportController::class, 'staffReport'])->name('organization.reports.staff');
 
-    // --- THIS IS THE DEFINITIVE FIX for subscription routing ---
     Route::get('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'index'])->name('organization.subscription.index');
     Route::get('subscription/change', [\App\Http\Controllers\Organization\SubscriptionController::class, 'showChangePlanForm'])->name('organization.subscription.change');
     Route::post('subscription/change', [\App\Http\Controllers\Organization\SubscriptionController::class, 'processChangePlan'])->name('organization.subscription.change.process');
     
-    // Calendar
-    Route::get('calendar', [CalendarController::class, 'index'])->name('organization.calendar');
-    Route::get('calendar/events', [CalendarController::class, 'fetchEvents'])->name('organization.calendar.events');
-    Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('organization.calendar.ajax');
+    // Calendar (Organization Owner View)
+    Route::get('calendar', [OrganizationCalendarController::class, 'index'])->name('organization.calendar');
+    Route::get('calendar/events', [OrganizationCalendarController::class, 'fetchEvents'])->name('organization.calendar.events');
+    Route::post('calendar/ajax', [OrganizationCalendarController::class, 'ajax'])->name('organization.calendar.ajax');
     
     // Client Management
     Route::post('clients/send-message', [ClientController::class, 'sendMessage'])->name('clients.sendMessage');
@@ -131,7 +129,6 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::patch('services/{service}/status', [ServiceController::class, 'toggleStatus'])->name('services.toggleStatus');
     Route::resource('services', ServiceController::class);
 
-    // Nested routes for Jobs (within a Service) and Tasks (within a Job)
     Route::resource('services.jobs', JobController::class)->shallow()->only(['store', 'update', 'destroy', 'edit']);
     Route::resource('jobs.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy']);
     Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
@@ -142,17 +139,18 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
 // Staff routes
 Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'staffDashboard'])->name('dashboard');
-    Route::get('calendar', [CalendarController::class, 'index'])->name('calendar');
-    Route::get('calendar/events', [CalendarController::class, 'fetchEvents'])->name('calendar.events');
-    Route::post('calendar/ajax', [CalendarController::class, 'ajax'])->name('calendar.ajax');
-    Route::get('tasks', [StaffTaskController::class, 'index'])->name('tasks.index');
+    
+    // NEW STAFF CALENDAR ROUTES
+    Route::get('calendar', [StaffCalendarController::class, 'index'])->name('calendar');
+    Route::get('calendar/events', [StaffCalendarController::class, 'fetchEvents'])->name('calendar.events');
+    Route::post('calendar/ajax', [StaffCalendarController::class, 'ajax'])->name('calendar.ajax');
 
+    Route::get('tasks', [StaffTaskController::class, 'index'])->name('tasks.index');
     Route::patch('tasks/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('tasks.updateStatus')->where('task', '.*');
     Route::post('tasks/{task}/start-timer', [StaffTaskController::class, 'startTimer'])->name('tasks.startTimer')->where('task', '.*');
     Route::post('tasks/{task}/stop-timer', [StaffTaskController::class, 'stopTimer'])->name('tasks.stopTimer')->where('task', '.*');
     Route::post('tasks/{task}/add-manual-time', [StaffTaskController::class, 'addManualTime'])->name('tasks.addManualTime')->where('task', '.*');
 
-    // NEW DOCUMENT ROUTES FOR STAFF
     Route::get('/documents', [\App\Http\Controllers\Staff\DocumentController::class, 'index'])->name('documents.index');
     Route::post('/documents/{client}', [\App\Http\Controllers\Staff\DocumentController::class, 'store'])->name('documents.store');
     Route::get('/documents/{document}/download', [\App\Http\Controllers\Staff\DocumentController::class, 'download'])->name('documents.download');
@@ -162,12 +160,10 @@ Route::middleware(['auth', 'isStaff', 'checkUserStatus'])->prefix('staff')->name
 // Client Portal Routes
 Route::middleware(['auth', 'isClient', 'checkUserStatus'])->prefix('client')->name('client.')->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
-
     Route::get('/documents', [ClientDocumentController::class, 'index'])->name('documents.index');
     Route::post('/documents', [ClientDocumentController::class, 'store'])->name('documents.store');
     Route::get('/documents/{document}/download', [ClientDocumentController::class, 'download'])->name('documents.download');
     Route::delete('/documents/{document}', [ClientDocumentController::class, 'destroy'])->name('documents.destroy');
-
     Route::get('/reports', [ClientReportController::class, 'index'])->name('reports.index');
 });
 

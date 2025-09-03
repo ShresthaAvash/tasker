@@ -11,9 +11,7 @@ class CalendarController extends Controller
 {
 public function index()
 {
-if (Auth::user()->type === 'T') {
-return view('Organization.staff.calendar');
-}
+// This controller now ONLY serves the main organization calendar.
 return view('Organization.calendar');
 }
 public function fetchEvents(Request $request)
@@ -23,7 +21,7 @@ public function fetchEvents(Request $request)
     $user = Auth::user();
     $events = [];
 
-    // --- CORRECTED QUERIES ---
+    // --- QUERIES FOR ORGANIZATION OWNERS ---
     $personalTasks = Task::where('staff_id', $user->id)
         ->whereNull('job_id')->whereNotNull('start')
         ->where(function ($query) {
@@ -34,13 +32,8 @@ public function fetchEvents(Request $request)
         ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $viewStart))
         ->get();
 
-    $assignedTaskQuery = AssignedTask::query();
-    if ($user->type === 'O') {
-        $assignedTaskQuery->whereHas('client', fn($q) => $q->where('organization_id', $user->id));
-    } else {
-        $assignedTaskQuery->whereHas('staff', fn($q) => $q->where('users.id', $user->id));
-    }
-
+    $assignedTaskQuery = AssignedTask::whereHas('client', fn($q) => $q->where('organization_id', $user->id));
+    
     $assignedTasks = $assignedTaskQuery->whereNotNull('start')
          ->where(function ($query) {
             $query->where('is_recurring', false)->where('status', '!=', 'completed')
@@ -54,7 +47,6 @@ public function fetchEvents(Request $request)
     $allTasks = $personalTasks->concat($assignedTasks);
 
     foreach ($allTasks as $task) {
-        // --- THIS IS THE DEFINITIVE FIX ---
         $typePrefix = $task instanceof AssignedTask ? 'a' : 'p';
 
         if (!$task->is_recurring) {
@@ -136,7 +128,7 @@ public function ajax(Request $request)
             $event = ($modelType === 'a') ? AssignedTask::find($id) : Task::find($id);
             if (!$event) abort(404);
 
-            $this->authorizeCalendarAction($user, $event);
+            $this->authorizeOwnerAction($user, $event);
             
             if ($request->has('color')) {
                 $validator = Validator::make($request->all(), ['color' => 'required|string|regex:/^#[a-fA-F0-9]{6}$/']);
@@ -171,7 +163,7 @@ public function ajax(Request $request)
             if (!$id) return response()->json(['error' => 'Invalid event ID.'], 400);
             $event = ($modelType === 'a') ? AssignedTask::find($id) : Task::find($id);
             if (!$event) abort(404);
-            $this->authorizeCalendarAction($user, $event);
+            $this->authorizeOwnerAction($user, $event);
             $event->delete();
             return response()->json(['status' => 'success', 'message' => 'Event deleted successfully.']);
     }
@@ -234,16 +226,15 @@ private function formatEvent($task, $typePrefix, Carbon $instanceDate)
     ];
 }
 
-private function authorizeCalendarAction($user, $event)
+private function authorizeOwnerAction($user, $event)
 {
-    $isAuthorized = false;
-    if ($user->type === 'O') {
-        $isAuthorized = ($event instanceof Task && optional(optional($event->job)->service)->organization_id === $user->id) || 
-                        ($event instanceof AssignedTask && optional($event->client)->organization_id === $user->id);
-    } elseif ($user->type === 'T') {
-        $isAuthorized = ($event instanceof Task && $event->staff_id === $user->id) || 
-                        ($event instanceof AssignedTask && $event->staff()->where('users.id', $user->id)->exists());
+    if ($user->type !== 'O') {
+        abort(403, 'This action is unauthorized.');
     }
+    
+    $isAuthorized = ($event instanceof Task && optional(optional($event->job)->service)->organization_id === $user->id) || 
+                    ($event instanceof AssignedTask && optional($event->client)->organization_id === $user->id);
+
     if (!$isAuthorized) {
         abort(403, 'This action is unauthorized.');
     }

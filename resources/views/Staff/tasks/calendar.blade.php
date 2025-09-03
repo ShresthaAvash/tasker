@@ -8,13 +8,11 @@
     <div class="d-flex justify-content-between align-items-center">
         <h1>My Calendar</h1>
         <div class="d-flex align-items-center">
-            {{-- --- THIS IS THE NEW NAVIGATION --- --}}
             <div class="form-inline mr-3">
                 <label for="month-select" class="mr-2 font-weight-normal">Go to:</label>
                 <select id="month-select" class="form-control form-control-sm"></select>
                 <select id="year-select" class="form-control form-control-sm ml-2"></select>
             </div>
-            {{-- --- END OF NEW NAVIGATION --- --}}
             <a href="{{ route('staff.tasks.index') }}" class="btn btn-primary">
                 <i class="fas fa-tasks mr-1"></i> View Task List
             </a>
@@ -22,7 +20,7 @@
     </div>
 @stop
 
-@section('page-content')
+@section('content')
 <div class="card card-primary">
     <div class="card-body p-3">
         <div id="calendar"></div>
@@ -100,12 +98,10 @@
     </style>
 @stop
 
-@section('page_content_js')
+@push('js')
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
-
         var calendarEl = document.getElementById('calendar');
         var modal = document.getElementById('eventDetailModal');
         var colorSaveStatus = document.getElementById('color-save-status');
@@ -125,14 +121,13 @@
         const dateToGoTo = urlParams.get('date');
         let highlighted = false;
 
-        // --- NEW: Dropdown elements and population ---
         const monthSelect = document.getElementById('month-select');
         const yearSelect = document.getElementById('year-select');
 
         const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         months.forEach((month, index) => {
             const option = document.createElement('option');
-            option.value = index; // Month is 0-indexed in JS Date
+            option.value = index;
             option.textContent = month;
             monthSelect.appendChild(option);
         });
@@ -144,7 +139,6 @@
             option.textContent = i;
             yearSelect.appendChild(option);
         }
-        // --- END: Dropdown population ---
 
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
@@ -158,10 +152,8 @@
             editable: true,
             height: '100%',
             
-            // --- NEW: This event keeps dropdowns in sync with calendar navigation ---
             datesSet: function(info) {
                 const currentDate = info.view.currentStart;
-                // Set dropdowns without triggering their change events
                 monthSelect.value = currentDate.getMonth();
                 yearSelect.value = currentDate.getFullYear();
             },
@@ -246,7 +238,6 @@
 
         calendar.render();
         
-        // --- NEW: Event listeners for the new dropdowns ---
         function navigateCalendar() {
             const year = parseInt(yearSelect.value, 10);
             const month = parseInt(monthSelect.value, 10);
@@ -255,7 +246,6 @@
         }
         monthSelect.addEventListener('change', navigateCalendar);
         yearSelect.addEventListener('change', navigateCalendar);
-        // --- END: Dropdown event listeners ---
 
         document.querySelectorAll('.color-swatch').forEach(swatch => {
             swatch.addEventListener('click', function() {
@@ -289,4 +279,4 @@
         window.onclick = (event) => { if (event.target == modal) { modal.style.display = 'none'; }};
     });
     </script>
-@endsection
+@endpush

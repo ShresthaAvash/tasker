@@ -46,7 +46,8 @@
 </style>
 @stop
 
-@section('page-content')
+{{-- MODIFIED: Changed the section from page-content to content --}}
+@section('content')
 <div class="card" id="task-manager-card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title">Task List</h3>
@@ -117,7 +118,8 @@
 @include('Staff.tasks._manual_time_modal')
 @stop
 
-@section('page_content_js')
+{{-- MODIFIED: Changed the section from page_content_js to js --}}
+@section('js')
 <script>
 $(document).ready(function() {
     $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
@@ -271,7 +273,6 @@ $(document).ready(function() {
         });
     }
 
-    // --- THIS IS THE DEFINITIVE FIX FOR THE LOGIC ---
     function handleInitialLoad() {
         const urlParams = new URLSearchParams(window.location.search);
         const taskIdToHighlight = urlParams.get('task_id');
@@ -279,30 +280,26 @@ $(document).ready(function() {
         const monthToLoad = urlParams.get('month');
 
         if (taskIdToHighlight && yearToLoad && monthToLoad) {
-            // 1. Set the UI state WITHOUT triggering events that fetch data
-            $('#custom-search-switch').prop('checked', false); // Ensure custom is OFF
+            $('#custom-search-switch').prop('checked', false);
             $('#dropdown-filters').show();
             $('#custom-range-filters').hide();
             $('#year-filter').val(yearToLoad);
             $('#month-filter').val(monthToLoad);
             
-            // 2. Now, explicitly fetch the data with the correct parameters
             fetchTasks(1, () => {
                 highlightTask(taskIdToHighlight);
             });
 
-            // 3. Clean up the URL
             if (history.replaceState) {
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
         } else {
-            // This is a normal page load, fetch with default filters
             fetchTasks(1);
         }
     }
     
-    handleInitialLoad(); // Run the initial load logic
+    handleInitialLoad();
     
     taskManager.on('click', '#client-view-btn, #time-view-btn', () => setTimeout(() => fetchTasks(1), 50));
     
@@ -447,4 +444,4 @@ $(document).ready(function() {
     });
 });
 </script>
-@stop
+@endsection
