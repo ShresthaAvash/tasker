@@ -46,7 +46,7 @@
                                             $taskStatus = $task['status'] ?? 'to_do';
                                             $taskStatusClass = 'status-' . Str::slug($taskStatus, '-');
                                             $taskStatusText = match($taskStatus) {
-                                                'ongoing' => 'In Progress',
+                                                'ongoing' => 'Ongoing',
                                                 'to_do' => 'To Do',
                                                 default => 'Completed',
                                             };

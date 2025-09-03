@@ -122,7 +122,7 @@ $(document).ready(function() {
         placeholder: 'Filter by Status: All',
         data: [
             { id: 'to_do', text: 'To Do' },
-            { id: 'ongoing', text: 'In Progress' },
+            { id: 'ongoing', text: 'Ongoing' },
             { id: 'completed', text: 'Completed' }
         ]
     }).val({!! json_encode($statuses) !!}).trigger('change');

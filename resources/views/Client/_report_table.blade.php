@@ -73,7 +73,7 @@
                                             @endif
                                         </div>
                                         <div class="task-status {{ $statusClass }}">
-                                            {{ $task->status === 'ongoing' ? 'In Progress' : ucfirst(str_replace('_', ' ', $task->status)) }}
+                                            {{ $task->status === 'ongoing' ? 'Ongoing' : ucfirst(str_replace('_', ' ', $task->status)) }}
                                         </div>
                                     </div>
                                 @endforeach

@@ -93,7 +93,7 @@
             white-space: nowrap;
         }
         .status-to-do { background-color: #f8d7da; color: #721c24; }
-        .status-ongoing { background-color: #d1ecf1; color: #0c5460; }
+        .status-ongoing{ background-color: #d1ecf1; color: #0c5460; }
         .status-completed { background-color: #d4edda; color: #155724; }
         
         .staff-breakdown { 

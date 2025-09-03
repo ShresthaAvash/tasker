@@ -74,6 +74,8 @@
                                                             $statusText = ucfirst(str_replace('_', ' ', $task->status));
                                                             $statusSlug = str_replace(' ', '-', strtolower($statusText));
                                                         @endphp
+
+                                                        
                                                         <span class="status-pill status-{{ $statusSlug }}">
                                                             {{ $statusText }}
                                                         </span>
