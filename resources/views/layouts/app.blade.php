@@ -80,7 +80,6 @@
     </li>
 @endsection
 
-<<<<<<< HEAD
 @push('css')
     <style>
         /* --- THEME COLOR FIXES --- */
@@ -190,9 +189,7 @@
     }
     </style>
 @endpush
-=======
 
->>>>>>> origin/newunison
 
 @push('js')
 <script>
