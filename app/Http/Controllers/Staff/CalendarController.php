@@ -15,7 +15,7 @@ class CalendarController extends Controller
     public function index()
     {
         // This controller is only for staff, so we directly return the staff calendar view.
-        return view('Staff.calendar');
+        return view('Staff.tasks.calendar');
     }
 
     public function fetchEvents(Request $request)

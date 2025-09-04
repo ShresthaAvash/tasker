@@ -121,7 +121,6 @@
         .nav-sidebar .nav-treeview .nav-link.active,
         .nav-sidebar .nav-treeview .nav-link.active > i {
             color: #0c6ffd !important;
-            font-weight: 600;
         }
         .nav-sidebar .nav-treeview .nav-link.active > p {
              font-weight: 600;
@@ -136,12 +135,16 @@
              font-weight: 600;
         }
 
-        .nav-link.menu-open.active{
-
+        /* 5. Style the active PARENT link's text and icon to be blue. This is the fix. */
+        .nav-sidebar > .nav-item.has-treeview.menu-open > .nav-link.active,
+        .nav-sidebar > .nav-item.has-treeview.menu-open > .nav-link.active > i {
             color: #0c6ffd !important;
-        } 
+        }
+        .nav-sidebar > .nav-item.has-treeview.menu-open > .nav-link.active > p {
+             font-weight: 600;
+        }
 
-            .card-tabs .nav-tabs .nav-link { color: #007bff; }
+        .card-tabs .nav-tabs .nav-link { color: #007bff; }
     
     /* --- THIS IS THE FIX --- */
     #notification-bell .dropdown-menu {
