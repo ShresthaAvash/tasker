@@ -9,35 +9,20 @@
 
 @section('css')
 <style>
-    .stat-card {
-        background-color: #fff;
-        border-radius: .75rem;
-        padding: 1.5rem;
-        box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
-        border: none;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-    .stat-title {
-        color: #6c757d;
-        font-size: 1rem;
-        font-weight: 500;
-        margin-bottom: 0.25rem;
-    }
-    .stat-number {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #212529;
-    }
-    .table-responsive {
-        animation: fadeIn 0.5s ease-out;
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
+    /* Modern UI Styles to match dashboard */
+    .stat-card { background-color: #fff; border-radius: .75rem; padding: 1.5rem; box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05); border: none; height: 100%; }
+    .stat-title { color: #6c757d; font-size: 1rem; font-weight: 500; margin-bottom: 0.25rem; }
+    .stat-number { font-size: 2.2rem; font-weight: 700; color: #212529; }
+    .table-responsive { animation: fadeIn 0.5s ease-out; }
+    .service-row { background-color: #f8f9fa; font-weight: bold; cursor: pointer; transition: background-color 0.2s ease-in-out; }
+    .service-row:hover { background-color: #e9ecef; }
+    .task-row { display: none; background-color: #fff; }
+    .task-row td { border-top: 1px solid #f1f1f1; }
+    .task-row .task-name-cell { padding-left: 2.5rem !important; }
+    .collapse-icon { transition: transform 0.3s ease; }
+    .is-expanded .collapse-icon { transform: rotate(-180deg); }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 @stop
 
@@ -75,7 +60,7 @@
 </div>
 
 <div id="report-table-container">
-    @include('Organization.reports._individual_staff_report_table', compact('taskInstances', 'sort_by', 'sort_order'))
+    @include('Organization.reports._individual_staff_report_table', compact('groupedTasks'))
 </div>
 @stop
 
@@ -105,8 +90,6 @@ $(document).ready(function() {
                 statuses: $('#status-filter').val(),
                 year: $('#year-filter').val(),
                 month: $('#month-filter').val(),
-                sort_by: $('#sort_by').val(),
-                sort_order: $('#sort_order').val()
             };
 
             $.ajax({
@@ -123,19 +106,37 @@ $(document).ready(function() {
         fetch_report_data(1);
     });
 
-    // AJAX sorting
-    $(document).on('click', '.sort-link', function(e) {
-        e.preventDefault();
-        $('#sort_by').val($(this).data('sortby'));
-        $('#sort_order').val($(this).data('sortorder'));
-        fetch_report_data(1);
+    $(document).on('click', '.service-row', function() {
+        const serviceId = $(this).data('service-id');
+        $(this).toggleClass('is-expanded');
+        $('.task-for-service-' + serviceId).fadeToggle(200);
     });
 
-    // AJAX pagination
-    $(document).on('click', '.pagination a', function(e) {
-        e.preventDefault();
-        const page = new URLSearchParams($(this).attr('href').split('?')[1]).get('page');
-        fetch_report_data(page);
+    $(document).on('keyup', '#search-input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        $('.service-row').each(function() {
+            let serviceHasVisibleTasks = false;
+            const serviceId = $(this).data('service-id');
+            const taskRows = $('.task-for-service-' + serviceId);
+            const serviceName = $(this).find('td:first').text().toLowerCase();
+
+            taskRows.each(function() {
+                const taskName = $(this).find('.task-name-cell').text().toLowerCase();
+                if (taskName.includes(searchTerm) || serviceName.includes(searchTerm)) {
+                    $(this).show();
+                    serviceHasVisibleTasks = true;
+                } else {
+                    $(this).hide();
+                }
+            });
+
+            if (serviceHasVisibleTasks) {
+                $(this).addClass('is-expanded').show();
+                taskRows.show(); // Ensure tasks are visible if parent is
+            } else {
+                $(this).removeClass('is-expanded').hide();
+            }
+        });
     });
 });
 </script>

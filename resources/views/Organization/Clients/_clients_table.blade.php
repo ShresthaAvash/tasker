@@ -1,3 +1,4 @@
+
 <!-- Hidden inputs to store current sort state -->
 <input type="hidden" id="sort_by" value="{{ $sort_by }}">
 <input type="hidden" id="sort_order" value="{{ $sort_order }}">

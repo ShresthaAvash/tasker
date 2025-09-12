@@ -333,25 +333,6 @@ return [
             ],
         ],
         [
-            'text'    => 'Reports',
-            'icon'    => 'fas fa-fw fa-chart-pie',
-            'can'     => 'is-organization',
-            'submenu' => [
-                [
-                    'text' => 'Client Report',
-                    'route'  => 'organization.reports.time',
-                    'icon' => 'fas fa-fw fa-user-tie',
-                    'active' => ['organization/reports/time*'],
-                ],
-                [
-                    'text' => 'Staff Report',
-                    'route'  => 'organization.reports.staff',
-                    'icon' => 'fas fa-fw fa-users-cog',
-                    'active' => ['organization/reports/staff*'],
-                ],
-            ],
-        ],
-        [
             'text' => 'My Subscription',
             'route'  => 'organization.subscription.index',
             'icon' => 'fas fa-fw fa-tags',

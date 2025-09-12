@@ -15,107 +15,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class ReportController extends Controller
 {
-    public function timeReport(Request $request)
-    {
-        $organizationId = Auth::id();
-        $search = $request->input('search');
-        [$startDate, $endDate] = $this->resolveDatesFromRequest($request);
-        $statuses = $request->input('statuses', []);
-
-        $tasksQuery = AssignedTask::query()
-            ->whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
-            ->whereNotNull('start')
-            ->where('start', '<=', $endDate)
-            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
-            ->with(['client', 'service', 'staff']);
-
-        if ($search) {
-            $tasksQuery->where(function($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%') // Search task name
-                  ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
-            });
-        }
-        
-        $tasksQuery->where(function ($query) use ($statuses) {
-            $query->where('is_recurring', true)
-                  ->orWhere(function ($q) use ($statuses) {
-                      $q->where('is_recurring', false)
-                        ->when(!empty($statuses), function ($sq) use ($statuses) {
-                            $sq->whereIn('status', $statuses);
-                        });
-                  });
-        });
-
-        $tasks = $tasksQuery->get();
-        $expandedTasks = $this->expandTasksForReport($tasks, $startDate, $endDate, $statuses);
-        $groupedTasks = $this->groupTasksByClient($expandedTasks);
-
-        if ($request->ajax()) {
-            return view('Organization.reports._client_report_table', ['groupedTasks' => $groupedTasks])->render();
-        }
-
-        return view('Organization.reports.time', $this->getCommonViewData(
-            ['groupedTasks' => $groupedTasks], $request, $startDate, $endDate
-        ));
-    }
-
-    public function staffReport(Request $request)
-    {
-        $organizationId = Auth::id();
-        $search = $request->input('search');
-        [$startDate, $endDate] = $this->resolveDatesFromRequest($request);
-        $statuses = $request->input('statuses', []);
-
-        $allStaffMembers = User::where('organization_id', $organizationId)
-                           ->where('type', 'T')
-                           ->orderBy('name')
-                           ->get()
-                           ->keyBy('id');
-
-        $reportData = collect();
-
-        if ($allStaffMembers->isNotEmpty()) {
-            $tasksQuery = AssignedTask::query()
-                ->whereHas('staff', fn($q) => $q->whereIn('users.id', $allStaffMembers->pluck('id')))
-                ->whereNotNull('start')
-                ->where('start', '<=', $endDate)
-                ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
-                ->with(['client', 'service', 'staff' => fn($q) => $q->select('users.id', 'users.name')]);
-
-            if ($search) {
-                $tasksQuery->where(function($q) use ($search) {
-                    $q->whereHas('staff', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
-                      ->orWhere('name', 'like', '%' . $search . '%')
-                      ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"))
-                      ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
-                });
-            }
-            
-            $tasksQuery->where(function ($query) use ($statuses) {
-                $query->where('is_recurring', true)
-                    ->orWhere(function ($q) use ($statuses) {
-                        $q->where('is_recurring', false)
-                            ->when(!empty($statuses), function ($sq) use ($statuses) {
-                                $sq->whereIn('status', $statuses);
-                            });
-                    });
-            });
-
-            $tasks = $tasksQuery->get();
-            $expandedTasks = $this->expandTasksForReport($tasks, $startDate, $endDate, $statuses);
-            $reportData = $this->groupTasksByStaff($expandedTasks, $allStaffMembers);
-        }
-
-        if ($request->ajax()) {
-            return view('Organization.reports._staff_report_table', ['reportData' => $reportData])->render();
-        }
-
-        return view('Organization.reports.staff', $this->getCommonViewData(
-            ['reportData' => $reportData], $request, $startDate, $endDate
-        ));
-    }
-
     public function individualStaffReport(Request $request, User $staff)
     {
         $organizationId = Auth::user()->type === 'O' ? Auth::id() : Auth::user()->organization_id;
@@ -149,33 +48,19 @@ class ReportController extends Controller
 
         $baseTasks = $tasksQuery->get();
         $taskInstances = $this->expandAndCalculateStaffTasks($baseTasks, $staff->id, $startDate, $endDate, $statuses);
-
-        $sort_by = $request->get('sort_by', 'due_date');
-        $sort_order = $request->get('sort_order', 'asc');
-
-        if ($sort_order === 'desc') {
-            $taskInstances = $taskInstances->sortByDesc($sort_by);
-        } else {
-            $taskInstances = $taskInstances->sortBy($sort_by);
-        }
-
-        $perPage = 15;
-        $currentPage = $request->input('page', 1);
-        $currentPageItems = $taskInstances->slice(($currentPage - 1) * $perPage, $perPage)->values();
-        $paginatedTaskInstances = new LengthAwarePaginator($currentPageItems, $taskInstances->count(), $perPage, $currentPage, [
-            'path' => $request->url(),
-            'query' => $request->query(),
-        ]);
+        
+        // --- MODIFIED: Group the final collection by service ---
+        $groupedTasks = $this->groupTasksForReport($taskInstances);
 
         if ($request->ajax()) {
-            return view('Organization.reports._individual_staff_report_table', ['taskInstances' => $paginatedTaskInstances, 'sort_by' => $sort_by, 'sort_order' => $sort_order])->render();
+            return view('Organization.reports._individual_staff_report_table', compact('groupedTasks'))->render();
         }
 
         $clients = User::where('organization_id', $organizationId)->where('type', 'C')->orderBy('name')->get();
         $services = Service::where('organization_id', $organizationId)->orderBy('name')->get();
 
         return view('Organization.reports.individual_staff', $this->getCommonViewData(
-            ['staff' => $staff, 'taskInstances' => $paginatedTaskInstances, 'clients' => $clients, 'services' => $services, 'sort_by' => $sort_by, 'sort_order' => $sort_order],
+            compact('staff', 'groupedTasks', 'clients', 'services'),
             $request, $startDate, $endDate
         ));
     }
@@ -216,40 +101,36 @@ class ReportController extends Controller
     
         $baseTasks = $tasksQuery->get();
         $taskInstances = $this->expandTasksForReport($baseTasks, $startDate, $endDate, $statuses);
-    
-        $sort_by = $request->get('sort_by', 'due_date');
-        $sort_order = $request->get('sort_order', 'asc');
-    
-        if ($sort_order === 'desc') {
-            $taskInstances = $taskInstances->sortByDesc($sort_by);
-        } else {
-            $taskInstances = $taskInstances->sortBy($sort_by);
-        }
-    
-        $perPage = 15;
-        $currentPage = $request->input('page', 1);
-        $currentPageItems = $taskInstances->slice(($currentPage - 1) * $perPage, $perPage)->values();
-        $paginatedTaskInstances = new LengthAwarePaginator($currentPageItems, $taskInstances->count(), $perPage, $currentPage, [
-            'path' => $request->url(),
-            'query' => $request->query(),
-        ]);
+
+        // --- MODIFIED: Group the final collection by service ---
+        $groupedTasks = $this->groupTasksForReport($taskInstances);
     
         if ($request->ajax()) {
-            return view('Organization.reports._individual_client_report_table', ['taskInstances' => $paginatedTaskInstances, 'sort_by' => $sort_by, 'sort_order' => $sort_order])->render();
+            return view('Organization.reports._individual_client_report_table', compact('groupedTasks'))->render();
         }
     
         $staff = User::where('organization_id', $organizationId)->where('type', 'T')->orderBy('name')->get();
         $services = Service::where('organization_id', $organizationId)->whereHas('clients', fn($q) => $q->where('user_id', $client->id))->orderBy('name')->get();
     
-        // --- THIS IS THE FIX ---
-        // We now pass the paginated instance to the main view as well.
         return view('Organization.reports.individual_client', $this->getCommonViewData(
-            ['client' => $client, 'taskInstances' => $paginatedTaskInstances, 'staff' => $staff, 'services' => $services, 'sort_by' => $sort_by, 'sort_order' => $sort_order],
+            compact('client', 'groupedTasks', 'staff', 'services'),
             $request, $startDate, $endDate
         ));
     }
     
-    // --- NEW HELPER METHOD FOR STAFF REPORT ---
+    // --- NEW HELPER METHOD TO GROUP TASKS ---
+    private function groupTasksForReport(Collection $tasks): Collection
+    {
+        return $tasks->groupBy(function ($task) {
+            return optional($task->service)->name ?? 'Uncategorized';
+        })->map(function ($tasksInService) {
+            return [
+                'tasks' => $tasksInService->sortBy('due_date'),
+                'total_duration' => $tasksInService->sum('duration_in_seconds'),
+            ];
+        });
+    }
+    
     private function expandAndCalculateStaffTasks(Collection $tasks, int $staffId, Carbon $startDate, Carbon $endDate, array $statuses): Collection
     {
         $instances = new Collection();
@@ -262,6 +143,7 @@ class ReportController extends Controller
                         $instance = clone $task;
                         $instance->due_date = $instance->start;
                         $instance->staff_duration = $instance->staff()->find($staffId)->pivot->duration_in_seconds ?? 0;
+                        $instance->duration_in_seconds = $instance->staff_duration; // Standardize for grouping
                         $instances->push($instance);
                     }
                 }
@@ -296,6 +178,7 @@ class ReportController extends Controller
                     $instance->due_date = $cursor->copy();
                     $userDurations = $instanceSpecifics['durations'] ?? [];
                     $instance->staff_duration = $userDurations[$userKey] ?? 0;
+                    $instance->duration_in_seconds = $instance->staff_duration; // Standardize for grouping
                     $instances->push($instance);
                 }
                 
@@ -318,7 +201,6 @@ class ReportController extends Controller
 
         foreach ($tasks as $task) {
             $task->due_date = $task->start;
-            // Case 1: Non-recurring tasks
             if (!$task->is_recurring) {
                 if ($task->start && $task->start->between($startDate, $endDate)) {
                      if (empty($statuses) || in_array($task->status, $statuses)) {
@@ -328,12 +210,10 @@ class ReportController extends Controller
                 continue;
             }
 
-            // Case 2: Recurring tasks
             $instanceData = (array)($task->completed_at_dates ?? []);
             $cursor = $task->start->copy();
             $seriesEndDate = $task->end;
 
-            // Efficiently move cursor to the start of the reporting window
             while ($cursor->lt($startDate)) {
                 if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
                 switch ($task->recurring_frequency) {
@@ -341,11 +221,10 @@ class ReportController extends Controller
                     case 'weekly': $cursor->addWeek(); break;
                     case 'monthly': $cursor->addMonthWithNoOverflow(); break;
                     case 'yearly': $cursor->addYearWithNoOverflow(); break;
-                    default: break 2; // Break out of both loops
+                    default: break 2;
                 }
             }
 
-            // Generate instances within the reporting window
             while ($cursor->lte($endDate)) {
                 if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
 
@@ -428,34 +307,5 @@ class ReportController extends Controller
             'currentYear' => $request->get('year', now()->year),
             'currentMonth' => $request->get('month', now()->month),
         ]);
-    }
-
-    private function groupTasksByClient(Collection $tasks): Collection
-    {
-        return $tasks->groupBy('client.name')->map(fn($clientTasks) => 
-            $clientTasks->groupBy('service.name')
-        );
-    }
-
-    private function groupTasksByStaff(Collection $tasks, Collection $staffMembers): Collection
-    {
-        $reportData = collect();
-        foreach ($staffMembers as $staff) {
-            $staffServices = []; $staffTotalDuration = 0;
-            foreach ($tasks as $task) {
-                if ($staffOnTask = $task->staff->firstWhere('id', $staff->id)) {
-                    $serviceId = $task->service->id ?? 'uncategorized';
-                    $duration = $staffOnTask->pivot->duration_in_seconds;
-                    if (!isset($staffServices[$serviceId])) $staffServices[$serviceId] = ['name' => $task->service->name ?? 'Uncategorized', 'tasks' => [], 'total_duration' => 0];
-                    $staffServices[$serviceId]['tasks'][] = ['name' => $task->name, 'duration' => $duration, 'status' => $task->status];
-                    $staffServices[$serviceId]['total_duration'] += $duration;
-                    $staffTotalDuration += $duration;
-                }
-            }
-            if (!empty($staffServices)) {
-                $reportData->push((object)['staff_name' => $staff->name, 'services' => $staffServices, 'total_duration' => $staffTotalDuration]);
-            }
-        }
-        return $reportData;
     }
 }
