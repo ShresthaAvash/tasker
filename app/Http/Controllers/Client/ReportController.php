@@ -20,13 +20,12 @@ class ReportController extends Controller
 
         $tasksQuery = AssignedTask::query()
             ->where('client_id', $client->id)
-            ->with(['service', 'job', 'staff']);
+            ->with(['service', 'staff']);
 
         if ($search) {
             $tasksQuery->where(function ($q) use ($search) {
                 $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('job', fn($jq) => $jq->where('name', 'like', "%{$search}%"));
+                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
             });
         }
         
@@ -149,8 +148,6 @@ class ReportController extends Controller
 
     private function groupTasksByService(Collection $tasks): Collection
     {
-        return $tasks->groupBy('service.name')->map(fn($serviceTasks) =>
-            $serviceTasks->groupBy('job.name')
-        );
+        return $tasks->groupBy('service.name');
     }
 }

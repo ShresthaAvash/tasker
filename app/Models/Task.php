@@ -13,7 +13,7 @@ class Task extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
-        'job_id', 
+        'service_id', 
         'name', 
         'description', 
         'deadline_offset', 
@@ -21,8 +21,6 @@ class Task extends Model
         'staff_designation_id', 
         'start', 
         'end',
-        'is_recurring', 
-        'recurring_frequency', 
         'color_overrides', 
         'staff_id',
         'status',
@@ -35,18 +33,17 @@ class Task extends Model
     protected $casts = [
         'start' => 'datetime',
         'end' => 'datetime',
-        'is_recurring' => 'boolean',
          'color_overrides' => 'array',
         'timer_started_at' => 'datetime',
         'completed_at_dates' => 'array',
     ];
 
     /**
-     * A task belongs to a job.
+     * A task belongs to a service.
      */
-    public function job()
+    public function service()
     {
-        return $this->belongsTo(Job::class);
+        return $this->belongsTo(Service::class);
     }
 
     /**

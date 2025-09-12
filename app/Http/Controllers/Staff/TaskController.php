@@ -56,7 +56,7 @@ class TaskController extends Controller
         
         if ($request->ajax()) {
             if ($viewType === 'client') {
-                $clientTaskGroups = $taskInstances->sortBy('due_date_instance')->groupBy(['client.name', 'service.name', 'job.name'], true);
+                $clientTaskGroups = $taskInstances->sortBy('due_date_instance')->groupBy(['client.name', 'service.name'], true);
                 return view('Staff.tasks._client_view', compact('clientTaskGroups', 'personalTasks', 'allStatuses'));
             } else { // time view
                 $allFlatTasks = $this->prepareTimeViewTasks($taskInstances, $personalTasks);
@@ -65,7 +65,7 @@ class TaskController extends Controller
             }
         }
         
-        $clientTaskGroups = $taskInstances->sortBy('due_date_instance')->groupBy(['client.name', 'service.name', 'job.name'], true);
+        $clientTaskGroups = $taskInstances->sortBy('due_date_instance')->groupBy(['client.name', 'service.name'], true);
         $years = range(now()->year - 4, now()->year + 2);
         $months = [ 'all' => 'All Months', 1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'];
         
@@ -75,12 +75,12 @@ class TaskController extends Controller
     private function getTaskInstancesInDateRange($staffId, Carbon $startDate, Carbon $endDate, $search, $statuses)
     {
         $assignedTasksQuery = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
-            ->with(['client', 'job', 'service', 'staff'])
+            ->with(['client', 'service', 'staff'])
             ->whereNotNull('start')
             ->where('start', '<=', $endDate) 
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate));
         
-        $personalTasksQuery = Task::where('staff_id', $staffId)->whereNull('job_id')
+        $personalTasksQuery = Task::where('staff_id', $staffId)->whereNull('service_id')
             ->whereNotNull('start')
             ->where('start', '<=', $endDate)
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate));
@@ -89,8 +89,7 @@ class TaskController extends Controller
             $assignedTasksQuery->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('job', fn($jq) => $jq->where('name', 'like', "%{$search}%"));
+                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
             });
             $personalTasksQuery->when($search, fn($q, $s) => $q->where('name', 'like', "%{$s}%"));
         }

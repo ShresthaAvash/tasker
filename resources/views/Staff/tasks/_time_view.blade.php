@@ -4,7 +4,7 @@
             <tr>
                 <th>Due Date</th>
                 <th>Task Name</th>
-                <th>Client / Service / Job</th>
+                <th>Client / Service</th>
                 <th style="width: 120px;">Time Logged</th>
                 <th style="width: 170px;">Status</th>
                 <th style="width: 120px;">Actions</th>
@@ -31,7 +31,7 @@
                                 <span class="badge badge-info">Personal Task</span>
                             @else
                                 {{ optional($task->client)->name }} <br>
-                                <small class="text-muted">{{ optional($task->service)->name }} / {{ optional($task->job)->name }}</small>
+                                <small class="text-muted">{{ optional($task->service)->name }}</small>
                             @endif
                         </td>
                         <td>

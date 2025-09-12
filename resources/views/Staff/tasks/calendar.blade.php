@@ -34,7 +34,6 @@
         <h4 style="margin-bottom: 15px;">Task Details</h4>
         <p><strong>Title:</strong> <span id="modalTitle"></span></p>
         <p><strong>Service:</strong> <span id="modalService"></span></p>
-        <p><strong>Job:</strong> <span id="modalJob"></span></p>
         <p><strong>Start:</strong> <span id="modalStart"></span></p>
         <p><strong>End:</strong> <span id="modalEnd"></span></p>
         <hr>
@@ -107,7 +106,6 @@
         var colorSaveStatus = document.getElementById('color-save-status');
         var modalTitle = document.getElementById('modalTitle');
         var modalService = document.getElementById('modalService');
-        var modalJob = document.getElementById('modalJob');
         var modalStart = document.getElementById('modalStart');
         var modalEnd = document.getElementById('modalEnd');
         var viewInListBtn = document.getElementById('viewInListBtn');
@@ -185,7 +183,6 @@
                 currentEvent = info.event;
                 modalTitle.textContent = currentEvent.title;
                 modalService.textContent = currentEvent.extendedProps.serviceName || 'N/A';
-                modalJob.textContent = currentEvent.extendedProps.jobName || 'N/A';
                 modalStart.textContent = currentEvent.start.toLocaleString();
                 
                 const actualEnd = currentEvent.extendedProps.actualEnd;

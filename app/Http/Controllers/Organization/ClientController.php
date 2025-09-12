@@ -7,7 +7,6 @@ use App\Models\AssignedTask;
 use App\Models\ClientContact;
 use App\Models\ClientDocument;
 use App\Models\ClientNote;
-use App\Models\Job;
 use App\Models\Service;
 use App\Models\Task;
 use App\Models\User;
@@ -338,7 +337,7 @@ class ClientController extends Controller
         return Storage::disk('public')->download($document->file_path, $originalName);
     }
     
-    public function getJobsForServiceAssignment(Request $request)
+    public function getTasksForServiceAssignment(Request $request)
     {
         $serviceIds = $request->input('service_ids', []);
         if (empty($serviceIds)) {
@@ -347,15 +346,15 @@ class ClientController extends Controller
 
         $organizationId = Auth::id();
 
-        $jobs = Job::whereIn('service_id', $serviceIds)
+        $tasks = Task::whereIn('service_id', $serviceIds)
                    ->whereHas('service', function ($query) use ($organizationId) {
                        $query->where('organization_id', $organizationId);
                    })
-                   ->with(['service', 'tasks.staff']) 
+                   ->with(['service', 'staff']) 
                    ->orderBy('name')
                    ->get();
         
-        return response()->json($jobs);
+        return response()->json($tasks);
     }
 
     public function assignServices(Request $request, User $client)
@@ -397,16 +396,15 @@ class ClientController extends Controller
                 $client->assignedTasks()->whereIn('task_template_id', $tasksToDelete)->delete();
             }
             
-            // --- THIS IS THE DEFINITIVE FIX FOR ISSUE #1 ---
             $assignedServiceIds = [];
 
             if (!empty($newTaskIds)) {
-                $selectedTaskTemplates = Task::with('job.service')->findMany($newTaskIds);
+                $selectedTaskTemplates = Task::with('service')->findMany($newTaskIds);
                 
                 foreach ($selectedTaskTemplates as $taskTemplate) {
-                    // Collect the service ID for syncing later
-                    if ($taskTemplate->job && $taskTemplate->job->service_id) {
-                        $assignedServiceIds[] = $taskTemplate->job->service_id;
+                    $service = $taskTemplate->service;
+                    if ($service) {
+                        $assignedServiceIds[] = $service->id;
                     }
                     
                     $startDate = $validated['task_start_dates'][$taskTemplate->id] ?? $taskTemplate->start;
@@ -421,14 +419,13 @@ class ClientController extends Controller
                     }
 
                     $assignedTask->fill([
-                        'service_id' => $taskTemplate->job->service_id,
-                        'job_id' => $taskTemplate->job_id,
+                        'service_id' => $taskTemplate->service_id,
                         'name' => $taskTemplate->name,
                         'description' => $taskTemplate->description,
                         'start' => $startDate,
                         'end' => $endDate,
-                        'is_recurring' => $taskTemplate->is_recurring,
-                        'recurring_frequency' => $taskTemplate->recurring_frequency,
+                        'is_recurring' => $service->is_recurring,
+                        'recurring_frequency' => $service->recurring_frequency,
                     ])->save();
     
                     $staffIds = $validated['staff_assignments'][$taskTemplate->id] ?? [];
@@ -448,7 +445,6 @@ class ClientController extends Controller
 
             // Sync services based only on the ones that have tasks assigned
             $client->assignedServices()->sync(array_unique($assignedServiceIds));
-            // --- END OF FIX ---
         });
     
         return redirect()->route('clients.edit', $client->id)->with('success', 'Client services and tasks have been updated successfully.');
@@ -462,11 +458,11 @@ class ClientController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255', Rule::unique('services')->where('organization_id', Auth::id())],
             'description' => 'nullable|string',
-            'jobs' => 'present|array',
-            'jobs.*.name' => 'required|string|max:255',
-            'jobs.*.tasks' => 'present|array',
-            'jobs.*.tasks.*.name' => 'required|string|max:255',
-            'jobs.*.tasks.*.start' => 'nullable|date',
+            'tasks' => 'present|array',
+            'tasks.*.name' => 'required|string|max:255',
+            'tasks.*.start' => 'nullable|date',
+            'is_recurring' => 'sometimes|boolean',
+            'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
         ]);
 
         if ($validator->fails()) {
@@ -480,26 +476,19 @@ class ClientController extends Controller
                 'organization_id' => Auth::id(),
                 'client_id' => $client->id,
                 'status' => 'A',
+                'is_recurring' => $request->has('is_recurring'),
+                'recurring_frequency' => $request->input('recurring_frequency'),
             ]);
 
-            foreach ($request->input('jobs', []) as $jobData) {
-                $job = $service->jobs()->create([
-                    'name' => $jobData['name'],
-                    'description' => $jobData['description'] ?? null,
+            foreach ($request->input('tasks', []) as $taskData) {
+                $service->tasks()->create([
+                    'name' => $taskData['name'],
+                    'description' => $taskData['description'] ?? null,
+                    'start' => $taskData['start'],
+                    'end' => $taskData['end'] ?? null,
+                    'staff_designation_id' => $taskData['staff_designation_id'] ?? null,
+                    'status' => 'not_started'
                 ]);
-
-                foreach ($jobData['tasks'] as $taskData) {
-                    $job->tasks()->create([
-                        'name' => $taskData['name'],
-                        'description' => $taskData['description'] ?? null,
-                        'start' => $taskData['start'],
-                        'end' => $taskData['end'] ?? null,
-                        'is_recurring' => $taskData['is_recurring'] ?? false,
-                        'recurring_frequency' => $taskData['recurring_frequency'] ?? null,
-                        'staff_designation_id' => $taskData['staff_designation_id'] ?? null,
-                        'status' => 'not_started'
-                    ]);
-                }
             }
             return $service;
         });

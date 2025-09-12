@@ -100,7 +100,7 @@
         }
         .brand-link {
             padding-top: 0.6rem !important;
-            padding-bottom: 0.6rem !important;
+            padding-bottom: 1rem !important;
         }
 
         /* --- THIS IS THE DEFINITIVE FIX FOR SIDEBAR HIGHLIGHTING --- */

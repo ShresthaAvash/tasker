@@ -9,7 +9,6 @@ use App\Http\Controllers\Organization\ClientController;
 use App\Http\Controllers\Organization\StaffDesignationController;
 use App\Http\Controllers\Organization\StaffController;
 use App\Http\Controllers\Organization\ServiceController;
-use App\Http\Controllers\Organization\JobController;
 use App\Http\Controllers\Organization\TaskController;
 use App\Http\Controllers\Organization\CalendarController as OrganizationCalendarController;
 use App\Http\Controllers\Staff\CalendarController as StaffCalendarController;
@@ -114,7 +113,7 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::post('clients/{client}/documents', [ClientController::class, 'storeDocument'])->name('clients.documents.store');
     Route::delete('client-documents/{document}', [ClientController::class, 'destroyDocument'])->name('clients.documents.destroy');
     Route::get('client-documents/{document}/download', [ClientController::class, 'downloadDocument'])->name('clients.documents.download');
-    Route::get('services/get-jobs-for-assignment', [ClientController::class, 'getJobsForServiceAssignment'])->name('clients.services.getJobs');
+    Route::get('services/get-tasks-for-assignment', [ClientController::class, 'getTasksForServiceAssignment'])->name('clients.services.getTasks');
     Route::post('clients/{client}/assign-services', [ClientController::class, 'assignServices'])->name('clients.services.assign');
     
     // Staff Management
@@ -129,11 +128,9 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::patch('services/{service}/status', [ServiceController::class, 'toggleStatus'])->name('services.toggleStatus');
     Route::resource('services', ServiceController::class);
 
-    Route::resource('services.jobs', JobController::class)->shallow()->only(['store', 'update', 'destroy', 'edit']);
-    Route::resource('jobs.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy']);
+    Route::resource('services.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy']);
     Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
     Route::post('tasks/{task}/stop', [TaskController::class, 'stopTask'])->name('tasks.stop');
-    Route::post('jobs/{job}/assign-tasks', [JobController::class, 'assignTasks'])->name('jobs.assignTasks');
 });
 
 // Staff routes

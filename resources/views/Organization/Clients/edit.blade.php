@@ -216,36 +216,19 @@
                 </div>
                 <hr>
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">Jobs</h5>
-                    <button id="add-new-job-btn" class="btn btn-sm btn-primary">
-                        <i class="fas fa-plus"></i> Add Job
+                    <h5 class="mb-0">Tasks</h5>
+                    <button id="add-new-task-btn" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> Add Task
                     </button>
                 </div>
-                <div id="service-jobs-container">
-                    <p class="text-muted text-center">No jobs added yet.</p>
+                <div id="service-tasks-container">
+                    <p class="text-muted text-center">No tasks added yet.</p>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                 <button type="button" id="save-new-service-btn" class="btn btn-primary">Save Service and Assign</button>
             </div>
-        </div>
-    </div>
-</div>
-
-<div id="job-template" style="display: none;">
-    <div class="job-block">
-        <div class="job-header d-flex justify-content-between align-items-center">
-            <input type="text" class="form-control job-name-input" placeholder="Enter Job Name">
-            <button class="btn btn-sm btn-danger remove-job-btn ml-2">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-        <div class="p-3">
-            <div class="task-list"></div>
-            <button class="btn btn-xs btn-outline-primary add-task-to-job-btn mt-2">
-                <i class="fas fa-plus"></i> Add Task
-            </button>
         </div>
     </div>
 </div>

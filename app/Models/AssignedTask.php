@@ -18,7 +18,6 @@ class AssignedTask extends Model
         'client_id',
         'task_template_id',
         'service_id',
-        'job_id',
         'name',
         'description',
         'due_date',
@@ -64,15 +63,6 @@ class AssignedTask extends Model
     public function client()
     {
         return $this->belongsTo(User::class, 'client_id');
-    }
-
-    /**
-     * --- THIS IS THE FIX ---
-     * Define the relationship to the Job model.
-     */
-    public function job()
-    {
-        return $this->belongsTo(Job::class, 'job_id');
     }
 
     /**

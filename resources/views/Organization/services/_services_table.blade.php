@@ -11,7 +11,7 @@
                     @if($sort_by == 'name') <i class="fas fa-sort-{{ $sort_order == 'asc' ? 'up' : 'down' }}"></i> @endif
                 </a>
             </th>
-            <th>Jobs</th>
+            <th>Tasks</th>
             <th>
                 <a href="#" class="sort-link" data-sortby="status" data-sortorder="{{ $sort_by == 'status' && $sort_order == 'asc' ? 'desc' : 'asc' }}">
                     Status
@@ -29,7 +29,7 @@
                 <p class="text-muted small">{{ Str::limit($service->description, 60) }}</p>
             </td>
             
-            <td>{{ $service->jobs->count() }}</td>
+            <td>{{ $service->tasks->count() }}</td>
             
             <td>
                 @if($service->status == 'A')
@@ -46,7 +46,7 @@
                     <button type="submit" class="btn btn-xs {{ $service->status === 'A' ? 'btn-secondary' : 'btn-success' }}">{{ $service->status === 'A' ? 'Deactivate' : 'Activate' }}</button>
                 </form>
 
-                <form action="{{ route('services.destroy', $service->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this service and all its jobs & tasks?');">
+                <form action="{{ route('services.destroy', $service->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this service and all its tasks?');">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-xs btn-danger">Delete</button>
                 </form>

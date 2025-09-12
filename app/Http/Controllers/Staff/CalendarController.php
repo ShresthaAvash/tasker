@@ -27,45 +27,38 @@ class CalendarController extends Controller
 
         // --- CORRECTED QUERIES FOR STAFF ONLY ---
         $personalTasks = Task::where('staff_id', $user->id)
-            ->whereNull('job_id')->whereNotNull('start')
-            ->where(function ($query) {
-                $query->where('is_recurring', false)->where('status', '!=', 'completed')
-                    ->orWhere('is_recurring', true);
-            })
+            ->whereNull('service_id')->whereNotNull('start')
+            ->where('status', '!=', 'completed')
             ->where('start', '<=', $viewEnd)
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $viewStart))
             ->get();
 
         $assignedTasks = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $user->id))
             ->whereNotNull('start')
-            ->where(function ($query) {
-                $query->where('is_recurring', false)->where('status', '!=', 'completed')
-                    ->orWhere('is_recurring', true);
-            })
+            ->where('status', '!=', 'completed')
             ->where('start', '<=', $viewEnd)
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $viewStart))
-            ->with('client', 'service', 'job')->get();
+            ->with('client', 'service')->get();
         // --- END OF QUERIES ---
+        
+        // Handle non-recurring personal tasks
+        foreach ($personalTasks as $task) {
+            $events[] = $this->formatEvent($task, 'p', $task->start);
+        }
 
-        $allTasks = $personalTasks->concat($assignedTasks);
+        // Handle assigned tasks (both recurring and non-recurring)
+        foreach ($assignedTasks as $task) {
+            $typePrefix = 'a';
+            $service = $task->service;
 
-        foreach ($allTasks as $task) {
-            $typePrefix = $task instanceof AssignedTask ? 'a' : 'p';
-
-            if (!$task->is_recurring) {
-                if ($task->start && $task->status !== 'completed') {
-                    $events[] = $this->formatEvent($task, $typePrefix, $task->start);
-                }
-                continue;
-            }
-
-            if ($task->is_recurring && $task->start && $task->recurring_frequency) {
+            if ($service && $service->is_recurring && $task->start && $service->recurring_frequency) {
                 $cursor = $task->start->copy();
                 $seriesEndDate = $task->end;
                 $instanceData = (array) ($task->completed_at_dates ?? []);
 
+                // Move cursor to the start of the current view window
                 while($cursor->lt($viewStart)) {
-                    switch ($task->recurring_frequency) {
+                    switch ($service->recurring_frequency) {
                         case 'daily': $cursor->addDay(); break;
                         case 'weekly': $cursor->addWeek(); break;
                         case 'monthly': $cursor->addMonthWithNoOverflow(); break;
@@ -74,6 +67,7 @@ class CalendarController extends Controller
                     }
                 }
                 
+                // Generate events within the view window
                 while ($cursor->lte($viewEnd)) {
                     if ($seriesEndDate && $cursor->gt($seriesEndDate)) {
                         break;
@@ -86,12 +80,12 @@ class CalendarController extends Controller
                     if ($instanceStatus !== 'completed') {
                         $singleEvent = clone $task;
                         $singleEvent->start = $cursor->copy();
-                        $singleEvent->end = $cursor->copy()->endOfDay();
+                        $singleEvent->end = $cursor->copy()->endOfDay(); // Make it an all-day event for the instance date
                         $singleEvent->status = $instanceStatus;
                         $events[] = $this->formatEvent($singleEvent, $typePrefix, $cursor);
                     }
 
-                    switch ($task->recurring_frequency) {
+                    switch ($service->recurring_frequency) {
                         case 'daily': $cursor->addDay(); break;
                         case 'weekly': $cursor->addWeek(); break;
                         case 'monthly': $cursor->addMonthWithNoOverflow(); break;
@@ -99,8 +93,12 @@ class CalendarController extends Controller
                         default: break 2;
                     }
                 }
+            } elseif ($task->start && $task->status !== 'completed') {
+                // This is a non-recurring assigned task
+                $events[] = $this->formatEvent($task, $typePrefix, $task->start);
             }
         }
+
         return response()->json($events);
     }
 
@@ -153,14 +151,12 @@ class CalendarController extends Controller
 
     private function formatEvent($task, $typePrefix, Carbon $instanceDate)
     {
-        $isRecurring = (bool) $task->is_recurring;
+        $isRecurring = ($task instanceof AssignedTask && optional($task->service)->is_recurring);
         $title = ($typePrefix === 'a' && $task->client) ? $task->client->name . ': ' . $task->name : $task->name;
         
         $serviceName = 'Personal Task';
-        $jobName = 'N/A';
         if ($typePrefix === 'a') {
             $serviceName = optional($task->service)->name ?? 'Service Not Found';
-            $jobName = optional($task->job)->name ?? 'Job Not Found';
         }
 
         $userId = Auth::id();
@@ -188,8 +184,8 @@ class CalendarController extends Controller
         return [
             'id'              => $uniqueId,
             'title'           => $title,
-            'start'           => $task->start->toIso8601String(),
-            'end'             => $task->end ? $task->end->toIso8601String() : null,
+            'start'           => $instanceDate->toIso8601String(),
+            'end'             => $task->end ? $instanceDate->copy()->endOfDay()->toIso8601String() : null,
             'backgroundColor' => $backgroundColor,
             'borderColor'     => $backgroundColor,
             'textColor'       => '#FFFFFF',
@@ -201,7 +197,6 @@ class CalendarController extends Controller
                 'actualStart' => $task->start->toIso8601String(),
                 'actualEnd'   => $task->end ? $task->end->toIso8601String() : null,
                 'serviceName' => $serviceName,
-                'jobName'     => $jobName,
             ]
         ];
     }

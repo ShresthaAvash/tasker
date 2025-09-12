@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('assigned_tasks', function (Blueprint $table) {
-            $table->json('color_overrides')->nullable()->after('color');
+        Schema::table('tasks', function (Blueprint $table) {
+            $table->dropColumn(['is_recurring', 'recurring_frequency']);
         });
     }
 
@@ -21,8 +21,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('assigned_tasks', function (Blueprint $table) {
-            $table->dropColumn('color_overrides');
+        Schema::table('tasks', function (Blueprint $table) {
+            $table->boolean('is_recurring')->default(false);
+            $table->string('recurring_frequency')->nullable();
         });
     }
 };

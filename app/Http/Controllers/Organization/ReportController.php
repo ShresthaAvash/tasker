@@ -24,20 +24,16 @@ class ReportController extends Controller
             ->whereNotNull('start')
             ->where('start', '<=', $endDate)
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
-            ->with(['client', 'service', 'job', 'staff']);
+            ->with(['client', 'service', 'staff']);
 
         if ($search) {
             $tasksQuery->where(function($q) use ($search) {
                 $q->where('name', 'like', '%' . $search . '%') // Search task name
                   ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('job', fn($jq) => $jq->where('name', 'like', "%{$search}%"));
+                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
             });
         }
         
-        // --- THIS IS THE FIX: Efficiently filter tasks at the database level ---
-        // We get all recurring tasks within the date range, but only non-recurring tasks that match the status.
-        // This is because recurring task instances have their status in a JSON field, which must be filtered in PHP.
         $tasksQuery->where(function ($query) use ($statuses) {
             $query->where('is_recurring', true)
                   ->orWhere(function ($q) use ($statuses) {
@@ -47,7 +43,6 @@ class ReportController extends Controller
                         });
                   });
         });
-        // --- END OF FIX ---
 
         $tasks = $tasksQuery->get();
         $expandedTasks = $this->expandTasksForReport($tasks, $startDate, $endDate, $statuses);
@@ -83,19 +78,17 @@ class ReportController extends Controller
                 ->whereNotNull('start')
                 ->where('start', '<=', $endDate)
                 ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
-                ->with(['client', 'service', 'job', 'staff' => fn($q) => $q->select('users.id', 'users.name')]);
+                ->with(['client', 'service', 'staff' => fn($q) => $q->select('users.id', 'users.name')]);
 
             if ($search) {
                 $tasksQuery->where(function($q) use ($search) {
                     $q->whereHas('staff', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
                       ->orWhere('name', 'like', '%' . $search . '%')
                       ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"))
-                      ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
-                      ->orWhereHas('job', fn($jq) => $jq->where('name', 'like', "%{$search}%"));
+                      ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
                 });
             }
             
-            // --- THIS IS THE FIX: Efficiently filter tasks at the database level ---
             $tasksQuery->where(function ($query) use ($statuses) {
                 $query->where('is_recurring', true)
                     ->orWhere(function ($q) use ($statuses) {
@@ -105,7 +98,6 @@ class ReportController extends Controller
                             });
                     });
             });
-            // --- END OF FIX ---
 
             $tasks = $tasksQuery->get();
             $expandedTasks = $this->expandTasksForReport($tasks, $startDate, $endDate, $statuses);
@@ -121,7 +113,6 @@ class ReportController extends Controller
         ));
     }
 
-    // --- THIS IS THE DEFINITIVE FIX FOR THE REPORT LOGIC ---
     private function expandTasksForReport(Collection $tasks, Carbon $startDate, Carbon $endDate, array $statuses): Collection
     {
         $instances = new Collection();
@@ -241,9 +232,7 @@ class ReportController extends Controller
     private function groupTasksByClient(Collection $tasks): Collection
     {
         return $tasks->groupBy('client.name')->map(fn($clientTasks) => 
-            $clientTasks->groupBy('service.name')->map(fn($serviceTasks) => 
-                $serviceTasks->groupBy('job.name')
-            )
+            $clientTasks->groupBy('service.name')
         );
     }
 
@@ -255,12 +244,9 @@ class ReportController extends Controller
             foreach ($tasks as $task) {
                 if ($staffOnTask = $task->staff->firstWhere('id', $staff->id)) {
                     $serviceId = $task->service->id ?? 'uncategorized';
-                    $jobId = $task->job->id ?? 'uncategorized';
                     $duration = $staffOnTask->pivot->duration_in_seconds;
-                    if (!isset($staffServices[$serviceId])) $staffServices[$serviceId] = ['name' => $task->service->name ?? 'Uncategorized', 'jobs' => [], 'total_duration' => 0];
-                    if (!isset($staffServices[$serviceId]['jobs'][$jobId])) $staffServices[$serviceId]['jobs'][$jobId] = ['name' => $task->job->name ?? 'Uncategorized', 'tasks' => [], 'total_duration' => 0];
-                    $staffServices[$serviceId]['jobs'][$jobId]['tasks'][] = ['name' => $task->name, 'duration' => $duration, 'status' => $task->status];
-                    $staffServices[$serviceId]['jobs'][$jobId]['total_duration'] += $duration;
+                    if (!isset($staffServices[$serviceId])) $staffServices[$serviceId] = ['name' => $task->service->name ?? 'Uncategorized', 'tasks' => [], 'total_duration' => 0];
+                    $staffServices[$serviceId]['tasks'][] = ['name' => $task->name, 'duration' => $duration, 'status' => $task->status];
                     $staffServices[$serviceId]['total_duration'] += $duration;
                     $staffTotalDuration += $duration;
                 }

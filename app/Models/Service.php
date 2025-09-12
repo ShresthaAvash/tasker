@@ -14,7 +14,13 @@ class Service extends Model
         'description',
         'status',
         'organization_id',
-        'client_id' // <-- ADD THIS LINE
+        'client_id',
+        'is_recurring',
+        'recurring_frequency',
+    ];
+
+    protected $casts = [
+        'is_recurring' => 'boolean',
     ];
 
     /**
@@ -26,11 +32,11 @@ class Service extends Model
     }
 
     /**
-     * A service has many job templates.
+     * A service has many task templates.
      */
-    public function jobs()
+    public function tasks()
     {
-        return $this->hasMany(Job::class)->orderBy('created_at');
+        return $this->hasMany(Task::class)->orderBy('created_at');
     }
 
     /**

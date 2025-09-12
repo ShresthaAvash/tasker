@@ -9,25 +9,7 @@
 @section('css')
 @parent
 <style>
-    /* Styles for the accordion and task lists */
-    .job-accordion .card {
-        border: none;
-        box-shadow: none;
-    }
-    .job-accordion .card-header {
-        cursor: pointer;
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-    }
-
-    .job-accordion .collapse-icon {
-        transition: transform 0.3s ease;
-    }
-
-    .job-accordion a[aria-expanded="false"] .collapse-icon {
-        transform: rotate(-180deg);
-    }
-
+    /* Styles for the task list */
     .task-list-table {
         margin-bottom: 0;
     }
@@ -100,7 +82,7 @@
         <h3 class="card-title">Service Details</h3>
         <div class="card-tools">
             <a href="{{ route('services.edit', $service->id) }}" class="btn btn-sm btn-light border text-warning">
-                <i class="fas fa-pencil-alt"></i> Edit Service
+                <i class="fas fa-pencil-alt"></i> Edit Service Details
             </a>
         </div>
     </div>
@@ -109,28 +91,45 @@
     </div>
 </div>
 
-{{-- Jobs Section --}}
+{{-- Tasks Section --}}
 <div class="card card-primary card-outline">
     <div class="card-header">
-        <h3 class="card-title">Jobs</h3>
+        <h3 class="card-title">Tasks</h3>
         <div class="card-tools">
-            <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#jobModal" data-action="create">
-                <i class="fas fa-plus"></i> Add Job
+            <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#taskModal" data-action="create">
+                <i class="fas fa-plus"></i> Add Task
             </button>
         </div>
     </div>
-    <div class="card-body">
-        <div class="accordion job-accordion" id="jobsAccordion">
-            @forelse($service->jobs as $job)
-                @include('Organization.services._job_accordion_item', ['job' => $job])
-            @empty
-                <p id="no-jobs-message" class="text-center text-muted">No jobs yet. Click "Add Job" to get started.</p>
-            @endforelse
-        </div>
+    <div class="card-body p-0">
+        <table class="table table-hover task-list-table">
+             <thead>
+                <tr>
+                    <th>Task Name</th>
+                    <th style="width: 200px;" class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="task-list-body">
+                @forelse($service->tasks as $task)
+                    <tr class="task-row" id="task-row-{{ $task->id }}">
+                        <td class="task-name-cell pl-3">{{ $task->name }}</td>
+                        <td class="text-right pr-3">
+                            <button class="btn btn-sm btn-light border" data-toggle="modal" data-target="#taskModal" data-action="edit" data-task='@json($task)'>
+                                <i class="fas fa-edit text-warning"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-light border delete-task-btn ml-2" data-task-id="{{ $task->id }}">
+                                <i class="fas fa-trash text-danger"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="2" class="text-center text-muted py-4">No tasks have been added to this service yet.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 </div>
 
-@include('Organization.services._job_modal')
 @include('Organization.services._task_modal', ['designations' => $designations])
 
 @stop
@@ -149,71 +148,6 @@ $(document).ready(function() {
         $('#alert-container').html(alertHtml).find('.alert').fadeIn();
         setTimeout(() => $('#alert-container').find('.alert').fadeOut(() => $(this).remove()), 5000);
     }
-
-    // --- THIS IS THE DEFINITIVE FIX FOR THE JOB MODAL ---
-    $('#jobModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget);
-        var action = button.data('action');
-        var modal = $(this);
-        var form = modal.find('form');
-
-        // Reset form and clear previous submit handlers
-        form[0].reset();
-        form.off('submit');
-
-        if (action === 'edit') {
-            var job = button.data('job');
-            modal.find('.modal-title').text('Edit Job: ' + job.name);
-            modal.find('#job-name').val(job.name);
-            modal.find('#job-description').val(job.description);
-            form.attr('action', '/organization/jobs/' + job.id);
-            form.find('input[name="_method"]').val('PUT');
-        } else { // 'create' action
-            modal.find('.modal-title').text('Add New Job');
-            form.attr('action', '{{ route("services.jobs.store", $service) }}');
-            form.find('input[name="_method"]').val('POST');
-        }
-
-        // Universal submit handler for both create and edit
-        form.on('submit', function(e) {
-            e.preventDefault();
-            $.ajax({
-                url: $(this).attr('action'),
-                type: 'POST', // Always POST, Laravel handles PUT/PATCH via _method field
-                data: $(this).serialize(),
-                success: function(response) {
-                    location.reload(); // Reload the page to show changes
-                },
-                error: function(xhr) {
-                    var errorMsg = 'An error occurred.';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = xhr.responseJSON.message;
-                    }
-                    alert('Error: ' + errorMsg);
-                }
-            });
-        });
-    });
-    // --- END OF FIX ---
-    
-    $(document).on('click', '.delete-job-btn', function(e) {
-        e.preventDefault(); e.stopPropagation();
-        if (!confirm('Are you sure you want to delete this job and all its tasks? This action cannot be undone.')) return;
-        var jobId = $(this).data('job-id');
-        $.ajax({
-            url: '/organization/jobs/' + jobId, type: 'DELETE',
-            success: (response) => {
-                $('#job-card-' + jobId).fadeOut(300, function() { 
-                    $(this).remove();
-                    if ($('#jobsAccordion').children().length === 0) {
-                        $('#jobsAccordion').html('<p id="no-jobs-message" class="text-center text-muted">No jobs yet. Click "Add Job" to get started.</p>');
-                    }
-                });
-                showAlert(response.message);
-            },
-            error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
-        });
-    });
 
     // --- TASK MODAL & DELETE ---
     $('#taskModal').on('show.bs.modal', function (event) {
@@ -249,12 +183,11 @@ $(document).ready(function() {
             });
 
         } else { // Create
-            var jobId = button.data('jobid');
             modal.find('.modal-title').text('Add New Task');
             form.on('submit', function(e) {
                 e.preventDefault();
                 $.ajax({
-                    url: '/organization/jobs/' + jobId + '/tasks', type: 'POST', data: $(this).serialize(),
+                    url: '/organization/services/{{ $service->id }}/tasks', type: 'POST', data: $(this).serialize(),
                     success: (response) => location.reload(),
                     error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
                 });
@@ -276,6 +209,9 @@ $(document).ready(function() {
             success: (response) => {
                 $('#task-row-' + taskId).remove();
                 showAlert(response.message);
+                 if ($('#task-list-body').children().length === 0) {
+                    $('#task-list-body').html('<tr><td colspan="2" class="text-center text-muted py-4">No tasks have been added to this service yet.</td></tr>');
+                }
             },
             error: (xhr) => alert('Error: ' + xhr.responseJSON.message)
         });

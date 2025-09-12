@@ -2,8 +2,8 @@
 <script>
     $(function() {
         $('#service-selection-step').hide();
-        $('#job-config-step').show();
-        $('#next-to-jobs-btn').trigger('click');
+        $('#task-config-step').show();
+        $('#next-to-tasks-btn').trigger('click');
     });
 </script>
 @endif
@@ -38,13 +38,13 @@
                 <p class="text-muted">No services have been created yet. <a href="{{ route('services.create') }}">Create one now</a>.</p>
             @endforelse
         </div>
-        <button type="button" id="next-to-jobs-btn" class="btn btn-info">Next <i class="fas fa-arrow-right"></i></button>
+        <button type="button" id="next-to-tasks-btn" class="btn btn-info">Next <i class="fas fa-arrow-right"></i></button>
     </div>
 
-    <div id="job-config-step" style="display: none;">
-        <h4>2. Configure Jobs & Tasks</h4>
-        <p>Uncheck any jobs or tasks to exclude them. Assign staff members and dates to each task.</p>
-        <div id="jobs-accordion-container" class="accordion"></div>
+    <div id="task-config-step" style="display: none;">
+        <h4>2. Configure Tasks</h4>
+        <p>Uncheck any tasks to exclude them. Assign staff members and dates to each task.</p>
+        <div id="tasks-accordion-container" class="accordion"></div>
         <hr>
         <button type="button" id="back-to-services-btn" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</button>
         <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Save Assignments</button>

@@ -10,16 +10,9 @@
 @endphp
 
 <div id="client-report-accordion">
-    @forelse($groupedTasks as $serviceName => $jobs)
+    @forelse($groupedTasks as $serviceName => $tasks)
         @php
-            $serviceTotalDuration = 0;
-            $allServiceTasksAreToDo = true;
-            foreach ($jobs as $tasks) {
-                $serviceTotalDuration += $tasks->sum('duration_in_seconds');
-                if ($tasks->contains(fn($task) => $task->status !== 'to_do' || $task->duration_in_seconds > 0)) {
-                    $allServiceTasksAreToDo = false;
-                }
-            }
+            $serviceTotalDuration = $tasks->sum('duration_in_seconds');
         @endphp
         
         <div class="report-group">
@@ -34,49 +27,34 @@
             </a>
             <div id="collapse-service-{{ Str::slug($serviceName) }}" class="collapse show">
                 <div class="card-body p-0">
-                    @foreach($jobs as $jobName => $tasks)
-                        <a href="#collapse-job-{{ Str::slug($serviceName.$jobName) }}" class="report-header job" data-toggle="collapse" aria-expanded="true">
-                            <h6 class="report-title mb-0 ml-4"><i class="fas fa-briefcase mr-2"></i> Job: {{ $jobName }}</h6>
-                             <div class="d-flex align-items-center">
-                                <span class="report-time mr-3">
-                                    {{ formatToHms($tasks->sum('duration_in_seconds')) }}
-                                </span>
-                                <i class="fas fa-chevron-up collapse-icon"></i>
-                            </div>
-                        </a>
-                        <div id="collapse-job-{{ Str::slug($serviceName.$jobName) }}" class="collapse show">
-                            <div class="pl-5">
-                                @foreach($tasks as $task)
-                                    @php
-                                        $statusClass = 'status-' . str_replace(' ', '_', $task->status);
-                                    @endphp
-                                    <div class="task-item">
-                                        <i class="fas fa-file-alt task-icon"></i>
-                                        <div class="task-details">
-                                            <div class="task-name">{{ $task->name }}</div>
-                                            @if($task->staff->isNotEmpty() && $task->duration_in_seconds > 0)
-                                                <a href="#staff-breakdown-client-{{ $task->id }}" data-toggle="collapse" class="task-meta">
-                                                    Assigned Staff ({{ $task->staff->count() }}) <i class="fas fa-chevron-down fa-xs collapse-icon"></i>
-                                                </a>
-                                                <div class="collapse staff-breakdown mt-2" id="staff-breakdown-client-{{ $task->id }}">
-                                                    <ul class="list-unstyled p-2">
-                                                        @foreach($task->staff as $staffMember)
-                                                            @if($staffMember->pivot->duration_in_seconds > 0)
-                                                                <li class="d-flex justify-content-between border-bottom py-1 px-2">
-                                                                    <span class="text-muted">{{ $staffMember->name }}</span>
-                                                                    <span class="text-muted">{{ formatToHms($staffMember->pivot->duration_in_seconds) }}</span>
-                                                                </li>
-                                                            @endif
-                                                        @endforeach
-                                                    </ul>
-                                                </div>
-                                            @endif
-                                        </div>
-                                        <div class="task-status {{ $statusClass }}">
-                                            {{ $task->status === 'ongoing' ? 'Ongoing' : ucfirst(str_replace('_', ' ', $task->status)) }}
-                                        </div>
+                    @foreach($tasks as $task)
+                        @php
+                            $statusClass = 'status-' . str_replace(' ', '_', $task->status);
+                        @endphp
+                        <div class="task-item">
+                            <i class="fas fa-file-alt task-icon"></i>
+                            <div class="task-details">
+                                <div class="task-name">{{ $task->name }}</div>
+                                @if($task->staff->isNotEmpty() && $task->duration_in_seconds > 0)
+                                    <a href="#staff-breakdown-client-{{ $task->id }}" data-toggle="collapse" class="task-meta">
+                                        Assigned Staff ({{ $task->staff->count() }}) <i class="fas fa-chevron-down fa-xs collapse-icon"></i>
+                                    </a>
+                                    <div class="collapse staff-breakdown mt-2" id="staff-breakdown-client-{{ $task->id }}">
+                                        <ul class="list-unstyled p-2">
+                                            @foreach($task->staff as $staffMember)
+                                                @if($staffMember->pivot->duration_in_seconds > 0)
+                                                    <li class="d-flex justify-content-between border-bottom py-1 px-2">
+                                                        <span class="text-muted">{{ $staffMember->name }}</span>
+                                                        <span class="text-muted">{{ formatToHms($staffMember->pivot->duration_in_seconds) }}</span>
+                                                    </li>
+                                                @endif
+                                            @endforeach
+                                        </ul>
                                     </div>
-                                @endforeach
+                                @endif
+                            </div>
+                            <div class="task-status {{ $statusClass }}">
+                                {{ $task->status === 'ongoing' ? 'Ongoing' : ucfirst(str_replace('_', ' ', $task->status)) }}
                             </div>
                         </div>
                     @endforeach
@@ -97,7 +75,4 @@
     .status-completed,.status-ongoing,.status-to-do{
         margin-left:2rem !important;
     }
-
-
 </style>
-

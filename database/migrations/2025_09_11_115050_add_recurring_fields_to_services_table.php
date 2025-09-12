@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('assigned_tasks', function (Blueprint $table) {
-            $table->dateTime('start')->nullable()->after('status');
-            $table->dateTime('end')->nullable()->after('start');
+        Schema::table('services', function (Blueprint $table) {
+            $table->boolean('is_recurring')->default(false)->after('status');
+            $table->string('recurring_frequency')->nullable()->after('is_recurring');
         });
     }
 
@@ -22,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('assigned_tasks', function (Blueprint $table) {
-            $table->dropColumn(['start', 'end']);
+        Schema::table('services', function (Blueprint $table) {
+            $table->dropColumn(['is_recurring', 'recurring_frequency']);
         });
     }
 };

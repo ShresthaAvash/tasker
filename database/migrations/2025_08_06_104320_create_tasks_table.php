@@ -13,20 +13,28 @@ return new class extends Migration
     {
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('job_id');
+            $table->unsignedBigInteger('service_id')->nullable();
             $table->string('name');
-            $table->string('status')->nullable();
             $table->text('description')->nullable();
-            // Deadline offset from the job's start date
+            $table->boolean('is_recurring')->default(false);
+            $table->string('recurring_frequency')->nullable();
+            $table->dateTime('start')->nullable();
+            $table->dateTime('end')->nullable();
             $table->integer('deadline_offset')->default(0); 
-            // unit for the offset, e.g., 'days', 'weeks'
             $table->string('deadline_unit')->default('days'); 
-            // We assign to a designation (role) in the template, not a specific person
             $table->unsignedBigInteger('staff_designation_id')->nullable(); 
+            $table->unsignedBigInteger('staff_id')->nullable();
+            $table->string('status')->default('not_started');
+            $table->json('completed_at_dates')->nullable();
+            $table->unsignedInteger('duration_in_seconds')->default(0);
+            $table->timestamp('timer_started_at')->nullable();
+            $table->string('color')->nullable();
+            $table->json('color_overrides')->nullable();
             $table->timestamps();
 
-            $table->foreign('job_id')->references('id')->on('jobs')->onDelete('cascade');
+            $table->foreign('service_id')->references('id')->on('services')->onDelete('cascade');
             $table->foreign('staff_designation_id')->references('id')->on('staff_designations')->onDelete('set null');
+            $table->foreign('staff_id')->references('id')->on('users')->onDelete('set null');
         });
     }
 

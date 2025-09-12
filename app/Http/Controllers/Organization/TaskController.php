@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Organization;
 use App\Http\Controllers\Controller;
 use App\Models\AssignedTask;
 use App\Models\Task;
-use App\Models\Job;
+use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -21,11 +21,11 @@ use Illuminate\Validation\Rule;
 class TaskController extends Controller
 {
     /**
-     * Store a newly created task in storage, associated with a job.
+     * Store a newly created task in storage, associated with a service.
      */
-    public function store(Request $request, Job $job)
+    public function store(Request $request, Service $service)
     {
-        if ($job->service->organization_id !== Auth::id()) {
+        if ($service->organization_id !== Auth::id()) {
             abort(403);
         }
 
@@ -34,15 +34,12 @@ class TaskController extends Controller
             'description' => 'nullable|string',
             'start' => 'nullable|date',
             'end' => 'nullable|date|after_or_equal:start',
-            'is_recurring' => 'sometimes|boolean',
-            'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
         ]);
 
         $data = $request->all();
-        $data['is_recurring'] = $request->has('is_recurring');
         $data['status'] = 'not_started';
 
-        $task = $job->tasks()->create($data);
+        $task = $service->tasks()->create($data);
 
         if ($request->ajax()) {
             return response()->json([
@@ -60,7 +57,7 @@ class TaskController extends Controller
      */
     public function update(Request $request, Task $task)
     {
-        if ($task->job->service->organization_id !== Auth::id()) {
+        if ($task->service->organization_id !== Auth::id()) {
             abort(403);
         }
 
@@ -69,12 +66,9 @@ class TaskController extends Controller
             'description' => 'nullable|string',
             'start' => 'nullable|date',
             'end' => 'nullable|date|after_or_equal:start',
-            'is_recurring' => 'sometimes|boolean',
-            'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
         ]);
 
         $data = $request->all();
-        $data['is_recurring'] = $request->has('is_recurring');
 
         $task->update($data);
 
@@ -94,7 +88,7 @@ class TaskController extends Controller
      */
     public function destroy(Task $task)
     {
-        if ($task->job->service->organization_id !== Auth::id()) {
+        if ($task->service->organization_id !== Auth::id()) {
             abort(403);
         }
 
@@ -112,7 +106,7 @@ class TaskController extends Controller
      */
     public function assignStaff(Request $request, Task $task)
     {
-        if ($task->job->service->organization_id !== Auth::id()) {
+        if ($task->service->organization_id !== Auth::id()) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
@@ -130,7 +124,7 @@ class TaskController extends Controller
      */
     public function stopTask(Request $request, Task $task)
     {
-        if ($task->job->service->organization_id !== Auth::id()) {
+        if ($task->service->organization_id !== Auth::id()) {
             abort(403);
         }
 

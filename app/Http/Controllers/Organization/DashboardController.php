@@ -50,7 +50,7 @@ class DashboardController extends Controller
             ->where('start', '>=', now())
             ->whereHas('staff') // Ensure at least one staff member is assigned
             ->orderBy('start', 'asc')
-            ->with(['client', 'service', 'job', 'staff'])
+            ->with(['client', 'service', 'staff'])
             ->limit(5)
             ->get();
             
@@ -100,7 +100,7 @@ class DashboardController extends Controller
         $serviceCount = Service::where('organization_id', $organizationId)->count();
 
         // Get task counts by status from templates
-        $taskStatusCounts = Task::whereHas('job.service', fn($q) => $q->where('organization_id', $organizationId))
+        $taskStatusCounts = Task::whereHas('service', fn($q) => $q->where('organization_id', $organizationId))
             ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->pluck('count', 'status');
@@ -108,7 +108,7 @@ class DashboardController extends Controller
         // Get detailed lists
         $clients = User::where('organization_id', $organizationId)->where('type', 'C')->orderBy('name')->get();
         $staff = User::where('organization_id', $organizationId)->whereIn('type', ['A', 'T', 'O'])->orderBy('name')->get();
-        $services = Service::where('organization_id', $organizationId)->withCount('jobs')->orderBy('name')->get();
+        $services = Service::where('organization_id', $organizationId)->withCount('tasks')->orderBy('name')->get();
 
         return view('Organization.report', compact(
             'clientCount',
@@ -128,15 +128,15 @@ class DashboardController extends Controller
     {
         $staffId = Auth::id();
         
-        $toDoPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'to_do')->count();
+        $toDoPersonalCount = Task::where('staff_id', $staffId)->whereNull('service_id')->where('status', 'to_do')->count();
         $toDoAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'to_do')->count();
         $toDoTaskCount = $toDoPersonalCount + $toDoAssignedCount;
 
-        $ongoingPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'ongoing')->count();
+        $ongoingPersonalCount = Task::where('staff_id', $staffId)->whereNull('service_id')->where('status', 'ongoing')->count();
         $ongoingAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'ongoing')->count();
         $ongoingTaskCount = $ongoingPersonalCount + $ongoingAssignedCount;
 
-        $completedPersonalCount = Task::where('staff_id', $staffId)->whereNull('job_id')->where('status', 'completed')->count();
+        $completedPersonalCount = Task::where('staff_id', $staffId)->whereNull('service_id')->where('status', 'completed')->count();
         $completedAssignedCount = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))->where('status', 'completed')->count();
         $completedTaskCount = $completedPersonalCount + $completedAssignedCount;
         
@@ -163,7 +163,7 @@ class DashboardController extends Controller
         $chartDataValues = $chartData->values();
 
         $personalTasks = Task::where('staff_id', $staffId)
-            ->whereNull('job_id')
+            ->whereNull('service_id')
             ->whereIn('status', ['to_do', 'ongoing'])
             ->whereNotNull('start')
             ->where('start', '>=', now())
@@ -180,13 +180,13 @@ class DashboardController extends Controller
             ->whereIn('status', ['to_do', 'ongoing'])
             ->whereNotNull('start')
             ->where('start', '>=', now())
-            ->with(['client', 'service', 'job'])
+            ->with(['client', 'service'])
             ->orderBy('start', 'asc')
             ->limit(10)
             ->get()
             ->map(function ($task) {
                 $task->display_name = $task->name;
-                $task->task_details = "Service: {$task->service->name} | Job: {$task->job->name} | Client: {$task->client->name}";
+                $task->task_details = "Service: {$task->service->name} | Client: {$task->client->name}";
                 return $task;
             });
         

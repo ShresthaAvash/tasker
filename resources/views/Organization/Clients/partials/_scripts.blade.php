@@ -62,16 +62,13 @@ $(document).ready(function() {
     });
 
     const serviceSelectionStep = $('#service-selection-step');
-    const jobConfigStep = $('#job-config-step');
-    const jobsContainer = $('#jobs-accordion-container');
+    const taskConfigStep = $('#task-config-step');
+    const tasksContainer = $('#tasks-accordion-container');
     const allStaffData = {!! $allStaffJson !!};
     const clientTasks = {!! json_encode($client->assignedTasks->keyBy('task_template_id')) !!};
     const originallyAssignedServiceIds = {!! json_encode($client->assignedServices->pluck('id')) !!};
     let checkboxToUnassign = null;
 
-    // --- START OF MODIFICATIONS FOR REQUIREMENTS ---
-
-    // Function to update the "Select All" checkbox based on individual checkbox states
     function updateSelectAllState() {
         const allServiceCheckboxes = $('.service-checkbox');
         const checkedServiceCheckboxes = $('.service-checkbox:checked');
@@ -87,86 +84,70 @@ $(document).ready(function() {
         }
     }
 
-    // Check previously assigned services on page load
     originallyAssignedServiceIds.forEach(serviceId => {
         $(`#service_${serviceId}`).prop('checked', true);
     });
-    updateSelectAllState(); // Update select-all based on initial state
+    updateSelectAllState();
 
-    // "Select All" functionality
     $('#select-all-services').on('change', function() {
         $('.service-checkbox').prop('checked', $(this).is(':checked'));
     });
     
-    // Update "Select All" when individual services are toggled
     $('#service-checkbox-list').on('change', '.service-checkbox', function() {
         updateSelectAllState();
     });
 
-    // --- END OF MODIFICATIONS FOR REQUIREMENTS ---
-
-    function renderJobsAndTasks(jobs) {
-        jobsContainer.empty();
-        if (!jobs || jobs.length === 0) {
-            jobsContainer.html('<p class="text-muted text-center p-3">The selected services do not have any jobs or tasks configured.</p>');
+    function renderTasks(tasks) {
+        tasksContainer.empty();
+        if (!tasks || tasks.length === 0) {
+            tasksContainer.html('<p class="text-muted text-center p-3">The selected services do not have any tasks configured.</p>');
             return;
         }
 
-        const jobsByService = jobs.reduce((acc, job) => {
-            const serviceId = job.service.id;
-            if (!acc[serviceId]) { acc[serviceId] = { name: job.service.name, jobs: [] }; }
-            acc[serviceId].jobs.push(job);
+        const tasksByService = tasks.reduce((acc, task) => {
+            const serviceId = task.service.id;
+            if (!acc[serviceId]) { acc[serviceId] = { name: task.service.name, tasks: [] }; }
+            acc[serviceId].tasks.push(task);
             return acc;
         }, {});
 
-        Object.entries(jobsByService).forEach(([serviceId, serviceGroup]) => {
-            let jobsHtml = '';
-            serviceGroup.jobs.forEach(job => {
-                let taskHtml = '';
-                if (job.tasks && job.tasks.length > 0) {
-                    job.tasks.forEach(task => {
-                        const assignedTask = clientTasks[task.id];
-                        const isAlreadyAssigned = clientTasks.hasOwnProperty(task.id);
-                        
-                        const isChecked = isAlreadyAssigned ? 'checked' : '';
+        Object.entries(tasksByService).forEach(([serviceId, serviceGroup]) => {
+            let taskHtml = '';
+            if (serviceGroup.tasks && serviceGroup.tasks.length > 0) {
+                serviceGroup.tasks.forEach(task => {
+                    const assignedTask = clientTasks[task.id];
+                    const isAlreadyAssigned = clientTasks.hasOwnProperty(task.id);
+                    const isChecked = isAlreadyAssigned ? 'checked' : '';
+                    const assignedStaffIds = assignedTask ? assignedTask.staff.map(s => s.id) : [];
+                    const assignedStartDate = (assignedTask && assignedTask.start) ? assignedTask.start.slice(0, 16).replace(' ', 'T') : (task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
+                    const assignedEndDate = (assignedTask && assignedTask.end) ? assignedTask.end.slice(0, 16).replace(' ', 'T') : (task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
+                    const isStartDateRequired = task.start === null;
+                    const startDateLabel = isStartDateRequired ? 'Start Date (Required)' : 'Start Date';
+                    const startDateInputHtml = `<div style="width: 210px;"><label class="d-block small text-muted mb-0">${startDateLabel}</label><input type="datetime-local" class="form-control form-control-sm task-start-date" name="task_start_dates[${task.id}]" value="${assignedStartDate}" data-is-required="${isStartDateRequired}"></div>`;
+                    const endDateInputHtml = `<div style="width: 210px;"><label class="d-block small text-muted mb-0">End Date (Optional)</label><input type="datetime-local" class="form-control form-control-sm" name="task_end_dates[${task.id}]" value="${assignedEndDate}"></div>`;
+                    let taskNameHtml = task.name;
+                    if (isAlreadyAssigned) {
+                        taskNameHtml += ` <small class="text-danger ml-2"> (Already assigned. Unchecking it will remove the assignment )</small>`;
+                    }
 
-                        const assignedStaffIds = assignedTask ? assignedTask.staff.map(s => s.id) : [];
-
-                        const assignedStartDate = (assignedTask && assignedTask.start) ? assignedTask.start.slice(0, 16).replace(' ', 'T') : (task.start ? task.start.slice(0, 16).replace(' ', 'T') : '');
-                        const assignedEndDate = (assignedTask && assignedTask.end) ? assignedTask.end.slice(0, 16).replace(' ', 'T') : (task.end ? task.end.slice(0, 16).replace(' ', 'T') : '');
-
-                        const isStartDateRequired = task.start === null;
-                        const startDateLabel = isStartDateRequired ? 'Start Date (Required)' : 'Start Date';
-
-                        const startDateInputHtml = `<div style="width: 210px;"><label class="d-block small text-muted mb-0">${startDateLabel}</label><input type="datetime-local" class="form-control form-control-sm task-start-date" name="task_start_dates[${task.id}]" value="${assignedStartDate}" data-is-required="${isStartDateRequired}"></div>`;
-                        const endDateInputHtml = `<div style="width: 210px;"><label class="d-block small text-muted mb-0">End Date (Optional)</label><input type="datetime-local" class="form-control form-control-sm" name="task_end_dates[${task.id}]" value="${assignedEndDate}"></div>`;
-                        
-                        let taskNameHtml = task.name;
-                        if (isAlreadyAssigned) {
-                            taskNameHtml += ` <small class="text-danger ml-2"> (Already assigned. Unchecking it will remove the assignment )</small>`;
-                        }
-
-                        taskHtml += `
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                    <div class="custom-control custom-checkbox" style="min-width: 250px; flex: 1;">
-                                        <input type="checkbox" class="custom-control-input task-checkbox" name="tasks[${task.id}]" id="task_${task.id}" ${isChecked} data-job-id="${job.id}" data-service-id="${job.service_id}" data-is-assigned="${isAlreadyAssigned}">
-                                        <label class="custom-control-label font-weight-normal" for="task_${task.id}">${taskNameHtml}</label>
-                                    </div>
-                                    <div class="task-inputs-wrapper d-flex align-items-center" style="gap: 15px;">
-                                        ${startDateInputHtml} ${endDateInputHtml}
-                                        <div style="width: 300px;"><label class="d-block small text-muted mb-0">Assigned Staff</label><select class="form-control staff-select" name="staff_assignments[${task.id}][]" multiple="multiple" style="width: 100%;" data-assigned-staff='${JSON.stringify(assignedStaffIds)}'></select></div>
-                                    </div>
+                    taskHtml += `
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                <div class="custom-control custom-checkbox" style="min-width: 250px; flex: 1;">
+                                    <input type="checkbox" class="custom-control-input task-checkbox" name="tasks[${task.id}]" id="task_${task.id}" ${isChecked} data-service-id="${task.service_id}" data-is-assigned="${isAlreadyAssigned}">
+                                    <label class="custom-control-label font-weight-normal" for="task_${task.id}">${taskNameHtml}</label>
                                 </div>
-                            </li>`;
-                    });
-                } else { taskHtml = '<li class="list-group-item text-muted">No tasks in this job.</li>'; }
-                
-                jobsHtml += `<div class="card mb-2"><a href="#collapse_job_${job.id}" class="card-header job-header-link bg-light d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" style="text-decoration: none; padding: 0.75rem 1.25rem;"><div class="custom-control custom-checkbox d-inline-block mr-3" onclick="event.stopPropagation();"><input type="checkbox" class="custom-control-input job-master-checkbox" id="job_master_${job.id}" data-job-id="${job.id}" data-service-id="${job.service_id}"><label class="custom-control-label" for="job_master_${job.id}">&nbsp;</label></div><span class="flex-grow-1">${job.name}</span><i class="fas fa-chevron-down collapse-icon"></i></a><div id="collapse_job_${job.id}" class="collapse show"><ul class="list-group list-group-flush">${taskHtml}</ul></div></div>`;
-            });
+                                <div class="task-inputs-wrapper d-flex align-items-center" style="gap: 15px;">
+                                    ${startDateInputHtml} ${endDateInputHtml}
+                                    <div style="width: 300px;"><label class="d-block small text-muted mb-0">Assigned Staff</label><select class="form-control staff-select" name="staff_assignments[${task.id}][]" multiple="multiple" style="width: 100%;" data-assigned-staff='${JSON.stringify(assignedStaffIds)}'></select></div>
+                                </div>
+                            </div>
+                        </li>`;
+                });
+            } else { taskHtml = '<li class="list-group-item text-muted">No tasks in this service.</li>'; }
 
-            const serviceHtml = `<div class="card mb-3 shadow-sm"><a href="#collapse_service_${serviceId}" class="card-header service-header-link d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" style="background-color: #e3f2fd; text-decoration: none; padding: 1rem 1.25rem;"><div class="custom-control custom-checkbox d-inline-block mr-3" onclick="event.stopPropagation();"><input type="checkbox" class="custom-control-input service-master-checkbox" id="service_master_${serviceId}" data-service-id="${serviceId}"><label class="custom-control-label" for="service_master_${serviceId}">&nbsp;</label></div><span class="flex-grow-1" style="font-size: 1.2rem;">Service: ${serviceGroup.name}</span><i class="fas fa-chevron-down collapse-icon"></i></a><div id="collapse_service_${serviceId}" class="collapse show"><div class="card-body">${jobsHtml}</div></div></div>`;
-            jobsContainer.append(serviceHtml);
+            const serviceHtml = `<div class="card mb-3 shadow-sm"><a href="#collapse_service_${serviceId}" class="card-header service-header-link d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" style="background-color: #e3f2fd; text-decoration: none; padding: 1rem 1.25rem;"><div class="custom-control custom-checkbox d-inline-block mr-3" onclick="event.stopPropagation();"><input type="checkbox" class="custom-control-input service-master-checkbox" id="service_master_${serviceId}" data-service-id="${serviceId}"><label class="custom-control-label" for="service_master_${serviceId}">&nbsp;</label></div><span class="flex-grow-1" style="font-size: 1.2rem;">Service: ${serviceGroup.name}</span><i class="fas fa-chevron-down collapse-icon"></i></a><div id="collapse_service_${serviceId}" class="collapse show"><ul class="list-group list-group-flush">${taskHtml}</ul></div></div>`;
+            tasksContainer.append(serviceHtml);
         });
         
         $('[data-toggle="tooltip"]').tooltip();
@@ -177,63 +158,51 @@ $(document).ready(function() {
             toggleRequiredForStaff(this);
         });
 
-        $('.job-master-checkbox, .service-master-checkbox').each(function() { updateParentCheckboxState($(this)); });
-        jobsContainer.on('click', 'a[data-toggle="collapse"]', function() { $(this).attr('aria-expanded', $(this).attr('aria-expanded') !== 'true'); });
+        $('.service-master-checkbox').each(function() { updateParentCheckboxState($(this)); });
+        tasksContainer.on('click', 'a[data-toggle="collapse"]', function() { $(this).attr('aria-expanded', $(this).attr('aria-expanded') !== 'true'); });
     }
     
-    $('#next-to-jobs-btn').on('click', function() {
+    $('#next-to-tasks-btn').on('click', function() {
         const selectedServiceIds = $('.service-checkbox:checked').map((_, el) => $(el).val()).get();
-        jobsContainer.html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
-        serviceSelectionStep.hide(); jobConfigStep.show();
-        if (selectedServiceIds.length === 0) { renderJobsAndTasks([]); return; }
-        $.ajax({ url: '{{ route('clients.services.getJobs') }}', method: 'GET', data: { service_ids: selectedServiceIds }, success: jobs => renderJobsAndTasks(jobs), error: () => jobsContainer.html('<p class="text-danger text-center p-3">Failed to load job data.</p>') });
+        tasksContainer.html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
+        serviceSelectionStep.hide(); taskConfigStep.show();
+        if (selectedServiceIds.length === 0) { renderTasks([]); return; }
+        $.ajax({ url: '{{ route("clients.services.getTasks") }}', method: 'GET', data: { service_ids: selectedServiceIds }, success: tasks => renderTasks(tasks), error: () => tasksContainer.html('<p class="text-danger text-center p-3">Failed to load task data.</p>') });
     });
 
-    $('#back-to-services-btn').on('click', () => { jobConfigStep.hide(); serviceSelectionStep.show(); });
+    $('#back-to-services-btn').on('click', () => { taskConfigStep.hide(); serviceSelectionStep.show(); });
 
     function updateParentCheckboxState(checkbox) {
-        const isService = checkbox.hasClass('service-master-checkbox');
-        const scope = isService ? checkbox.closest('.card') : checkbox.closest('.card').find('.collapse');
-        const childSelector = isService ? '.job-master-checkbox' : '.task-checkbox';
-        const children = scope.find(childSelector);
+        const scope = checkbox.closest('.card');
+        const children = scope.find('.task-checkbox');
         const checkedChildren = children.filter(':checked');
         checkbox.prop('checked', children.length > 0 && children.length === checkedChildren.length);
         checkbox.prop('indeterminate', checkedChildren.length > 0 && checkedChildren.length < children.length);
     }
     
-    // --- THIS IS THE DEFINITIVE FIX FOR ISSUE #2 ---
     function handleUncheck(e) {
         const $checkbox = $(this);
         if ($checkbox.is(':checked')) {
-            // This logic runs when checking a box, which doesn't need a warning.
             return;
         }
 
-        // This logic runs when unchecking a box.
         let hasAssigned = false;
         if ($checkbox.hasClass('task-checkbox')) {
             if ($checkbox.attr('data-is-assigned') === 'true') {
                 hasAssigned = true;
             }
-        } else if ($checkbox.hasClass('job-master-checkbox')) {
-            $(`.task-checkbox[data-job-id="${$checkbox.data('job-id')}"]`).each(function() {
-                if ($(this).attr('data-is-assigned') === 'true') {
-                    hasAssigned = true;
-                    return false; // Exit the .each() loop
-                }
-            });
         } else if ($checkbox.hasClass('service-master-checkbox')) {
             $(`.task-checkbox[data-service-id="${$checkbox.data('service-id')}"]`).each(function() {
                 if ($(this).attr('data-is-assigned') === 'true') {
                     hasAssigned = true;
-                    return false; // Exit the .each() loop
+                    return false;
                 }
             });
         }
 
         if (hasAssigned) {
-            e.preventDefault(); // Stop the unchecking action immediately
-            checkboxToUnassign = this; // Store a reference to the clicked checkbox
+            e.preventDefault();
+            checkboxToUnassign = this;
             $('#unassign-task-warning-modal').modal('show');
         }
     }
@@ -241,16 +210,9 @@ $(document).ready(function() {
     $('#confirm-unassign-btn').on('click', function() {
         if (!checkboxToUnassign) return;
         const $checkbox = $(checkboxToUnassign);
-        
-        // Temporarily remove the click listener to prevent an infinite loop
         $checkbox.off('click', handleUncheck);
-
-        // Manually uncheck the box and trigger the 'change' handler to update children
         $checkbox.prop('checked', false).trigger('change');
-
-        // Re-attach the click listener for future interactions
         $checkbox.on('click', handleUncheck);
-
         $('#unassign-task-warning-modal').modal('hide');
         checkboxToUnassign = null;
     });
@@ -260,24 +222,16 @@ $(document).ready(function() {
         if ($checkbox.hasClass('task-checkbox')) {
             toggleRequiredForDate(this);
             toggleRequiredForStaff(this);
-            updateParentCheckboxState($(`#job_master_${$checkbox.data('job-id')}`));
             updateParentCheckboxState($(`#service_master_${$checkbox.data('service-id')}`));
-        } else if ($checkbox.hasClass('job-master-checkbox')) {
-            const isChecked = $checkbox.is(':checked');
-            $(`.task-checkbox[data-job-id="${$checkbox.data('job-id')}"]`).prop('checked', isChecked).trigger('change');
         } else if ($checkbox.hasClass('service-master-checkbox')) {
             const isChecked = $checkbox.is(':checked');
             const serviceId = $checkbox.data('service-id');
-            $(`.job-master-checkbox[data-service-id="${serviceId}"]`).prop('checked', isChecked).prop('indeterminate', false);
             $(`.task-checkbox[data-service-id="${serviceId}"]`).prop('checked', isChecked).trigger('change');
         }
     };
     
-    // MODIFIED: Use 'click' for handleUncheck to prevent the state change before confirmation
-    jobsContainer.on('click', '.task-checkbox, .job-master-checkbox, .service-master-checkbox', handleUncheck);
-    jobsContainer.on('change', '.task-checkbox, .job-master-checkbox, .service-master-checkbox', changeHandler);
-
-    // --- END OF FIX ---
+    tasksContainer.on('click', '.task-checkbox, .service-master-checkbox', handleUncheck);
+    tasksContainer.on('change', '.task-checkbox, .service-master-checkbox', changeHandler);
 
     function toggleRequiredForDate(checkbox) {
         const isChecked = $(checkbox).is(':checked');
@@ -296,54 +250,13 @@ $(document).ready(function() {
             staffSelect.prop('required', isChecked);
         }
     }
-    
-    let jobCounter = 0;
-    
-    $('#add-new-job-btn').on('click', function() {
-        if ($('#service-jobs-container .text-muted').length) $('#service-jobs-container').empty();
-        jobCounter++;
-        const jobTemplate = $('#job-template .job-block').clone();
-        jobTemplate.attr('data-job-id', jobCounter);
-        jobTemplate.find('.add-task-to-job-btn').data('job-id', jobCounter);
-        $('#service-jobs-container').append(jobTemplate);
-    });
-    
-    $('#service-jobs-container').on('click', '.remove-job-btn', function() {
-        $(this).closest('.job-block').remove();
-        if ($('#service-jobs-container').children().length === 0) {
-            $('#service-jobs-container').html('<p class="text-muted text-center">No jobs added yet.</p>');
-        }
-    });
 
-    $('#service-jobs-container').on('click', '.add-task-to-job-btn', function() {
-        const jobId = $(this).data('job-id');
+    $('#add-new-task-btn').on('click', function() {
         const taskModal = $('#taskModal');
-        taskModal.data('target-job-id', jobId);
         taskModal.modal('show');
     });
 
-    $('#taskModal').on('show.bs.modal', function (event) {
-        const form = $(this).find('form');
-        form[0].reset();
-
-        function toggleRecurringFields() {
-            if ($('#is_recurring').is(':checked')) {
-                $('#recurring-options').slideDown();
-                $('#task-end').prop('required', false);
-            } else {
-                $('#recurring-options').slideUp();
-                $('#task-end').prop('required', false);
-            }
-        }
-        
-        $('#is_recurring').off('change').on('change', toggleRecurringFields);
-        toggleRecurringFields();
-    });
-
     $('#taskModal form').on('submit', function(e) {
-        const targetJobId = $('#taskModal').data('target-job-id');
-        if (!targetJobId) return;
-        
         e.preventDefault();
         const form = $(this);
         const taskData = {
@@ -355,28 +268,28 @@ $(document).ready(function() {
         };
         const taskHtml = `<div class="task-item" data-task-data='${JSON.stringify(taskData)}'><span>${taskData.name}</span><button type="button" class="btn btn-xs btn-danger float-right remove-task-btn"><i class="fas fa-times"></i></button></div>`;
         
-        $(`.job-block[data-job-id="${targetJobId}"]`).find('.task-list').append(taskHtml);
+        $('#service-tasks-container').append(taskHtml);
         
-        $('#taskModal').modal('hide').removeData('target-job-id');
+        $('#taskModal').modal('hide');
         form[0].reset();
     });
     
-    $('#service-jobs-container').on('click', '.remove-task-btn', function() {
+    $('#service-tasks-container').on('click', '.remove-task-btn', function() {
         $(this).closest('.task-item').remove();
     });
-
+    
     $('#save-new-service-btn').on('click', function() {
         const button = $(this);
         const feedback = $('#service-creation-feedback');
-        const serviceData = { name: $('#new-service-name').val(), description: $('#new-service-description').val(), jobs: [] };
-        $('#service-jobs-container .job-block').each(function() {
-            const jobBlock = $(this);
-            const jobData = { name: jobBlock.find('.job-name-input').val(), tasks: [] };
-            jobBlock.find('.task-item').each(function() { jobData.tasks.push($(this).data('task-data')); });
-            serviceData.jobs.push(jobData);
+        const serviceData = { name: $('#new-service-name').val(), description: $('#new-service-description').val(), tasks: [] };
+        
+        $('#service-tasks-container .task-item').each(function() {
+            serviceData.tasks.push($(this).data('task-data'));
         });
+
         button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
         feedback.hide().removeClass('alert-success alert-danger');
+        
         $.ajax({
             url: '{{ route("clients.services.storeForClient", $client) }}',
             method: 'POST', data: JSON.stringify(serviceData), contentType: 'application/json',

@@ -15,7 +15,7 @@ class ServiceController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Service::where('organization_id', Auth::id())->with('jobs');
+        $query = Service::where('organization_id', Auth::id())->with('tasks');
 
         // --- THIS IS THE FIX: Filter by an array of statuses if provided ---
         $statuses = $request->get('statuses');
@@ -64,14 +64,15 @@ class ServiceController extends Controller
             ],
             'description' => 'nullable|string',
             'status' => 'required|in:A,I',
+            'is_recurring' => 'sometimes|boolean',
+            'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
         ]);
 
-        Service::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'status' => $request->status,
-            'organization_id' => Auth::id(),
-        ]);
+        $data = $request->all();
+        $data['organization_id'] = Auth::id();
+        $data['is_recurring'] = $request->has('is_recurring');
+
+        Service::create($data);
 
         return redirect()->route('services.index')->with('success', 'Service created successfully.');
     }
@@ -86,7 +87,7 @@ class ServiceController extends Controller
         }
 
         // Eager load all relationships for the builder
-        $service->load('jobs.tasks.designation');
+        $service->load('tasks.designation');
         
         $designations = \App\Models\StaffDesignation::where('organization_id', Auth::id())->get();
 
@@ -120,9 +121,14 @@ class ServiceController extends Controller
             ],
             'description' => 'nullable|string',
             'status' => 'required|in:A,I',
+            'is_recurring' => 'sometimes|boolean',
+            'recurring_frequency' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
         ]);
 
-        $service->update($request->all());
+        $data = $request->all();
+        $data['is_recurring'] = $request->has('is_recurring');
+
+        $service->update($data);
 
         return redirect()->route('services.index')->with('success', 'Service updated successfully.');
     }
