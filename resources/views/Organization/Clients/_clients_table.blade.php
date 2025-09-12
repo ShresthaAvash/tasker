@@ -52,6 +52,7 @@
             </td>
             <td>{{ $client->created_at->format('d M Y') }}</td>
             <td>
+                <a href="{{ route('organization.reports.individual_client', $client->id) }}" class="btn btn-xs btn-info">Report</a>
                 <a href="{{ route('clients.edit', $client->id) }}" class="btn btn-xs btn-warning">Edit</a>
                 
                 <form action="{{ route('clients.toggleStatus', $client->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to {{ $client->status === 'A' ? 'deactivate' : 'activate' }} this client?');">

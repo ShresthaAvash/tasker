@@ -1,13 +1,3 @@
-@php
-    function formatToHms($seconds) {
-        if ($seconds < 0) return 'Not Started Yet';
-        if ($seconds == 0) return 'Not Started Yet';
-        $h = floor($seconds / 3600);
-        $m = floor(($seconds % 3600) / 60);
-        $s = $seconds % 60;
-        return sprintf('%02d:%02d:%02d', $h, $m, $s);
-    }
-@endphp
 
 <div id="client-report-accordion">
     @forelse($groupedTasks as $serviceName => $tasks)
@@ -20,7 +10,7 @@
                 <h5 class="report-title mb-0"><i class="fas fa-concierge-bell mr-2"></i> Service: {{ $serviceName }}</h5>
                 <div class="d-flex align-items-center">
                     <span class="report-time mr-3">
-                        {{ formatToHms($serviceTotalDuration) }}
+                        {{ \App\Helpers\TimeHelper::formatToHms($serviceTotalDuration, true) }}
                     </span>
                     <i class="fas fa-chevron-up collapse-icon"></i>
                 </div>
@@ -45,7 +35,7 @@
                                                 @if($staffMember->pivot->duration_in_seconds > 0)
                                                     <li class="d-flex justify-content-between border-bottom py-1 px-2">
                                                         <span class="text-muted">{{ $staffMember->name }}</span>
-                                                        <span class="text-muted">{{ formatToHms($staffMember->pivot->duration_in_seconds) }}</span>
+                                                        <span class="text-muted">{{ \App\Helpers\TimeHelper::formatToHms($staffMember->pivot->duration_in_seconds, true) }}</span>
                                                     </li>
                                                 @endif
                                             @endforeach

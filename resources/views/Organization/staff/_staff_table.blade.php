@@ -41,6 +41,7 @@
                 @endif
             </td>
             <td>
+                <a href="{{ route('organization.reports.individual_staff', $member->id) }}" class="btn btn-xs btn-info">Report</a>
                 <a href="{{ route('staff.edit', $member->id) }}" class="btn btn-xs btn-warning">Edit</a>
                 
                 <form action="{{ route('staff.toggleStatus', $member->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to {{ $member->status === 'A' ? 'deactivate' : 'activate' }} this staff member?');">

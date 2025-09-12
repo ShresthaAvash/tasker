@@ -45,26 +45,23 @@
     }
     
     /* --- NEW STYLES FOR NOTES & COMMENTS MODAL --- */
-    #notes-comments-list {
-        max-height: 400px;
-        overflow-y: auto;
-    }
-    .note-item, .comment-item {
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: .375rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-    }
-    .note-item-meta, .comment-item-meta {
-        font-size: 0.8rem;
-        color: #6c757d;
-    }
-    .note-item-content, .comment-item-content {
-        white-space: pre-wrap;
-    }
-    .note-item-actions, .comment-item-actions {
-        margin-top: 0.5rem;
+    #notes-comments-list { max-height: 400px; overflow-y: auto; padding: 5px; }
+    .comment-item { display: flex; margin-bottom: 1.25rem; max-width: 85%; animation: fadeInUp 0.4s ease forwards; }
+    .comment-item.is-author { margin-left: auto; flex-direction: row-reverse; }
+    .comment-author-avatar { flex-shrink: 0; width: 40px; height: 40px; background-color: #6c757d; color: #fff; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; margin: 0 10px; }
+    .comment-item.is-author .comment-author-avatar { background-color: #007bff; }
+    .comment-body { background-color: #f1f3f5; border-radius: 12px; padding: 0.75rem 1rem; width: 100%; }
+    .comment-item.is-author .comment-body { background-color: #e7f5ff; }
+    .comment-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+    .comment-author-name { font-weight: 600; font-size: 0.9rem; }
+    .comment-timestamp { font-size: 0.75rem; color: #6c757d; }
+    .comment-content p { margin: 0; white-space: pre-wrap; word-wrap: break-word; font-size: 0.95rem; }
+    .comment-actions { margin-top: 0.5rem; text-align: right; }
+    .comment-edit-form { display: none; }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 </style>
 @stop
@@ -524,23 +521,34 @@ $(document).ready(function() {
 
     function renderNoteOrComment(item) {
         const isAuthor = item.author.id === currentUserId;
+        const authorName = item.author.name.split(' ')[0]; // First name
+        const authorInitials = authorName.substring(0, 2).toUpperCase();
+        
         const actions = isAuthor ? `
-            <div class="note-item-actions">
-                <button class="btn btn-xs btn-outline-warning edit-note-btn">Edit</button>
-                <button class="btn btn-xs btn-outline-danger delete-note-btn">Delete</button>
+            <div class="comment-actions">
+                <button class="btn btn-xs btn-link text-muted edit-note-btn">Edit</button>
+                <button class="btn btn-xs btn-link text-danger delete-note-btn">Delete</button>
             </div>
         ` : '';
 
         return `
-            <div class="note-item" data-id="${item.id}">
-                <div class="note-item-meta d-flex justify-content-between">
-                    <strong>${item.author.name}</strong>
-                    <span>${new Date(item.created_at).toLocaleString()}</span>
+            <div class="comment-item ${isAuthor ? 'is-author' : ''}" data-id="${item.id}">
+                <div class="comment-author-avatar">${authorInitials}</div>
+                <div class="comment-body">
+                    <div class="comment-meta">
+                        <span class="comment-author-name">${authorName}</span>
+                        <span class="comment-timestamp">${new Date(item.created_at).toLocaleString()}</span>
+                    </div>
+                    <div class="comment-content"><p>${item.content}</p></div>
+                    <div class="comment-edit-form">
+                        <textarea class="form-control" rows="3">${item.content}</textarea>
+                        <div class="mt-2 text-right">
+                            <button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button>
+                            <button class="btn btn-xs btn-primary save-edit-btn">Save</button>
+                        </div>
+                    </div>
+                    ${actions}
                 </div>
-                <div class="note-item-content mt-2">
-                    <p>${item.content}</p>
-                </div>
-                ${actions}
             </div>
         `;
     }
@@ -571,38 +579,29 @@ $(document).ready(function() {
             : `/tasks/${currentAssignedTaskId}/comments`;
         
         $.post(url, { content }, function(newItem) {
-            const list = $('#notes-comments-list');
-            if (list.find('.note-item').length === 0 || list.find('p').length) {
-                list.empty();
-            }
-            list.prepend(renderNoteOrComment(newItem));
+            loadModalContent(); // Refresh the list
             form[0].reset();
         });
     });
 
     $(document).on('click', '.edit-note-btn', function() {
-        const itemDiv = $(this).closest('.note-item');
-        const contentDiv = itemDiv.find('.note-item-content');
-        const originalContent = contentDiv.find('p').text();
-
-        contentDiv.html(`
-            <textarea class="form-control" rows="3">${originalContent}</textarea>
-            <div class="mt-2">
-                <button class="btn btn-xs btn-primary save-edit-btn">Save</button>
-                <button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button>
-            </div>
-        `);
+        const itemDiv = $(this).closest('.comment-item');
+        itemDiv.find('.comment-content').hide();
+        itemDiv.find('.comment-actions').hide();
+        itemDiv.find('.comment-edit-form').show();
     });
 
     $(document).on('click', '.cancel-edit-btn', function() {
-        const itemDiv = $(this).closest('.note-item');
-        const contentDiv = itemDiv.find('.note-item-content');
-        const originalContent = $(this).closest('.note-item-content').find('textarea').val();
-        contentDiv.html(`<p>${originalContent}</p>`);
+        const itemDiv = $(this).closest('.comment-item');
+        const originalContent = itemDiv.find('.comment-content p').text();
+        itemDiv.find('.comment-edit-form textarea').val(originalContent);
+        itemDiv.find('.comment-edit-form').hide();
+        itemDiv.find('.comment-content').show();
+        itemDiv.find('.comment-actions').show();
     });
 
     $(document).on('click', '.save-edit-btn', function() {
-        const itemDiv = $(this).closest('.note-item');
+        const itemDiv = $(this).closest('.comment-item');
         const itemId = itemDiv.data('id');
         const content = itemDiv.find('textarea').val();
         
@@ -615,7 +614,7 @@ $(document).ready(function() {
             method: 'PUT',
             data: { content },
             success: function(updatedItem) {
-                itemDiv.replaceWith(renderNoteOrComment(updatedItem));
+                loadModalContent(); // Refresh the list
             }
         });
     });
@@ -623,7 +622,7 @@ $(document).ready(function() {
     $(document).on('click', '.delete-note-btn', function() {
         if (!confirm('Are you sure you want to delete this?')) return;
 
-        const itemDiv = $(this).closest('.note-item');
+        const itemDiv = $(this).closest('.comment-item');
         const itemId = itemDiv.data('id');
         
         const url = currentModalType === 'notes'
@@ -635,9 +634,9 @@ $(document).ready(function() {
             method: 'DELETE',
             success: function() {
                 itemDiv.fadeOut(300, function() { 
-                    const list = $('#notes-comments-list');
                     $(this).remove(); 
-                    if (list.children().length === 0) {
+                    const list = $('#notes-comments-list');
+                    if (list.children('.comment-item').length === 0) {
                          list.html('<p class="text-center text-muted">No items to show.</p>');
                     }
                 });

@@ -1,3 +1,4 @@
+
 <script>
 $(document).ready(function() {
     // --- THIS IS THE DEFINITIVE FIX FOR THE MODALS ---
@@ -69,7 +70,7 @@ $(document).ready(function() {
     const originallyAssignedServiceIds = {!! json_encode($client->assignedServices->pluck('id')) !!};
     const clientServices = {!! json_encode($client->assignedServices->keyBy('id')) !!};
     let checkboxToUnassign = null;
-    let currentTaskId, currentModalType, currentTaskName;
+    let currentAssignedTaskId, currentModalType, currentTaskName;
     const currentUserId = {{ Auth::id() }};
 
     function updateSelectAllState() {
@@ -428,8 +429,8 @@ $(document).ready(function() {
         spinner.show();
 
         const url = currentModalType === 'notes'
-            ? `/organization/tasks/${currentTaskId}/working-notes`
-            : `/tasks/${currentTaskId}/comments`;
+            ? `/organization/tasks/${currentAssignedTaskId}/working-notes`
+            : `/tasks/${currentAssignedTaskId}/comments`;
 
         $.get(url, function(data) {
             if (data.length === 0) {
@@ -442,30 +443,41 @@ $(document).ready(function() {
 
     function renderNoteOrComment(item) {
         const isAuthor = item.author.id === currentUserId;
+        const authorName = item.author.name.split(' ')[0]; // First name
+        const authorInitials = authorName.substring(0, 2).toUpperCase();
+        
         const actions = isAuthor ? `
-            <div class="note-item-actions">
-                <button class="btn btn-xs btn-outline-warning edit-note-btn">Edit</button>
-                <button class="btn btn-xs btn-outline-danger delete-note-btn">Delete</button>
+            <div class="comment-actions">
+                <button class="btn btn-xs btn-link text-muted edit-note-btn">Edit</button>
+                <button class="btn btn-xs btn-link text-danger delete-note-btn">Delete</button>
             </div>
         ` : '';
 
         return `
-            <div class="note-item" data-id="${item.id}">
-                <div class="note-item-meta d-flex justify-content-between">
-                    <strong>${item.author.name}</strong>
-                    <span>${new Date(item.created_at).toLocaleString()}</span>
+            <div class="comment-item ${isAuthor ? 'is-author' : ''}" data-id="${item.id}">
+                <div class="comment-author-avatar">${authorInitials}</div>
+                <div class="comment-body">
+                    <div class="comment-meta">
+                        <span class="comment-author-name">${authorName}</span>
+                        <span class="comment-timestamp">${new Date(item.created_at).toLocaleString()}</span>
+                    </div>
+                    <div class="comment-content"><p>${item.content}</p></div>
+                    <div class="comment-edit-form">
+                        <textarea class="form-control" rows="3">${item.content}</textarea>
+                        <div class="mt-2 text-right">
+                            <button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button>
+                            <button class="btn btn-xs btn-primary save-edit-btn">Save</button>
+                        </div>
+                    </div>
+                    ${actions}
                 </div>
-                <div class="note-item-content mt-2">
-                    <p>${item.content}</p>
-                </div>
-                ${actions}
             </div>
         `;
     }
 
     $(document).on('click', '.open-notes-modal, .open-comments-modal', function() {
         const button = $(this);
-        currentTaskId = button.data('task-id');
+        currentAssignedTaskId = button.data('task-id');
         currentTaskName = button.data('task-name');
         currentModalType = button.hasClass('open-notes-modal') ? 'notes' : 'comments';
 
@@ -484,42 +496,34 @@ $(document).ready(function() {
         if (!content) return;
 
         const url = currentModalType === 'notes'
-            ? `/organization/tasks/${currentTaskId}/working-notes`
-            : `/tasks/${currentTaskId}/comments`;
+            ? `/organization/tasks/${currentAssignedTaskId}/working-notes`
+            : `/tasks/${currentAssignedTaskId}/comments`;
         
         $.post(url, { content }, function(newItem) {
-            const list = $('#notes-comments-list');
-            if (list.find('.note-item').length === 0) {
-                list.empty();
-            }
-            list.prepend(renderNoteOrComment(newItem));
+            // FIX: This will reload all comments to ensure order and state is correct
+            loadModalContent(); 
             form[0].reset();
         });
     });
 
     $(document).on('click', '.edit-note-btn', function() {
-        const itemDiv = $(this).closest('.note-item');
-        const contentDiv = itemDiv.find('.note-item-content');
-        const originalContent = contentDiv.find('p').text();
-
-        contentDiv.html(`
-            <textarea class="form-control" rows="3">${originalContent}</textarea>
-            <div class="mt-2">
-                <button class="btn btn-xs btn-primary save-edit-btn">Save</button>
-                <button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button>
-            </div>
-        `);
+        const itemDiv = $(this).closest('.comment-item');
+        itemDiv.find('.comment-content').hide();
+        itemDiv.find('.comment-actions').hide();
+        itemDiv.find('.comment-edit-form').show();
     });
 
     $(document).on('click', '.cancel-edit-btn', function() {
-        const itemDiv = $(this).closest('.note-item');
-        const contentDiv = itemDiv.find('.note-item-content');
-        const originalContent = $(this).closest('.note-item-content').find('textarea').val();
-        contentDiv.html(`<p>${originalContent}</p>`);
+        const itemDiv = $(this).closest('.comment-item');
+        const originalContent = itemDiv.find('.comment-content p').text();
+        itemDiv.find('.comment-edit-form textarea').val(originalContent);
+        itemDiv.find('.comment-edit-form').hide();
+        itemDiv.find('.comment-content').show();
+        itemDiv.find('.comment-actions').show();
     });
 
     $(document).on('click', '.save-edit-btn', function() {
-        const itemDiv = $(this).closest('.note-item');
+        const itemDiv = $(this).closest('.comment-item');
         const itemId = itemDiv.data('id');
         const content = itemDiv.find('textarea').val();
         
@@ -532,7 +536,8 @@ $(document).ready(function() {
             method: 'PUT',
             data: { content },
             success: function(updatedItem) {
-                itemDiv.replaceWith(renderNoteOrComment(updatedItem));
+                // FIX: Reload all comments to ensure correct state and order
+                loadModalContent();
             }
         });
     });
@@ -540,7 +545,7 @@ $(document).ready(function() {
     $(document).on('click', '.delete-note-btn', function() {
         if (!confirm('Are you sure you want to delete this?')) return;
 
-        const itemDiv = $(this).closest('.note-item');
+        const itemDiv = $(this).closest('.comment-item');
         const itemId = itemDiv.data('id');
         
         const url = currentModalType === 'notes'
@@ -551,7 +556,13 @@ $(document).ready(function() {
             url: url,
             method: 'DELETE',
             success: function() {
-                itemDiv.fadeOut(300, function() { $(this).remove(); });
+                itemDiv.fadeOut(300, function() { 
+                    $(this).remove(); 
+                    const list = $('#notes-comments-list');
+                    if (list.children('.comment-item').length === 0) {
+                         list.html('<p class="text-center text-muted">No items to show.</p>');
+                    }
+                });
             }
         });
     });

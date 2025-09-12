@@ -37,7 +37,7 @@
         
         .report-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0; }
         .report-time { font-size: 0.9rem; color: #6c757d; font-weight: 500; }
-        .report-header.service .report-time { color: rgba(255,255,255,0.85); }
+        .report-header.service .report-time { color: rgba(255,255,255,0.8); }
 
         .task-item {
             display: flex;
@@ -67,26 +67,23 @@
         a[aria-expanded="false"] .collapse-icon { transform: rotate(-180deg); } /* Changed rotation for up/down arrow */
 
         /* --- NEW STYLES FOR NOTES & COMMENTS MODAL --- */
-        #notes-comments-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .comment-item {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: .375rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        .comment-item-meta {
-            font-size: 0.8rem;
-            color: #6c757d;
-        }
-        .comment-item-content {
-            white-space: pre-wrap;
-        }
-        .comment-item-actions {
-            margin-top: 0.5rem;
+        #notes-comments-list { max-height: 400px; overflow-y: auto; padding: 5px; }
+        .comment-item { display: flex; margin-bottom: 1.25rem; max-width: 85%; animation: fadeInUp 0.4s ease forwards; }
+        .comment-item.is-author { margin-left: auto; flex-direction: row-reverse; }
+        .comment-author-avatar { flex-shrink: 0; width: 40px; height: 40px; background-color: #6c757d; color: #fff; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; margin: 0 10px; }
+        .comment-item.is-author .comment-author-avatar { background-color: #007bff; }
+        .comment-body { background-color: #f1f3f5; border-radius: 12px; padding: 0.75rem 1rem; width: 100%; }
+        .comment-item.is-author .comment-body { background-color: #e7f5ff; }
+        .comment-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+        .comment-author-name { font-weight: 600; font-size: 0.9rem; }
+        .comment-timestamp { font-size: 0.75rem; color: #6c757d; }
+        .comment-content p { margin: 0; white-space: pre-wrap; word-wrap: break-word; font-size: 0.95rem; }
+        .comment-actions { margin-top: 0.5rem; text-align: right; }
+        .comment-edit-form { display: none; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 @stop
@@ -171,6 +168,8 @@
 @section('js')
 <script>
 $(document).ready(function() {
+    $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+
     let debounceTimer;
     let currentAssignedTaskId, currentTaskName;
     const currentUserId = {{ Auth::id() }};
@@ -256,26 +255,35 @@ $(document).ready(function() {
 
     function renderComment(item) {
         const isAuthor = item.author.id === currentUserId;
-        const authorName = isAuthor ? 'You' : item.author.name;
-        const authorBadge = item.author.type === 'C' ? '<span class="badge badge-primary ml-2">Client</span>' : '<span class="badge badge-info ml-2">Staff</span>';
+        const authorName = isAuthor ? 'You' : item.author.name.split(' ')[0];
+        const authorInitials = authorName.substring(0, 2).toUpperCase();
+        const authorBadge = item.author.type === 'C' ? '' : '<span class="badge badge-info ml-2">Staff</span>';
 
         const actions = isAuthor ? `
-            <div class="comment-item-actions">
-                <button class="btn btn-xs btn-outline-warning edit-comment-btn">Edit</button>
-                <button class="btn btn-xs btn-outline-danger delete-comment-btn">Delete</button>
+            <div class="comment-actions">
+                <button class="btn btn-xs btn-link text-muted edit-comment-btn">Edit</button>
+                <button class="btn btn-xs btn-link text-danger delete-comment-btn">Delete</button>
             </div>
         ` : '';
 
         return `
-            <div class="comment-item" data-id="${item.id}">
-                <div class="comment-item-meta d-flex justify-content-between">
-                    <span><strong>${authorName}</strong> ${authorBadge}</span>
-                    <span>${new Date(item.created_at).toLocaleString()}</span>
+            <div class="comment-item ${isAuthor ? 'is-author' : ''}" data-id="${item.id}">
+                <div class="comment-author-avatar">${authorInitials}</div>
+                <div class="comment-body">
+                    <div class="comment-meta">
+                        <span class="comment-author-name">${authorName}${authorBadge}</span>
+                        <span class="comment-timestamp">${new Date(item.created_at).toLocaleString()}</span>
+                    </div>
+                    <div class="comment-content"><p>${item.content}</p></div>
+                    <div class="comment-edit-form">
+                        <textarea class="form-control" rows="3">${item.content}</textarea>
+                        <div class="mt-2 text-right">
+                            <button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button>
+                            <button class="btn btn-xs btn-primary save-edit-btn">Save</button>
+                        </div>
+                    </div>
+                    ${actions}
                 </div>
-                <div class="comment-item-content mt-2">
-                    <p>${item.content}</p>
-                </div>
-                ${actions}
             </div>
         `;
     }
@@ -299,34 +307,25 @@ $(document).ready(function() {
         if (!content) return;
 
         $.post(`/tasks/${currentAssignedTaskId}/comments`, { content }, function(newItem) {
-            const list = $('#notes-comments-list');
-            if (list.find('.comment-item').length === 0 || list.find('p').length) {
-                list.empty();
-            }
-            list.prepend(renderComment(newItem));
+            loadComments(); // Refresh the list
             form[0].reset();
         });
     });
 
     $(document).on('click', '.edit-comment-btn', function() {
         const itemDiv = $(this).closest('.comment-item');
-        const contentDiv = itemDiv.find('.comment-item-content');
-        const originalContent = contentDiv.find('p').text();
-
-        contentDiv.html(`
-            <textarea class="form-control" rows="3">${originalContent}</textarea>
-            <div class="mt-2">
-                <button class="btn btn-xs btn-primary save-edit-btn">Save</button>
-                <button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button>
-            </div>
-        `);
+        itemDiv.find('.comment-content').hide();
+        itemDiv.find('.comment-actions').hide();
+        itemDiv.find('.comment-edit-form').show();
     });
     
     $(document).on('click', '.cancel-edit-btn', function() {
         const itemDiv = $(this).closest('.comment-item');
-        const contentDiv = itemDiv.find('.comment-item-content');
-        const originalContent = $(this).closest('.comment-item-content').find('textarea').val();
-        contentDiv.html(`<p>${originalContent}</p>`);
+        const originalContent = itemDiv.find('.comment-content p').text();
+        itemDiv.find('.comment-edit-form textarea').val(originalContent);
+        itemDiv.find('.comment-edit-form').hide();
+        itemDiv.find('.comment-content').show();
+        itemDiv.find('.comment-actions').show();
     });
 
     $(document).on('click', '.save-edit-btn', function() {
@@ -339,7 +338,7 @@ $(document).ready(function() {
             method: 'PUT',
             data: { content },
             success: function(updatedItem) {
-                itemDiv.replaceWith(renderComment(updatedItem));
+                loadComments(); // Refresh the list
             }
         });
     });
@@ -355,9 +354,9 @@ $(document).ready(function() {
             method: 'DELETE',
             success: function() {
                 itemDiv.fadeOut(300, function() { 
-                    const list = $('#notes-comments-list');
                     $(this).remove(); 
-                    if (list.children().length === 0) {
+                    const list = $('#notes-comments-list');
+                    if (list.children('.comment-item').length === 0) {
                          list.html('<p class="text-center text-muted">No comments to show.</p>');
                     }
                 });
@@ -367,3 +366,4 @@ $(document).ready(function() {
 });
 </script>
 @stop
+

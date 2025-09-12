@@ -7,8 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\AssignedTask;
 use App\Models\User;
+use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ReportController extends Controller
 {
@@ -113,16 +116,214 @@ class ReportController extends Controller
         ));
     }
 
+    public function individualStaffReport(Request $request, User $staff)
+    {
+        $organizationId = Auth::user()->type === 'O' ? Auth::id() : Auth::user()->organization_id;
+        if ($staff->organization_id !== $organizationId) {
+            throw new AuthorizationException('You are not authorized to view this staff member\'s report.');
+        }
+
+        [$startDate, $endDate] = $this->resolveDatesFromRequest($request);
+        $clientIds = $request->input('clients', []);
+        $serviceIds = $request->input('services', []);
+        $statuses = $request->input('statuses', []);
+        $search = $request->input('search');
+
+        $tasksQuery = AssignedTask::query()
+            ->whereHas('staff', fn($q) => $q->where('users.id', $staff->id))
+            ->whereNotNull('start')
+            ->where('start', '<=', $endDate)
+            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
+            ->with(['client', 'service']);
+
+        if ($search) {
+            $tasksQuery->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhereHas('client', fn($cq) => $cq->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        if (!empty($clientIds)) $tasksQuery->whereIn('client_id', $clientIds);
+        if (!empty($serviceIds)) $tasksQuery->whereIn('service_id', $serviceIds);
+
+        $baseTasks = $tasksQuery->get();
+        $taskInstances = $this->expandAndCalculateStaffTasks($baseTasks, $staff->id, $startDate, $endDate, $statuses);
+
+        $sort_by = $request->get('sort_by', 'due_date');
+        $sort_order = $request->get('sort_order', 'asc');
+
+        if ($sort_order === 'desc') {
+            $taskInstances = $taskInstances->sortByDesc($sort_by);
+        } else {
+            $taskInstances = $taskInstances->sortBy($sort_by);
+        }
+
+        $perPage = 15;
+        $currentPage = $request->input('page', 1);
+        $currentPageItems = $taskInstances->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        $paginatedTaskInstances = new LengthAwarePaginator($currentPageItems, $taskInstances->count(), $perPage, $currentPage, [
+            'path' => $request->url(),
+            'query' => $request->query(),
+        ]);
+
+        if ($request->ajax()) {
+            return view('Organization.reports._individual_staff_report_table', ['taskInstances' => $paginatedTaskInstances, 'sort_by' => $sort_by, 'sort_order' => $sort_order])->render();
+        }
+
+        $clients = User::where('organization_id', $organizationId)->where('type', 'C')->orderBy('name')->get();
+        $services = Service::where('organization_id', $organizationId)->orderBy('name')->get();
+
+        return view('Organization.reports.individual_staff', $this->getCommonViewData(
+            ['staff' => $staff, 'taskInstances' => $paginatedTaskInstances, 'clients' => $clients, 'services' => $services, 'sort_by' => $sort_by, 'sort_order' => $sort_order],
+            $request, $startDate, $endDate
+        ));
+    }
+
+    public function individualClientReport(Request $request, User $client)
+    {
+        $organizationId = Auth::user()->type === 'O' ? Auth::id() : Auth::user()->organization_id;
+        if ($client->organization_id !== $organizationId) {
+            throw new AuthorizationException('You are not authorized to view this client\'s report.');
+        }
+    
+        [$startDate, $endDate] = $this->resolveDatesFromRequest($request);
+        $staffIds = $request->input('staff', []);
+        $serviceIds = $request->input('services', []);
+        $statuses = $request->input('statuses', []);
+        $search = $request->input('search');
+    
+        $tasksQuery = AssignedTask::query()
+            ->where('client_id', $client->id)
+            ->whereNotNull('start')
+            ->where('start', '<=', $endDate)
+            ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
+            ->with(['service', 'staff']);
+    
+        if ($search) {
+            $tasksQuery->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
+            });
+        }
+    
+        if (!empty($staffIds)) {
+            $tasksQuery->whereHas('staff', fn($q) => $q->whereIn('users.id', $staffIds));
+        }
+        if (!empty($serviceIds)) {
+            $tasksQuery->whereIn('service_id', $serviceIds);
+        }
+    
+        $baseTasks = $tasksQuery->get();
+        $taskInstances = $this->expandTasksForReport($baseTasks, $startDate, $endDate, $statuses);
+    
+        $sort_by = $request->get('sort_by', 'due_date');
+        $sort_order = $request->get('sort_order', 'asc');
+    
+        if ($sort_order === 'desc') {
+            $taskInstances = $taskInstances->sortByDesc($sort_by);
+        } else {
+            $taskInstances = $taskInstances->sortBy($sort_by);
+        }
+    
+        $perPage = 15;
+        $currentPage = $request->input('page', 1);
+        $currentPageItems = $taskInstances->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        $paginatedTaskInstances = new LengthAwarePaginator($currentPageItems, $taskInstances->count(), $perPage, $currentPage, [
+            'path' => $request->url(),
+            'query' => $request->query(),
+        ]);
+    
+        if ($request->ajax()) {
+            return view('Organization.reports._individual_client_report_table', ['taskInstances' => $paginatedTaskInstances, 'sort_by' => $sort_by, 'sort_order' => $sort_order])->render();
+        }
+    
+        $staff = User::where('organization_id', $organizationId)->where('type', 'T')->orderBy('name')->get();
+        $services = Service::where('organization_id', $organizationId)->whereHas('clients', fn($q) => $q->where('user_id', $client->id))->orderBy('name')->get();
+    
+        // --- THIS IS THE FIX ---
+        // We now pass the paginated instance to the main view as well.
+        return view('Organization.reports.individual_client', $this->getCommonViewData(
+            ['client' => $client, 'taskInstances' => $paginatedTaskInstances, 'staff' => $staff, 'services' => $services, 'sort_by' => $sort_by, 'sort_order' => $sort_order],
+            $request, $startDate, $endDate
+        ));
+    }
+    
+    // --- NEW HELPER METHOD FOR STAFF REPORT ---
+    private function expandAndCalculateStaffTasks(Collection $tasks, int $staffId, Carbon $startDate, Carbon $endDate, array $statuses): Collection
+    {
+        $instances = new Collection();
+        $userKey = 'user_' . $staffId;
+
+        foreach ($tasks as $task) {
+            if (!$task->is_recurring) {
+                if ($task->start && $task->start->between($startDate, $endDate)) {
+                    if (empty($statuses) || in_array($task->status, $statuses)) {
+                        $instance = clone $task;
+                        $instance->due_date = $instance->start;
+                        $instance->staff_duration = $instance->staff()->find($staffId)->pivot->duration_in_seconds ?? 0;
+                        $instances->push($instance);
+                    }
+                }
+                continue;
+            }
+
+            $instanceData = (array)($task->completed_at_dates ?? []);
+            $cursor = $task->start->copy();
+            $seriesEndDate = $task->end;
+
+            while ($cursor->lt($startDate)) {
+                if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
+                switch ($task->recurring_frequency) {
+                    case 'daily': $cursor->addDay(); break;
+                    case 'weekly': $cursor->addWeek(); break;
+                    case 'monthly': $cursor->addMonthWithNoOverflow(); break;
+                    case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                    default: break 2;
+                }
+            }
+
+            while ($cursor->lte($endDate)) {
+                if ($seriesEndDate && $cursor->gt($seriesEndDate)) break;
+
+                $instanceDateString = $cursor->toDateString();
+                $instanceSpecifics = $instanceData[$instanceDateString] ?? [];
+                $instanceStatus = $instanceSpecifics['status'] ?? $task->status;
+
+                if (empty($statuses) || in_array($instanceStatus, $statuses)) {
+                    $instance = clone $task;
+                    $instance->status = $instanceStatus;
+                    $instance->due_date = $cursor->copy();
+                    $userDurations = $instanceSpecifics['durations'] ?? [];
+                    $instance->staff_duration = $userDurations[$userKey] ?? 0;
+                    $instances->push($instance);
+                }
+                
+                switch ($task->recurring_frequency) {
+                    case 'daily': $cursor->addDay(); break;
+                    case 'weekly': $cursor->addWeek(); break;
+                    case 'monthly': $cursor->addMonthWithNoOverflow(); break;
+                    case 'yearly': $cursor->addYearWithNoOverflow(); break;
+                    default: break 2;
+                }
+            }
+        }
+
+        return $instances;
+    }
+
     private function expandTasksForReport(Collection $tasks, Carbon $startDate, Carbon $endDate, array $statuses): Collection
     {
         $instances = new Collection();
 
         foreach ($tasks as $task) {
+            $task->due_date = $task->start;
             // Case 1: Non-recurring tasks
             if (!$task->is_recurring) {
-                // Check if it falls within the date range. The DB query is broad, so we need to be precise here.
                 if ($task->start && $task->start->between($startDate, $endDate)) {
-                    $instances->push($task);
+                     if (empty($statuses) || in_array($task->status, $statuses)) {
+                        $instances->push($task);
+                    }
                 }
                 continue;
             }
@@ -151,26 +352,31 @@ class ReportController extends Controller
                 $instanceDateString = $cursor->toDateString();
                 $instanceSpecifics = $instanceData[$instanceDateString] ?? [];
                 
-                $instance = clone $task;
-                $instance->name = $task->name . ' (' . $cursor->format('M j') . ')';
-                $instance->status = $instanceSpecifics['status'] ?? $task->status;
-                
-                $totalDurationForInstance = 0;
-                $clonedStaff = new \Illuminate\Database\Eloquent\Collection();
-                $userDurations = $instanceSpecifics['durations'] ?? [];
+                $instanceStatus = $instanceSpecifics['status'] ?? $task->status;
 
-                foreach($task->staff as $staffMember) {
-                    $clonedMember = clone $staffMember;
-                    $clonedMember->pivot = clone $staffMember->pivot;
-                    $duration = $userDurations['user_' . $staffMember->id] ?? 0;
-                    $clonedMember->pivot->duration_in_seconds = $duration;
-                    $totalDurationForInstance += $duration;
-                    $clonedStaff->push($clonedMember);
+                if (empty($statuses) || in_array($instanceStatus, $statuses)) {
+                    $instance = clone $task;
+                    $instance->name = $task->name . ' (' . $cursor->format('M j') . ')';
+                    $instance->status = $instanceStatus;
+                    $instance->due_date = $cursor->copy();
+                    
+                    $totalDurationForInstance = 0;
+                    $clonedStaff = new \Illuminate\Database\Eloquent\Collection();
+                    $userDurations = $instanceSpecifics['durations'] ?? [];
+
+                    foreach($task->staff as $staffMember) {
+                        $clonedMember = clone $staffMember;
+                        $clonedMember->pivot = clone $staffMember->pivot;
+                        $duration = $userDurations['user_' . $staffMember->id] ?? 0;
+                        $clonedMember->pivot->duration_in_seconds = $duration;
+                        $totalDurationForInstance += $duration;
+                        $clonedStaff->push($clonedMember);
+                    }
+                    $instance->setRelation('staff', $clonedStaff);
+                    $instance->duration_in_seconds = $totalDurationForInstance;
+                    
+                    $instances->push($instance);
                 }
-                $instance->setRelation('staff', $clonedStaff);
-                $instance->duration_in_seconds = $totalDurationForInstance;
-                
-                $instances->push($instance);
                 
                 switch ($task->recurring_frequency) {
                     case 'daily': $cursor->addDay(); break;
@@ -181,12 +387,7 @@ class ReportController extends Controller
                 }
             }
         }
-
-        // Now, filter the final collection of all instances by status
-        if (!empty($statuses)) {
-            return $instances->filter(fn($instance) => in_array($instance->status, $statuses));
-        }
-
+        
         return $instances;
     }
     

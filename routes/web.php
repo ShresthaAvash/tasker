@@ -93,8 +93,11 @@ Route::middleware(['auth', 'isSuperAdmin','checkUserStatus'])->prefix('superadmi
 Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organization')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
     Route::get('reports/time', [OrganizationReportController::class, 'timeReport'])->name('organization.reports.time');
-    
     Route::get('reports/staff', [OrganizationReportController::class, 'staffReport'])->name('organization.reports.staff');
+    Route::get('reports/staff/{staff}', [OrganizationReportController::class, 'individualStaffReport'])->name('organization.reports.individual_staff');
+    
+    // --- NEW ROUTE FOR INDIVIDUAL CLIENT REPORT ---
+    Route::get('reports/client/{client}', [OrganizationReportController::class, 'individualClientReport'])->name('organization.reports.individual_client');
 
     Route::get('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'index'])->name('organization.subscription.index');
     Route::get('subscription/change', [\App\Http\Controllers\Organization\SubscriptionController::class, 'showChangePlanForm'])->name('organization.subscription.change');
