@@ -42,6 +42,7 @@ class ServiceSeeder extends Seeder
             'description' => 'Complete annual accounting and tax return services.',
             'organization_id' => $organization->id,
             'status' => 'A',
+            'is_recurring' => false,
         ]);
 
         $service1->tasks()->createMany([
@@ -56,11 +57,13 @@ class ServiceSeeder extends Seeder
             'description' => 'Monthly payroll processing for employees.',
             'organization_id' => $organization->id,
             'status' => 'A',
+            'is_recurring' => true,
+            'recurring_frequency' => 'monthly',
         ]);
         
         $service2->tasks()->createMany([
-            ['name' => 'Process Monthly Timesheets', 'start' => now()->addDays(5), 'is_recurring' => true, 'recurring_frequency' => 'monthly', 'end' => now()->addYear(), 'status' => 'not_started'],
-            ['name' => 'Generate Payslips', 'start' => now()->addDays(6), 'is_recurring' => true, 'recurring_frequency' => 'monthly', 'end' => now()->addYear(), 'status' => 'not_started'],
+            ['name' => 'Process Monthly Timesheets', 'start' => now()->addDays(5), 'end' => now()->addYear(), 'status' => 'not_started'],
+            ['name' => 'Generate Payslips', 'start' => now()->addDays(6), 'end' => now()->addYear(), 'status' => 'not_started'],
         ]);
         
         // --- Assign Services and Tasks to Clients ---
@@ -68,7 +71,7 @@ class ServiceSeeder extends Seeder
         $client2 = $clients->get(1);
 
         // Assign Service 1 to Client 1
-        $client1->assignedServices()->sync([$service1->id]);
+        $client1->assignedServices()->sync([$service1->id => ['start_date' => now()]]);
         
         // Create AssignedTask instances for Client 1 based on Service 1's tasks
         foreach ($service1->tasks as $taskTemplate) {
@@ -81,13 +84,15 @@ class ServiceSeeder extends Seeder
                 'status' => 'to_do',
                 'start' => $taskTemplate->start,
                 'end' => $taskTemplate->end,
+                'is_recurring' => $service1->is_recurring,
+                'recurring_frequency' => $service1->recurring_frequency,
             ]);
             // Assign a random staff member to this task
             $assignedTask->staff()->sync([$staffMembers->random()->id]);
         }
         
         // Assign Service 2 to Client 2
-        $client2->assignedServices()->sync([$service2->id]);
+        $client2->assignedServices()->sync([$service2->id => ['start_date' => now()]]);
         
         foreach ($service2->tasks as $taskTemplate) {
             $assignedTask = AssignedTask::create([
@@ -99,8 +104,8 @@ class ServiceSeeder extends Seeder
                 'status' => 'to_do',
                 'start' => $taskTemplate->start,
                 'end' => $taskTemplate->end,
-                'is_recurring' => $taskTemplate->is_recurring,
-                'recurring_frequency' => $taskTemplate->recurring_frequency,
+                'is_recurring' => $service2->is_recurring,
+                'recurring_frequency' => $service2->recurring_frequency,
             ]);
             // Assign a random staff member to this task
             $assignedTask->staff()->sync([$staffMembers->random()->id]);

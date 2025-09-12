@@ -23,6 +23,8 @@ use App\Http\Controllers\Client\DocumentController as ClientDocumentController;
 use App\Http\Controllers\Client\ReportController as ClientReportController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\SuperAdmin\ContactMessageController as SuperAdminContactMessageController;
+use App\Http\Controllers\Organization\TaskWorkingNoteController;
+use App\Http\Controllers\TaskCommentController;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Cashier\Http\Controllers\WebhookController;
 
@@ -64,6 +66,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
     Route::post('/notifications/{id}/unread', [NotificationController::class, 'markAsUnread'])->name('notifications.markAsUnread');
+
+    // Task Comments Routes (for all authorized users)
+    Route::get('/tasks/{task}/comments', [TaskCommentController::class, 'index'])->name('tasks.comments.index');
+    Route::post('/tasks/{task}/comments', [TaskCommentController::class, 'store'])->name('tasks.comments.store');
+    Route::put('/comments/{comment}', [TaskCommentController::class, 'update'])->name('tasks.comments.update');
+    Route::delete('/comments/{comment}', [TaskCommentController::class, 'destroy'])->name('tasks.comments.destroy');
 });
 
 // Super Admin routes
@@ -131,6 +139,12 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::resource('services.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy']);
     Route::post('tasks/{task}/assign-staff', [TaskController::class, 'assignStaff'])->name('tasks.assignStaff');
     Route::post('tasks/{task}/stop', [TaskController::class, 'stopTask'])->name('tasks.stop');
+
+    // Task Working Notes Routes (Internal Only)
+    Route::get('/tasks/{task}/working-notes', [TaskWorkingNoteController::class, 'index'])->name('tasks.working-notes.index');
+    Route::post('/tasks/{task}/working-notes', [TaskWorkingNoteController::class, 'store'])->name('tasks.working-notes.store');
+    Route::put('/working-notes/{note}', [TaskWorkingNoteController::class, 'update'])->name('tasks.working-notes.update');
+    Route::delete('/working-notes/{note}', [TaskWorkingNoteController::class, 'destroy'])->name('tasks.working-notes.destroy');
 });
 
 // Staff routes

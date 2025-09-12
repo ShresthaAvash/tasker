@@ -7,7 +7,7 @@
                 <th>Client / Service</th>
                 <th style="width: 120px;">Time Logged</th>
                 <th style="width: 170px;">Status</th>
-                <th style="width: 120px;">Actions</th>
+                <th style="width: 150px;">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -20,6 +20,7 @@
                         }
                     @endphp
                     <tr data-task-id="{{ $eventId }}"
+                        data-assigned-task-id="{{ $task->id }}"
                         data-task-name="{{ $task->name }}"
                         data-status="{{ $task->status }}"
                         data-duration="{{ $task->duration_in_seconds ?? 0 }}"
@@ -49,7 +50,11 @@
                         <td>
                             <div class="d-flex">
                                 <div class="timer-actions-container btn-group mr-1"></div>
-                                <div class="btn-group">
+                                @unless($task->is_personal ?? false)
+                                <button class="btn btn-xs btn-outline-secondary open-notes-modal" title="Working Notes"><i class="fas fa-sticky-note"></i></button>
+                                <button class="btn btn-xs btn-outline-info open-comments-modal ml-1" title="Comments"><i class="fas fa-comments"></i></button>
+                                @endunless
+                                <div class="btn-group ml-1">
                                     <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
                                         <i class="fas fa-ellipsis-v"></i>
                                     </button>

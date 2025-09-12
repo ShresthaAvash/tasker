@@ -5,6 +5,10 @@ namespace App\Providers;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use App\Models\User; // <-- IMPORTANT: Make sure the User model is imported
+use App\Models\TaskWorkingNote;
+use App\Policies\TaskWorkingNotePolicy;
+use App\Models\TaskComment;
+use App\Policies\TaskCommentPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -14,7 +18,8 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        //
+        TaskWorkingNote::class => TaskWorkingNotePolicy::class,
+        TaskComment::class => TaskCommentPolicy::class,
     ];
 
     /**

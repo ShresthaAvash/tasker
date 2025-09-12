@@ -147,7 +147,8 @@ class User extends Authenticatable
      */
     public function assignedServices()
     {
-        return $this->belongsToMany(Service::class, 'client_service', 'user_id', 'service_id');
+        return $this->belongsToMany(Service::class, 'client_service', 'user_id', 'service_id')
+                    ->withPivot('start_date', 'end_date');
     }
 
     /**
@@ -158,4 +159,19 @@ class User extends Authenticatable
         return $this->hasMany(AssignedTask::class, 'client_id');
     }
 
+    /**
+     * Get all of the working notes written by the user.
+     */
+    public function workingNotes()
+    {
+        return $this->hasMany(TaskWorkingNote::class);
+    }
+
+    /**
+     * Get all of the comments written by the user.
+     */
+    public function comments()
+    {
+        return $this->hasMany(TaskComment::class);
+    }
 }

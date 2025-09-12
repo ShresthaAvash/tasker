@@ -53,6 +53,11 @@
                                     </div>
                                 @endif
                             </div>
+                            <div class="mr-3">
+                                <button type="button" class="btn btn-xs btn-outline-info open-comments-modal" data-task-id="{{ $task->id }}" data-task-name="{{ $task->name }}">
+                                    <i class="fas fa-comments"></i> View Comments
+                                </button>
+                            </div>
                             <div class="task-status {{ $statusClass }}">
                                 {{ $task->status === 'ongoing' ? 'Ongoing' : ucfirst(str_replace('_', ' ', $task->status)) }}
                             </div>

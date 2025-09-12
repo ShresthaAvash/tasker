@@ -360,7 +360,7 @@ class ClientController extends Controller
     public function assignServices(Request $request, User $client)
     {
         if ($client->organization_id !== Auth::id()) abort(403);
-    
+
         $validated = $request->validate([
             'services' => 'sometimes|array',
             'services.*' => 'exists:services,id',
@@ -370,14 +370,18 @@ class ClientController extends Controller
             'task_start_dates.*' => 'nullable|date',
             'task_end_dates' => 'sometimes|array',
             'task_end_dates.*' => 'nullable|date|after_or_equal:task_start_dates.*',
+            'service_start_dates' => 'present|array',
+            'service_start_dates.*' => 'nullable|date',
+            'service_end_dates' => 'present|array',
+            'service_end_dates.*' => 'nullable|date|after_or_equal:service_start_dates.*',
         ]);
-    
+
         $selectedTaskIds = array_keys($validated['tasks'] ?? []);
         if (!empty($selectedTaskIds)) {
             $tasksNeedingDates = Task::whereIn('id', $selectedTaskIds)
                                       ->whereNull('start')
                                       ->get();
-    
+
             foreach ($tasksNeedingDates as $task) {
                 if (empty($validated['task_start_dates'][$task->id])) {
                     throw ValidationException::withMessages([
@@ -386,17 +390,17 @@ class ClientController extends Controller
                 }
             }
         }
-    
+
         DB::transaction(function () use ($validated, $client) {
             $currentTaskIds = $client->assignedTasks()->pluck('task_template_id')->toArray();
             $newTaskIds = array_keys($validated['tasks'] ?? []);
-    
+
             $tasksToDelete = array_diff($currentTaskIds, $newTaskIds);
             if (!empty($tasksToDelete)) {
                 $client->assignedTasks()->whereIn('task_template_id', $tasksToDelete)->delete();
             }
             
-            $assignedServiceIds = [];
+            $serviceIdToTasksMap = [];
 
             if (!empty($newTaskIds)) {
                 $selectedTaskTemplates = Task::with('service')->findMany($newTaskIds);
@@ -404,7 +408,7 @@ class ClientController extends Controller
                 foreach ($selectedTaskTemplates as $taskTemplate) {
                     $service = $taskTemplate->service;
                     if ($service) {
-                        $assignedServiceIds[] = $service->id;
+                        $serviceIdToTasksMap[$service->id] = true;
                     }
                     
                     $startDate = $validated['task_start_dates'][$taskTemplate->id] ?? $taskTemplate->start;
@@ -427,12 +431,12 @@ class ClientController extends Controller
                         'is_recurring' => $service->is_recurring,
                         'recurring_frequency' => $service->recurring_frequency,
                     ])->save();
-    
+
                     $staffIds = $validated['staff_assignments'][$taskTemplate->id] ?? [];
                     
                     $syncResult = $assignedTask->staff()->sync($staffIds);
                     $newlyAttachedStaffIds = $syncResult['attached'];
-    
+
                     if (!empty($newlyAttachedStaffIds)) {
                         $newlyAssignedStaff = User::find($newlyAttachedStaffIds);
                         
@@ -442,11 +446,26 @@ class ClientController extends Controller
                     }
                 }
             }
+            
+            $serviceSyncData = [];
+            $assignedServiceIds = array_keys($serviceIdToTasksMap);
 
-            // Sync services based only on the ones that have tasks assigned
-            $client->assignedServices()->sync(array_unique($assignedServiceIds));
+            foreach ($assignedServiceIds as $serviceId) {
+                if (empty($validated['service_start_dates'][$serviceId])) {
+                    $serviceName = Service::find($serviceId)->name;
+                    throw ValidationException::withMessages([
+                        'service_start_dates' => "A start date is required for the service '{$serviceName}'.",
+                    ]);
+                }
+                $serviceSyncData[$serviceId] = [
+                    'start_date' => $validated['service_start_dates'][$serviceId],
+                    'end_date' => $validated['service_end_dates'][$serviceId] ?? null,
+                ];
+            }
+
+            $client->assignedServices()->sync($serviceSyncData);
         });
-    
+
         return redirect()->route('clients.edit', $client->id)->with('success', 'Client services and tasks have been updated successfully.');
     }
 

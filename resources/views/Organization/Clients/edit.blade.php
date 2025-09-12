@@ -254,6 +254,38 @@
         </div>
     </div>
 </div>
+
+<!-- --- NEW NOTES AND COMMENTS MODAL --- -->
+<div class="modal fade" id="task-notes-comments-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Task: <strong id="modal-task-name"></strong></p>
+                <hr>
+                <div id="notes-comments-list" class="mb-3">
+                    {{-- Content will be loaded here via AJAX --}}
+                </div>
+                <div id="note-comment-spinner" class="text-center" style="display: none;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: block;">
+                <form id="add-note-comment-form">
+                    <div class="form-group">
+                        <textarea name="content" class="form-control" rows="3" placeholder="Add a new note or comment..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @stop
 
 @section('js')

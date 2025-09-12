@@ -43,6 +43,29 @@
     .accordion-toggle-link[aria-expanded="true"] .collapse-icon {
         transform: rotate(-180deg);
     }
+    
+    /* --- NEW STYLES FOR NOTES & COMMENTS MODAL --- */
+    #notes-comments-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .note-item, .comment-item {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: .375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .note-item-meta, .comment-item-meta {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .note-item-content, .comment-item-content {
+        white-space: pre-wrap;
+    }
+    .note-item-actions, .comment-item-actions {
+        margin-top: 0.5rem;
+    }
 </style>
 @stop
 
@@ -116,6 +139,38 @@
 </div>
 
 @include('Staff.tasks._manual_time_modal')
+
+<!-- --- NEW NOTES AND COMMENTS MODAL --- -->
+<div class="modal fade" id="task-notes-comments-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Task: <strong id="modal-task-name"></strong></p>
+                <hr>
+                <div id="notes-comments-list" class="mb-3">
+                    {{-- Content will be loaded here via AJAX --}}
+                </div>
+                <div id="note-comment-spinner" class="text-center" style="display: none;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: block;">
+                <form id="add-note-comment-form">
+                    <div class="form-group">
+                        <textarea name="content" class="form-control" rows="3" placeholder="Add a new note or comment..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @stop
 
 {{-- MODIFIED: Changed the section from page_content_js to js --}}
@@ -127,6 +182,10 @@ $(document).ready(function() {
     let debounceTimer;
     const taskManager = $('#task-manager-card');
     window.taskTimers = {};
+
+    // --- NEW VARIABLES FOR NOTES & COMMENTS ---
+    let currentAssignedTaskId, currentModalType, currentTaskName;
+    const currentUserId = {{ Auth::id() }};
 
     $(document).on('click', '.view-in-calendar-btn', function(e) {
         e.preventDefault();
@@ -439,6 +498,149 @@ $(document).ready(function() {
             },
             complete: function() {
                 submitBtn.prop('disabled', false).text('Add Time');
+            }
+        });
+    });
+
+    // --- NEW SCRIPT FOR NOTES AND COMMENTS ---
+    function loadModalContent() {
+        const list = $('#notes-comments-list');
+        const spinner = $('#note-comment-spinner');
+        list.empty();
+        spinner.show();
+
+        const url = currentModalType === 'notes'
+            ? `/organization/tasks/${currentAssignedTaskId}/working-notes`
+            : `/tasks/${currentAssignedTaskId}/comments`;
+
+        $.get(url, function(data) {
+            if (data.length === 0) {
+                list.html('<p class="text-center text-muted">No items to show.</p>');
+            } else {
+                data.forEach(item => list.append(renderNoteOrComment(item)));
+            }
+        }).always(() => spinner.hide());
+    }
+
+    function renderNoteOrComment(item) {
+        const isAuthor = item.author.id === currentUserId;
+        const actions = isAuthor ? `
+            <div class="note-item-actions">
+                <button class="btn btn-xs btn-outline-warning edit-note-btn">Edit</button>
+                <button class="btn btn-xs btn-outline-danger delete-note-btn">Delete</button>
+            </div>
+        ` : '';
+
+        return `
+            <div class="note-item" data-id="${item.id}">
+                <div class="note-item-meta d-flex justify-content-between">
+                    <strong>${item.author.name}</strong>
+                    <span>${new Date(item.created_at).toLocaleString()}</span>
+                </div>
+                <div class="note-item-content mt-2">
+                    <p>${item.content}</p>
+                </div>
+                ${actions}
+            </div>
+        `;
+    }
+
+    $(document).on('click', '.open-notes-modal, .open-comments-modal', function() {
+        const button = $(this);
+        const taskRow = button.closest('tr');
+        currentAssignedTaskId = taskRow.data('assigned-task-id');
+        currentTaskName = taskRow.data('task-name');
+        currentModalType = button.hasClass('open-notes-modal') ? 'notes' : 'comments';
+
+        const modal = $('#task-notes-comments-modal');
+        modal.find('.modal-title').text(currentModalType === 'notes' ? 'Working Notes' : 'Comments');
+        modal.find('#modal-task-name').text(currentTaskName);
+
+        loadModalContent();
+        modal.modal('show');
+    });
+
+    $('#add-note-comment-form').on('submit', function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const content = form.find('textarea[name="content"]').val();
+        if (!content) return;
+
+        const url = currentModalType === 'notes'
+            ? `/organization/tasks/${currentAssignedTaskId}/working-notes`
+            : `/tasks/${currentAssignedTaskId}/comments`;
+        
+        $.post(url, { content }, function(newItem) {
+            const list = $('#notes-comments-list');
+            if (list.find('.note-item').length === 0 || list.find('p').length) {
+                list.empty();
+            }
+            list.prepend(renderNoteOrComment(newItem));
+            form[0].reset();
+        });
+    });
+
+    $(document).on('click', '.edit-note-btn', function() {
+        const itemDiv = $(this).closest('.note-item');
+        const contentDiv = itemDiv.find('.note-item-content');
+        const originalContent = contentDiv.find('p').text();
+
+        contentDiv.html(`
+            <textarea class="form-control" rows="3">${originalContent}</textarea>
+            <div class="mt-2">
+                <button class="btn btn-xs btn-primary save-edit-btn">Save</button>
+                <button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button>
+            </div>
+        `);
+    });
+
+    $(document).on('click', '.cancel-edit-btn', function() {
+        const itemDiv = $(this).closest('.note-item');
+        const contentDiv = itemDiv.find('.note-item-content');
+        const originalContent = $(this).closest('.note-item-content').find('textarea').val();
+        contentDiv.html(`<p>${originalContent}</p>`);
+    });
+
+    $(document).on('click', '.save-edit-btn', function() {
+        const itemDiv = $(this).closest('.note-item');
+        const itemId = itemDiv.data('id');
+        const content = itemDiv.find('textarea').val();
+        
+        const url = currentModalType === 'notes'
+            ? `/organization/working-notes/${itemId}`
+            : `/comments/${itemId}`;
+
+        $.ajax({
+            url: url,
+            method: 'PUT',
+            data: { content },
+            success: function(updatedItem) {
+                itemDiv.replaceWith(renderNoteOrComment(updatedItem));
+            }
+        });
+    });
+
+    $(document).on('click', '.delete-note-btn', function() {
+        if (!confirm('Are you sure you want to delete this?')) return;
+
+        const itemDiv = $(this).closest('.note-item');
+        const itemId = itemDiv.data('id');
+        
+        const url = currentModalType === 'notes'
+            ? `/organization/working-notes/${itemId}`
+            : `/comments/${itemId}`;
+
+        $.ajax({
+            url: url,
+            method: 'DELETE',
+            success: function() {
+                itemDiv.fadeOut(300, function() { 
+                    const list = $('#notes-comments-list');
+                    $(this).remove(); 
+                    if (list.children().length === 0) {
+                         list.html('<p class="text-center text-muted">No items to show.</p>');
+                    }
+                });
             }
         });
     });

@@ -44,7 +44,8 @@ class Service extends Model
      */
     public function clients()
     {
-        return $this->belongsToMany(User::class, 'client_service', 'service_id', 'user_id');
+        return $this->belongsToMany(User::class, 'client_service', 'service_id', 'user_id')
+                    ->withPivot('start_date', 'end_date');
     }
 
     /**

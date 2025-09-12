@@ -67,7 +67,10 @@ $(document).ready(function() {
     const allStaffData = {!! $allStaffJson !!};
     const clientTasks = {!! json_encode($client->assignedTasks->keyBy('task_template_id')) !!};
     const originallyAssignedServiceIds = {!! json_encode($client->assignedServices->pluck('id')) !!};
+    const clientServices = {!! json_encode($client->assignedServices->keyBy('id')) !!};
     let checkboxToUnassign = null;
+    let currentTaskId, currentModalType, currentTaskName;
+    const currentUserId = {{ Auth::id() }};
 
     function updateSelectAllState() {
         const allServiceCheckboxes = $('.service-checkbox');
@@ -113,6 +116,25 @@ $(document).ready(function() {
 
         Object.entries(tasksByService).forEach(([serviceId, serviceGroup]) => {
             let taskHtml = '';
+            const assignedService = clientServices[serviceId];
+            const assignedServiceStartDate = (assignedService && assignedService.pivot.start_date) ? assignedService.pivot.start_date.slice(0, 16).replace(' ', 'T') : '';
+            const assignedServiceEndDate = (assignedService && assignedService.pivot.end_date) ? assignedService.pivot.end_date.slice(0, 16).replace(' ', 'T') : '';
+
+            const serviceDatesHtml = `
+                <div class="service-dates-container bg-light p-3" style="border-bottom: 1px solid #dee2e6;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="d-block small font-weight-bold mb-1">Service Start Date (Required)</label>
+                            <input type="datetime-local" class="form-control form-control-sm" name="service_start_dates[${serviceId}]" value="${assignedServiceStartDate}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="d-block small font-weight-bold mb-1">Service End Date (Optional)</label>
+                            <input type="datetime-local" class="form-control form-control-sm" name="service_end_dates[${serviceId}]" value="${assignedServiceEndDate}">
+                        </div>
+                    </div>
+                </div>
+            `;
+
             if (serviceGroup.tasks && serviceGroup.tasks.length > 0) {
                 serviceGroup.tasks.forEach(task => {
                     const assignedTask = clientTasks[task.id];
@@ -130,6 +152,17 @@ $(document).ready(function() {
                         taskNameHtml += ` <small class="text-danger ml-2"> (Already assigned. Unchecking it will remove the assignment )</small>`;
                     }
 
+                    const notesAndCommentsButtons = isAlreadyAssigned ? `
+                        <div class="task-actions ml-3">
+                            <button type="button" class="btn btn-xs btn-outline-secondary open-notes-modal" data-task-id="${assignedTask.id}" data-task-name="${task.name}">
+                                <i class="fas fa-sticky-note"></i> Working Notes
+                            </button>
+                            <button type="button" class="btn btn-xs btn-outline-info open-comments-modal" data-task-id="${assignedTask.id}" data-task-name="${task.name}">
+                                <i class="fas fa-comments"></i> Comments
+                            </button>
+                        </div>
+                    ` : '';
+
                     taskHtml += `
                         <li class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center flex-wrap">
@@ -140,13 +173,14 @@ $(document).ready(function() {
                                 <div class="task-inputs-wrapper d-flex align-items-center" style="gap: 15px;">
                                     ${startDateInputHtml} ${endDateInputHtml}
                                     <div style="width: 300px;"><label class="d-block small text-muted mb-0">Assigned Staff</label><select class="form-control staff-select" name="staff_assignments[${task.id}][]" multiple="multiple" style="width: 100%;" data-assigned-staff='${JSON.stringify(assignedStaffIds)}'></select></div>
+                                    ${notesAndCommentsButtons}
                                 </div>
                             </div>
                         </li>`;
                 });
             } else { taskHtml = '<li class="list-group-item text-muted">No tasks in this service.</li>'; }
-
-            const serviceHtml = `<div class="card mb-3 shadow-sm"><a href="#collapse_service_${serviceId}" class="card-header service-header-link d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" style="background-color: #e3f2fd; text-decoration: none; padding: 1rem 1.25rem;"><div class="custom-control custom-checkbox d-inline-block mr-3" onclick="event.stopPropagation();"><input type="checkbox" class="custom-control-input service-master-checkbox" id="service_master_${serviceId}" data-service-id="${serviceId}"><label class="custom-control-label" for="service_master_${serviceId}">&nbsp;</label></div><span class="flex-grow-1" style="font-size: 1.2rem;">Service: ${serviceGroup.name}</span><i class="fas fa-chevron-down collapse-icon"></i></a><div id="collapse_service_${serviceId}" class="collapse show"><ul class="list-group list-group-flush">${taskHtml}</ul></div></div>`;
+            
+            const serviceHtml = `<div class="card mb-3 shadow-sm"><a href="#collapse_service_${serviceId}" class="card-header service-header-link d-flex align-items-center text-dark font-weight-bold" data-toggle="collapse" aria-expanded="true" style="background-color: #e3f2fd; text-decoration: none; padding: 1rem 1.25rem;"><div class="custom-control custom-checkbox d-inline-block mr-3" onclick="event.stopPropagation();"><input type="checkbox" class="custom-control-input service-master-checkbox" id="service_master_${serviceId}" data-service-id="${serviceId}"><label class="custom-control-label" for="service_master_${serviceId}">&nbsp;</label></div><span class="flex-grow-1" style="font-size: 1.2rem;">Service: ${serviceGroup.name}</span><i class="fas fa-chevron-down collapse-icon"></i></a><div id="collapse_service_${serviceId}" class="collapse show">${serviceDatesHtml}<ul class="list-group list-group-flush">${taskHtml}</ul></div></div>`;
             tasksContainer.append(serviceHtml);
         });
         
@@ -384,6 +418,142 @@ $(document).ready(function() {
         updateFileInput();
         renderPreviews();
         $(this).find('form')[0].reset();
+    });
+
+    // --- NEW SCRIPT FOR NOTES AND COMMENTS ---
+    function loadModalContent() {
+        const list = $('#notes-comments-list');
+        const spinner = $('#note-comment-spinner');
+        list.empty();
+        spinner.show();
+
+        const url = currentModalType === 'notes'
+            ? `/organization/tasks/${currentTaskId}/working-notes`
+            : `/tasks/${currentTaskId}/comments`;
+
+        $.get(url, function(data) {
+            if (data.length === 0) {
+                list.html('<p class="text-center text-muted">No items to show.</p>');
+            } else {
+                data.forEach(item => list.append(renderNoteOrComment(item)));
+            }
+        }).always(() => spinner.hide());
+    }
+
+    function renderNoteOrComment(item) {
+        const isAuthor = item.author.id === currentUserId;
+        const actions = isAuthor ? `
+            <div class="note-item-actions">
+                <button class="btn btn-xs btn-outline-warning edit-note-btn">Edit</button>
+                <button class="btn btn-xs btn-outline-danger delete-note-btn">Delete</button>
+            </div>
+        ` : '';
+
+        return `
+            <div class="note-item" data-id="${item.id}">
+                <div class="note-item-meta d-flex justify-content-between">
+                    <strong>${item.author.name}</strong>
+                    <span>${new Date(item.created_at).toLocaleString()}</span>
+                </div>
+                <div class="note-item-content mt-2">
+                    <p>${item.content}</p>
+                </div>
+                ${actions}
+            </div>
+        `;
+    }
+
+    $(document).on('click', '.open-notes-modal, .open-comments-modal', function() {
+        const button = $(this);
+        currentTaskId = button.data('task-id');
+        currentTaskName = button.data('task-name');
+        currentModalType = button.hasClass('open-notes-modal') ? 'notes' : 'comments';
+
+        const modal = $('#task-notes-comments-modal');
+        modal.find('.modal-title').text(currentModalType === 'notes' ? 'Working Notes' : 'Comments');
+        modal.find('#modal-task-name').text(currentTaskName);
+
+        loadModalContent();
+        modal.modal('show');
+    });
+
+    $('#add-note-comment-form').on('submit', function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const content = form.find('textarea[name="content"]').val();
+        if (!content) return;
+
+        const url = currentModalType === 'notes'
+            ? `/organization/tasks/${currentTaskId}/working-notes`
+            : `/tasks/${currentTaskId}/comments`;
+        
+        $.post(url, { content }, function(newItem) {
+            const list = $('#notes-comments-list');
+            if (list.find('.note-item').length === 0) {
+                list.empty();
+            }
+            list.prepend(renderNoteOrComment(newItem));
+            form[0].reset();
+        });
+    });
+
+    $(document).on('click', '.edit-note-btn', function() {
+        const itemDiv = $(this).closest('.note-item');
+        const contentDiv = itemDiv.find('.note-item-content');
+        const originalContent = contentDiv.find('p').text();
+
+        contentDiv.html(`
+            <textarea class="form-control" rows="3">${originalContent}</textarea>
+            <div class="mt-2">
+                <button class="btn btn-xs btn-primary save-edit-btn">Save</button>
+                <button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button>
+            </div>
+        `);
+    });
+
+    $(document).on('click', '.cancel-edit-btn', function() {
+        const itemDiv = $(this).closest('.note-item');
+        const contentDiv = itemDiv.find('.note-item-content');
+        const originalContent = $(this).closest('.note-item-content').find('textarea').val();
+        contentDiv.html(`<p>${originalContent}</p>`);
+    });
+
+    $(document).on('click', '.save-edit-btn', function() {
+        const itemDiv = $(this).closest('.note-item');
+        const itemId = itemDiv.data('id');
+        const content = itemDiv.find('textarea').val();
+        
+        const url = currentModalType === 'notes'
+            ? `/organization/working-notes/${itemId}`
+            : `/comments/${itemId}`;
+
+        $.ajax({
+            url: url,
+            method: 'PUT',
+            data: { content },
+            success: function(updatedItem) {
+                itemDiv.replaceWith(renderNoteOrComment(updatedItem));
+            }
+        });
+    });
+
+    $(document).on('click', '.delete-note-btn', function() {
+        if (!confirm('Are you sure you want to delete this?')) return;
+
+        const itemDiv = $(this).closest('.note-item');
+        const itemId = itemDiv.data('id');
+        
+        const url = currentModalType === 'notes'
+            ? `/organization/working-notes/${itemId}`
+            : `/comments/${itemId}`;
+
+        $.ajax({
+            url: url,
+            method: 'DELETE',
+            success: function() {
+                itemDiv.fadeOut(300, function() { $(this).remove(); });
+            }
+        });
     });
 });
 </script>

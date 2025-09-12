@@ -37,7 +37,7 @@
         
         .report-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0; }
         .report-time { font-size: 0.9rem; color: #6c757d; font-weight: 500; }
-        .report-header.service .report-time { color: rgba(255,255,255,0.8); }
+        .report-header.service .report-time { color: rgba(255,255,255,0.85); }
 
         .task-item {
             display: flex;
@@ -65,6 +65,29 @@
         .staff-breakdown { background-color: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; }
         .collapse-icon { transition: transform 0.3s ease; }
         a[aria-expanded="false"] .collapse-icon { transform: rotate(-180deg); } /* Changed rotation for up/down arrow */
+
+        /* --- NEW STYLES FOR NOTES & COMMENTS MODAL --- */
+        #notes-comments-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .comment-item {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: .375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .comment-item-meta {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .comment-item-content {
+            white-space: pre-wrap;
+        }
+        .comment-item-actions {
+            margin-top: 0.5rem;
+        }
     </style>
 @stop
 
@@ -111,12 +134,46 @@
 <div id="client-report-table-container">
     @include('Client._report_table', ['groupedTasks' => $groupedTasks])
 </div>
+
+<!-- --- NEW COMMENTS MODAL --- -->
+<div class="modal fade" id="task-comments-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Comments</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Task: <strong id="modal-task-name"></strong></p>
+                <hr>
+                <div id="notes-comments-list" class="mb-3">
+                    {{-- Content will be loaded here via AJAX --}}
+                </div>
+                <div id="note-comment-spinner" class="text-center" style="display: none;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: block;">
+                <form id="add-comment-form">
+                    <div class="form-group">
+                        <textarea name="content" class="form-control" rows="3" placeholder="Add a new comment..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @stop
 
 @section('js')
 <script>
 $(document).ready(function() {
     let debounceTimer;
+    let currentAssignedTaskId, currentTaskName;
+    const currentUserId = {{ Auth::id() }};
 
     $('#status-filter').select2({
         placeholder: 'Filter by Status: All',
@@ -178,6 +235,135 @@ $(document).ready(function() {
     toggleDateFilters($('#custom-range-switch').is(':checked'));
 
     $('#search-input, #status-filter, #year-filter, #month-filter, #start-date-filter, #end-date-filter').on('keyup change', fetch_report_data);
+
+    // --- NEW SCRIPT FOR COMMENTS MODAL ---
+    function loadComments() {
+        const list = $('#notes-comments-list');
+        const spinner = $('#note-comment-spinner');
+        list.empty();
+        spinner.show();
+
+        const url = `/tasks/${currentAssignedTaskId}/comments`;
+
+        $.get(url, function(data) {
+            if (data.length === 0) {
+                list.html('<p class="text-center text-muted">No comments to show.</p>');
+            } else {
+                data.forEach(item => list.append(renderComment(item)));
+            }
+        }).always(() => spinner.hide());
+    }
+
+    function renderComment(item) {
+        const isAuthor = item.author.id === currentUserId;
+        const authorName = isAuthor ? 'You' : item.author.name;
+        const authorBadge = item.author.type === 'C' ? '<span class="badge badge-primary ml-2">Client</span>' : '<span class="badge badge-info ml-2">Staff</span>';
+
+        const actions = isAuthor ? `
+            <div class="comment-item-actions">
+                <button class="btn btn-xs btn-outline-warning edit-comment-btn">Edit</button>
+                <button class="btn btn-xs btn-outline-danger delete-comment-btn">Delete</button>
+            </div>
+        ` : '';
+
+        return `
+            <div class="comment-item" data-id="${item.id}">
+                <div class="comment-item-meta d-flex justify-content-between">
+                    <span><strong>${authorName}</strong> ${authorBadge}</span>
+                    <span>${new Date(item.created_at).toLocaleString()}</span>
+                </div>
+                <div class="comment-item-content mt-2">
+                    <p>${item.content}</p>
+                </div>
+                ${actions}
+            </div>
+        `;
+    }
+
+    $(document).on('click', '.open-comments-modal', function() {
+        const button = $(this);
+        currentAssignedTaskId = button.data('task-id');
+        currentTaskName = button.data('task-name');
+
+        const modal = $('#task-comments-modal');
+        modal.find('#modal-task-name').text(currentTaskName);
+
+        loadComments();
+        modal.modal('show');
+    });
+
+    $('#add-comment-form').on('submit', function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const content = form.find('textarea[name="content"]').val();
+        if (!content) return;
+
+        $.post(`/tasks/${currentAssignedTaskId}/comments`, { content }, function(newItem) {
+            const list = $('#notes-comments-list');
+            if (list.find('.comment-item').length === 0 || list.find('p').length) {
+                list.empty();
+            }
+            list.prepend(renderComment(newItem));
+            form[0].reset();
+        });
+    });
+
+    $(document).on('click', '.edit-comment-btn', function() {
+        const itemDiv = $(this).closest('.comment-item');
+        const contentDiv = itemDiv.find('.comment-item-content');
+        const originalContent = contentDiv.find('p').text();
+
+        contentDiv.html(`
+            <textarea class="form-control" rows="3">${originalContent}</textarea>
+            <div class="mt-2">
+                <button class="btn btn-xs btn-primary save-edit-btn">Save</button>
+                <button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button>
+            </div>
+        `);
+    });
+    
+    $(document).on('click', '.cancel-edit-btn', function() {
+        const itemDiv = $(this).closest('.comment-item');
+        const contentDiv = itemDiv.find('.comment-item-content');
+        const originalContent = $(this).closest('.comment-item-content').find('textarea').val();
+        contentDiv.html(`<p>${originalContent}</p>`);
+    });
+
+    $(document).on('click', '.save-edit-btn', function() {
+        const itemDiv = $(this).closest('.comment-item');
+        const itemId = itemDiv.data('id');
+        const content = itemDiv.find('textarea').val();
+        
+        $.ajax({
+            url: `/comments/${itemId}`,
+            method: 'PUT',
+            data: { content },
+            success: function(updatedItem) {
+                itemDiv.replaceWith(renderComment(updatedItem));
+            }
+        });
+    });
+
+    $(document).on('click', '.delete-comment-btn', function() {
+        if (!confirm('Are you sure you want to delete this comment?')) return;
+
+        const itemDiv = $(this).closest('.comment-item');
+        const itemId = itemDiv.data('id');
+        
+        $.ajax({
+            url: `/comments/${itemId}`,
+            method: 'DELETE',
+            success: function() {
+                itemDiv.fadeOut(300, function() { 
+                    const list = $('#notes-comments-list');
+                    $(this).remove(); 
+                    if (list.children().length === 0) {
+                         list.html('<p class="text-center text-muted">No comments to show.</p>');
+                    }
+                });
+            }
+        });
+    });
 });
 </script>
 @stop

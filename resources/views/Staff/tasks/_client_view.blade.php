@@ -94,11 +94,11 @@
                                     <table class="table table-hover mb-0">
                                         <thead class="thead-light">
                                             <tr>
-                                                <th style="width: 45%;">Task</th>
-                                                <th style="width: 20%;">Due Date</th>
+                                                <th style="width: 40%;">Task</th>
+                                                <th style="width: 15%;">Due Date</th>
                                                 <th style="width: 10%;">Time Logged</th>
                                                 <th style="width: 15%;">Status</th>
-                                                <th style="width: 10%;">Actions</th>
+                                                <th style="width: 20%;">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -110,6 +110,7 @@
                                                     }
                                                 @endphp
                                                 <tr data-task-id="{{ $eventId }}"
+                                                    data-assigned-task-id="{{ $task->id }}"
                                                     data-task-name="{{ $task->name }}"
                                                     data-status="{{ $task->status }}"
                                                     data-duration="{{ $task->duration_in_seconds ?? 0 }}"
@@ -129,7 +130,9 @@
                                                     <td>
                                                         <div class="d-flex">
                                                             <div class="timer-actions-container btn-group mr-1"></div>
-                                                            <div class="btn-group">
+                                                            <button class="btn btn-xs btn-outline-secondary open-notes-modal" title="Working Notes"><i class="fas fa-sticky-note"></i></button>
+                                                            <button class="btn btn-xs btn-outline-info open-comments-modal ml-1" title="Comments"><i class="fas fa-comments"></i></button>
+                                                            <div class="btn-group ml-1">
                                                                 <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
                                                                     <i class="fas fa-ellipsis-v"></i>
                                                                 </button>

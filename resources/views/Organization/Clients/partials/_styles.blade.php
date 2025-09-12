@@ -113,4 +113,27 @@
         background-color: #0069d9 !important;
         border-color: #0062cc !important;
     }
+
+    /* --- NEW STYLES FOR NOTES & COMMENTS MODAL --- */
+    #notes-comments-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .note-item, .comment-item {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: .375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .note-item-meta, .comment-item-meta {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .note-item-content, .comment-item-content {
+        white-space: pre-wrap;
+    }
+    .note-item-actions, .comment-item-actions {
+        margin-top: 0.5rem;
+    }
 </style>

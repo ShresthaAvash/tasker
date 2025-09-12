@@ -73,4 +73,20 @@ class AssignedTask extends Model
     {
         return $this->belongsTo(Service::class, 'service_id');
     }
+
+    /**
+     * Get all of the working notes for the task.
+     */
+    public function workingNotes()
+    {
+        return $this->hasMany(TaskWorkingNote::class)->latest();
+    }
+
+    /**
+     * Get all of the comments for the task.
+     */
+    public function comments()
+    {
+        return $this->hasMany(TaskComment::class)->latest();
+    }
 }
