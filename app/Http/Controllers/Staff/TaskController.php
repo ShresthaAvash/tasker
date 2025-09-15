@@ -26,13 +26,15 @@ class TaskController extends Controller
         $viewType = $request->get('view_type', 'client');
         $search = $request->get('search');
         
-        $statuses = $request->input('statuses');
-
-        if ($statuses === null) {
-            $statuses = [];
-        }
+        $statuses = $request->input('statuses', []);
         if (!is_array($statuses)) {
             $statuses = [];
+        }
+
+        // If no status filter is applied, default to showing only 'to_do' and 'ongoing' tasks.
+        // This ensures that when a task is marked as 'completed', it disappears from the list.
+        if (empty($statuses)) {
+            $statuses = ['to_do', 'ongoing'];
         }
 
         if ($request->get('use_custom_range') === 'true') {
@@ -52,6 +54,7 @@ class TaskController extends Controller
 
         [$taskInstances, $personalTasks] = $this->getTaskInstancesInDateRange($staffId, $startDate, $endDate, $search, $statuses);
 
+        // The dropdowns in the view will still show 'Completed' as an option for status changes.
         $allStatuses = ['to_do' => 'To Do', 'ongoing' => 'Ongoing', 'completed' => 'Completed'];
         
         if ($request->ajax()) {
@@ -74,13 +77,16 @@ class TaskController extends Controller
 
     private function getTaskInstancesInDateRange($staffId, Carbon $startDate, Carbon $endDate, $search, $statuses)
     {
+        // Base queries ALWAYS exclude parent tasks that are already marked as completed.
         $assignedTasksQuery = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
             ->with(['client', 'service', 'staff'])
+            ->where('status', '!=', 'completed')
             ->whereNotNull('start')
             ->where('start', '<=', $endDate) 
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate));
         
         $personalTasksQuery = Task::where('staff_id', $staffId)->whereNull('service_id')
+            ->where('status', '!=', 'completed')
             ->whereNotNull('start')
             ->where('start', '<=', $endDate)
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate));
@@ -113,6 +119,7 @@ class TaskController extends Controller
 
         if (!$task->is_recurring) {
             if ($task->start && $task->start->between($startDate, $endDate)) {
+                // The logic now only checks against the provided filters (if any).
                 if (empty($statuses) || in_array($task->status, $statuses)) {
                     $task->due_date_instance = $task->start;
                     $collection->push($task);
@@ -145,9 +152,9 @@ class TaskController extends Controller
                 
                 $instanceDateString = $cursor->toDateString();
                 $instanceSpecifics = $instanceData[$instanceDateString] ?? [];
-
                 $instanceStatus = $instanceSpecifics['status'] ?? $task->status;
                 
+                // Because index() now provides a default status filter, this correctly excludes completed instances.
                 if (empty($statuses) || in_array($instanceStatus, $statuses)) {
                     $instance = clone $task;
                     $instance->status = $instanceStatus;

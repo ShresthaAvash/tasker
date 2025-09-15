@@ -66,7 +66,6 @@
 </style>
 @stop
 
-{{-- MODIFIED: Changed the section from page-content to content --}}
 @section('content')
 <div class="card" id="task-manager-card">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -170,7 +169,6 @@
 </div>
 @stop
 
-{{-- MODIFIED: Changed the section from page_content_js to js --}}
 @section('js')
 <script>
 $(document).ready(function() {
@@ -180,7 +178,6 @@ $(document).ready(function() {
     const taskManager = $('#task-manager-card');
     window.taskTimers = {};
 
-    // --- NEW VARIABLES FOR NOTES & COMMENTS ---
     let currentAssignedTaskId, currentModalType, currentTaskName;
     const currentUserId = {{ Auth::id() }};
 
@@ -198,12 +195,12 @@ $(document).ready(function() {
         window.location.href = url.toString();
     });
 
+    // --- THIS IS THE FIX: The filter options are now limited ---
     $('#status-filter').select2({
         placeholder: 'Filter by Status',
         data: [
             { id: 'to_do', text: 'To Do' },
-            { id: 'ongoing', text: 'Ongoing' },
-            { id: 'completed', text: 'Completed' }
+            { id: 'ongoing', text: 'Ongoing' }
         ]
     });
 

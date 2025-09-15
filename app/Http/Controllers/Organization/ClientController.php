@@ -28,15 +28,18 @@ class ClientController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::where('type', 'C')
-            ->where('organization_id', Auth::id());
+        // --- THIS IS THE MODIFIED LOGIC ---
 
-        // --- THIS IS THE FIX: Filter by an array of statuses if provided ---
+        $organizationId = Auth::id();
+        $query = User::where('type', 'C')->where('organization_id', $organizationId);
+
+        // Filter by an array of statuses if provided
         $statuses = $request->get('statuses');
         if (!empty($statuses) && is_array($statuses)) {
             $query->whereIn('status', $statuses);
         }
 
+        // Search by name or email
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
@@ -44,6 +47,14 @@ class ClientController extends Controller
             });
         }
         
+        // --- NEW: Filter by assigned service ---
+        if ($request->filled('service_id')) {
+            $query->whereHas('assignedServices', function ($q) use ($request) {
+                $q->where('services.id', $request->service_id);
+            });
+        }
+        
+        // Sorting logic
         $sort_by = $request->get('sort_by', 'created_at');
         $sort_order = $request->get('sort_order', 'desc');
         
@@ -53,11 +64,16 @@ class ClientController extends Controller
 
         $clients = $query->paginate(10);
 
+        // Get all services for the filter dropdown
+        $services = Service::where('organization_id', $organizationId)->orderBy('name')->get();
+
         if ($request->ajax()) {
             return view('Organization.clients._clients_table', compact('clients', 'sort_by', 'sort_order'))->render();
         }
 
-        return view('Organization.clients.index', compact('clients', 'sort_by', 'sort_order'));
+        return view('Organization.clients.index', compact('clients', 'services', 'sort_by', 'sort_order'));
+        
+        // --- END OF MODIFICATION ---
     }
 
     public function create()
@@ -167,7 +183,6 @@ class ClientController extends Controller
         $client->status = $client->status === 'A' ? 'I' : 'A';
         $client->save();
 
-        // --- THIS IS THE FIX: Updated wording ---
         $message = $client->status === 'A' ? 'Client has been activated.' : 'Client has been made inactive.';
 
         return redirect()->back()->with('success', $message);

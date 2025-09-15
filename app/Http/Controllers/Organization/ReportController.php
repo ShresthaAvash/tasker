@@ -84,7 +84,7 @@ class ReportController extends Controller
             ->whereNotNull('start')
             ->where('start', '<=', $endDate)
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
-            ->with(['service.clients', 'staff']); // Eager load service and its client relationship
+            ->with(['service.clients', 'staff']);
     
         if ($search) {
             $tasksQuery->where(function($q) use ($search) {
@@ -126,7 +126,7 @@ class ReportController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|max:255',
+            'status' => 'required|string|max:255|in:Not Started,Ongoing,Completed',
         ]);
 
         if ($validator->fails()) {
