@@ -12,6 +12,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class ReportController extends Controller
 {
@@ -49,7 +51,6 @@ class ReportController extends Controller
         $baseTasks = $tasksQuery->get();
         $taskInstances = $this->expandAndCalculateStaffTasks($baseTasks, $staff->id, $startDate, $endDate, $statuses);
         
-        // --- MODIFIED: Group the final collection by service ---
         $groupedTasks = $this->groupTasksForReport($taskInstances);
 
         if ($request->ajax()) {
@@ -83,7 +84,7 @@ class ReportController extends Controller
             ->whereNotNull('start')
             ->where('start', '<=', $endDate)
             ->where(fn($q) => $q->whereNull('end')->orWhere('end', '>=', $startDate))
-            ->with(['service', 'staff']);
+            ->with(['service.clients', 'staff']); // Eager load service and its client relationship
     
         if ($search) {
             $tasksQuery->where(function($q) use ($search) {
@@ -102,11 +103,10 @@ class ReportController extends Controller
         $baseTasks = $tasksQuery->get();
         $taskInstances = $this->expandTasksForReport($baseTasks, $startDate, $endDate, $statuses);
 
-        // --- MODIFIED: Group the final collection by service ---
         $groupedTasks = $this->groupTasksForReport($taskInstances);
     
         if ($request->ajax()) {
-            return view('Organization.reports._individual_client_report_table', compact('groupedTasks'))->render();
+            return view('Organization.reports._individual_client_report_table', compact('groupedTasks', 'client'))->render();
         }
     
         $staff = User::where('organization_id', $organizationId)->where('type', 'T')->orderBy('name')->get();
@@ -118,13 +118,37 @@ class ReportController extends Controller
         ));
     }
     
-    // --- NEW HELPER METHOD TO GROUP TASKS ---
+    public function updateServiceStatus(Request $request, User $client, Service $service)
+    {
+        $organizationId = Auth::user()->organization_id ?? Auth::id();
+        if ($service->organization_id !== $organizationId || $client->organization_id !== $organizationId) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 422);
+        }
+
+        // Update the pivot table
+        DB::table('client_service')
+            ->where('user_id', $client->id)
+            ->where('service_id', $service->id)
+            ->update(['status' => $request->input('status')]);
+
+        return response()->json(['success' => 'Service status updated successfully!']);
+    }
+    
     private function groupTasksForReport(Collection $tasks): Collection
     {
         return $tasks->groupBy(function ($task) {
             return optional($task->service)->name ?? 'Uncategorized';
         })->map(function ($tasksInService) {
             return [
+                'service' => $tasksInService->first()->service,
                 'tasks' => $tasksInService->sortBy('due_date'),
                 'total_duration' => $tasksInService->sum('duration_in_seconds'),
             ];
@@ -204,7 +228,9 @@ class ReportController extends Controller
             if (!$task->is_recurring) {
                 if ($task->start && $task->start->between($startDate, $endDate)) {
                      if (empty($statuses) || in_array($task->status, $statuses)) {
-                        $instances->push($task);
+                        $instance = clone $task;
+                        $instance->status = $task->status; 
+                        $instances->push($instance);
                     }
                 }
                 continue;
