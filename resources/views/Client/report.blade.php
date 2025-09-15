@@ -6,22 +6,29 @@
 @section('css')
     @parent 
     <style>
+        .content-wrapper { background-color: #f4f6f9; }
+        
+        /* New Filter Card Style */
         .filter-card {
-            background-color: #fff;
-            border-radius: .5rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            background-color: #ffffff;
             border: 1px solid #e3e6f0;
+            border-radius: .75rem;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 20px 0 rgba(0,0,0,0.04);
         }
+
+        /* Main Report Group Card */
         .report-group {
-            background-color: #fff;
-            border-radius: .5rem;
+            background: #fff;
+            border-radius: .75rem;
             margin-bottom: 1.5rem;
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
             border: 1px solid #e3e6f0;
+            animation: fadeInUp 0.5s ease-out forwards;
         }
+
+        /* Service Header */
         .report-header {
             padding: 0.75rem 1.25rem;
             display: flex;
@@ -31,48 +38,41 @@
             text-decoration: none !important;
             background-color: #0d6efd; 
             color: white;
+            transition: background-color 0.2s ease-in-out;
         }
         .report-header:hover {
             background-color: #0b5ed7;
         }
         .report-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0; }
-        .report-time { font-size: 0.9rem; color: rgba(255,255,255,0.85); font-weight: 500; }
-        .task-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
+        .report-time { font-size: 1rem; color: rgba(255,255,255,0.9); font-weight: 500; }
+
+        /* Task List & Items */
+        .task-list { list-style: none; padding: 0; margin: 0; }
         .task-item {
             display: flex;
             align-items: center;
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 1.1rem 1.25rem;
+            border-top: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease-in-out;
         }
-        .task-item:last-child { border-bottom: none; }
-        .task-icon { color: #6c757d; margin-right: 1rem; font-size: 1.2rem; }
+        .task-item:hover { background-color: #f8f9fa; }
+        .task-icon { color: #6c757d; margin-right: 1rem; font-size: 1.2rem; width: 20px; text-align: center; }
         .task-details { flex-grow: 1; }
-        .task-name { font-weight: 500; }
+        .task-name { font-weight: 500; color: #343a40; }
         .task-meta { font-size: 0.85rem; color: #6c757d; }
         .task-meta a { color: inherit; text-decoration: none; border-bottom: 1px dashed #6c757d; }
         .task-meta a:hover { color: #0d6efd; }
         .collapse-icon { transition: transform 0.3s ease; }
         a[aria-expanded="false"] .collapse-icon { transform: rotate(-90deg); }
-
-        .status-pill {
-            padding: .3em .8em;
-            font-size: .75em;
-            font-weight: 700;
-            border-radius: 50px;
-            text-align: center;
-            min-width: 80px;
-        }
+        .staff-breakdown { background-color: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; margin-left: 2.25rem; margin-top: 0.5rem; }
+        
+        /* Status Pills */
+        .status-pill { padding: .3em .8em; font-size: .75em; font-weight: 700; border-radius: 50px; text-align: center; min-width: 80px; }
         .status-to_do { background-color: #f8d7da; color: #721c24; }
         .status-ongoing { background-color: #cff4fc; color: #055160; }
         .status-completed { background-color: #d1e7dd; color: #0f5132; }
 
-        .staff-breakdown { background-color: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; margin-left: 1.75rem; margin-top: 0.5rem; }
-
-        /* Comment styles remain the same */
+        /* Comment Modal Styles */
         #notes-comments-list { max-height: 400px; overflow-y: auto; padding: 5px; }
         .comment-item { display: flex; margin-bottom: 1.25rem; max-width: 85%; animation: fadeInUp 0.4s ease forwards; }
         .comment-item.is-author { margin-left: auto; flex-direction: row-reverse; }
@@ -102,32 +102,34 @@
 @stop
 
 @section('content')
-<div class="filter-card d-print-none">
+<div class="filter-card d-print-none mb-4">
     <div class="row align-items-center">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <input type="text" id="search-input" class="form-control" placeholder="Search by Service, Job, or Task..." value="{{ $search ?? '' }}">
         </div>
         <div class="col-md-3">
             <select id="status-filter" class="form-control" multiple="multiple"></select>
         </div>
-        <div class="col-md-4">
-            <div class="d-flex align-items-center">
-                <div id="dropdown-filters" class="row flex-grow-1">
-                    <div class="col"><select id="year-filter" class="form-control">@foreach($years as $year)<option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>{{ $year }}</option>@endforeach</select></div>
-                    <div class="col"><select id="month-filter" class="form-control">@foreach($months as $num => $name)<option value="{{ $num }}" {{ $num == $currentMonth ? 'selected' : '' }}>{{ $name }}</option>@endforeach</select></div>
+        <div class="col-md-5">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <div id="dropdown-filters" class="row">
+                        <div class="col"><select id="year-filter" class="form-control">@foreach($years as $year)<option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>{{ $year }}</option>@endforeach</select></div>
+                        <div class="col"><select id="month-filter" class="form-control">@foreach($months as $num => $name)<option value="{{ $num }}" {{ $num == $currentMonth ? 'selected' : '' }}>{{ $name }}</option>@endforeach</select></div>
+                    </div>
+                    <div id="custom-range-filters" class="row" style="display: none;">
+                        <div class="col"><input type="date" id="start-date-filter" class="form-control" value="{{ $startDate->format('Y-m-d') }}"></div>
+                        <div class="col"><input type="date" id="end-date-filter" class="form-control" value="{{ $endDate->format('Y-m-d') }}"></div>
+                    </div>
                 </div>
-                <div id="custom-range-filters" class="row flex-grow-1" style="display: none;">
-                    <div class="col"><input type="date" id="start-date-filter" class="form-control" value="{{ $startDate->format('Y-m-d') }}"></div>
-                    <div class="col"><input type="date" id="end-date-filter" class="form-control" value="{{ $endDate->format('Y-m-d') }}"></div>
-                </div>
-                <div class="custom-control custom-switch ml-3">
-                    <input type="checkbox" class="custom-control-input" id="custom-range-switch" {{ $use_custom_range ? 'checked' : '' }}>
-                    <label class="custom-control-label" for="custom-range-switch">Custom</label>
+                <div class="col-md-5 d-flex align-items-center justify-content-end">
+                    <div class="custom-control custom-switch mr-3">
+                        <input type="checkbox" class="custom-control-input" id="custom-range-switch" {{ $use_custom_range ? 'checked' : '' }}>
+                        <label class="custom-control-label" for="custom-range-switch">Custom</label>
+                    </div>
+                     <button class="btn btn-secondary" id="reset-filters">Reset</button>
                 </div>
             </div>
-        </div>
-        <div class="col-md-2 d-flex justify-content-end">
-             <button class="btn btn-secondary" id="reset-filters">Reset</button>
         </div>
     </div>
 </div>

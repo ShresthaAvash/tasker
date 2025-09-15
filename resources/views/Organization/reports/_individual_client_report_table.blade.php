@@ -8,7 +8,7 @@
     <div class="col-md-4">
         <div class="stat-card">
             <p class="stat-title">Total Time Logged</p>
-            <h3 class="stat-number">{{ \App\Helpers\TimeHelper::formatToHms($totalDuration, false) }}</h3>
+            <h3 class="stat-number">{{ \App\Helpers\TimeHelper::formatToHms($totalDuration, true) }}</h3>
         </div>
     </div>
     <div class="col-md-4">
@@ -41,7 +41,7 @@
                         <h5 class="service-title mb-0">{{ $serviceName }}</h5>
                     </div>
                     <div class="d-flex align-items-center">
-                        <span class="service-time mr-3">Total Time: <strong>{{ \App\Helpers\TimeHelper::formatToHms($data['total_duration'], false) }}</strong></span>
+                        <span class="service-time mr-3">Total Time: <strong>{{ \App\Helpers\TimeHelper::formatToHms($data['total_duration'], true) }}</strong></span>
                         <div class="form-group mb-0" style="min-width: 150px;" onclick="event.stopPropagation();">
                              <select class="form-control form-control-sm service-status-select" data-service-id="{{ $service->id }}">
                                 <option value="Not Started" {{ $currentServiceStatus == 'Not Started' ? 'selected' : '' }}>Not Started</option>
@@ -71,11 +71,11 @@
                                 <td class="staff-cell">{{ $task->staff->pluck('name')->join(', ') }}</td>
                                 <td class="date-cell">{{ $task->due_date->format('d M Y') }}</td>
                                 <td>
-                                    <span class="badge {{ $task->status === 'completed' ? 'badge-success' : ($task->status === 'ongoing' ? 'badge-info' : 'badge-secondary') }}">
+                                    <span class="status-badge status-{{ str_replace(' ', '_', $task->status) }}">
                                         {{ ucfirst(str_replace('_', ' ', $task->status)) }}
                                     </span>
                                 </td>
-                                <td class="text-right font-weight-bold">{{ \App\Helpers\TimeHelper::formatToHms($task->duration_in_seconds, false) }}</td>
+                                <td class="text-right font-weight-bold">{{ \App\Helpers\TimeHelper::formatToHms($task->duration_in_seconds, true) }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="5" class="text-center p-3 text-muted">No tasks for this service in the selected period.</td></tr>

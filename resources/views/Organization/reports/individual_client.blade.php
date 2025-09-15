@@ -51,32 +51,25 @@
     .staff-cell, .date-cell { font-size: 0.9rem; color: #6c757d; }
     .collapse-icon { transition: transform 0.3s ease; }
     .service-header[aria-expanded="false"] .collapse-icon { transform: rotate(-90deg); }
-
-    /* Custom styles for the status dropdown to make it less prominent */
-    .service-status-select {
-        background-color: #f8f9fa;
-        border-color: #ced4da;
-        font-weight: 500;
-    }
-    .status-select-wrapper .select2-container .select2-selection--single {
-        height: calc(1.8125rem + 2px) !important;
-        padding: .25rem .5rem;
-        font-size: .875rem;
-    }
+    .status-badge { display: inline-block; padding: 0.35em 0.65em; font-size: .75em; font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; vertical-align: baseline; border-radius: .25rem; }
+    .status-to_do { background-color: #f8d7da; color: #721c24; }
+    .status-ongoing { background-color: #cff4fc; color: #055160; }
+    .status-completed { background-color: #d1e7dd; color: #0f5132; }
+    #status-update-feedback { position: fixed; top: 80px; right: 20px; z-index: 1050; display: none; }
 </style>
 @stop
 
 @section('content')
-<div id="status-update-feedback" class="alert" style="position: fixed; top: 80px; right: 20px; z-index: 1050; display: none;"></div>
+<div id="status-update-feedback" class="alert"></div>
 
 {{-- Filter Card --}}
 <div class="filter-card d-print-none mb-4">
     <div class="row align-items-center">
-        <div class="col-md-2"><input type="text" id="search-input" class="form-control" placeholder="Search tasks..."></div>
+        <div class="col-md-3"><input type="text" id="search-input" class="form-control" placeholder="Search tasks..."></div>
         <div class="col-md-2"><select id="service-filter" class="form-control" multiple></select></div>
         <div class="col-md-2"><select id="staff-filter" class="form-control" multiple></select></div>
         <div class="col-md-2"><select id="status-filter" class="form-control" multiple></select></div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="row">
                 <div class="col"><select id="year-filter" class="form-control">@foreach($years as $year)<option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>{{ $year }}</option>@endforeach</select></div>
                 <div class="col"><select id="month-filter" class="form-control">@foreach($months as $num => $name)<option value="{{ $num }}" {{ (string)$num === (string)$currentMonth ? 'selected' : '' }}>{{ $name }}</option>@endforeach</select></div>

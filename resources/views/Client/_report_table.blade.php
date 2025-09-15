@@ -4,7 +4,6 @@
         $tasks = $data['tasks'];
         $serviceTotalDuration = $tasks->sum('duration_in_seconds');
         
-        // Get the pivot status for the current client
         $client = Auth::user();
         $pivot = optional($service->clients->where('id', $client->id)->first())->pivot;
         $currentServiceStatus = $pivot ? $pivot->status : 'Not Started';
@@ -17,15 +16,13 @@
     <div class="report-group">
         <a href="#collapse-service-{{ $service->id }}" class="report-header" data-toggle="collapse" aria-expanded="true">
             <h5 class="report-title mb-0">
+                <i class="fas fa-chevron-down collapse-icon mr-3"></i>
                 <i class="fas fa-concierge-bell mr-2"></i>
                 Service: {{ $serviceName }}
                 <span class="badge {{ $statusClass }} ml-2">{{ $currentServiceStatus }}</span>
             </h5>
-            <div class="d-flex align-items-center">
-                <span class="report-time mr-3">
-                    Total Time: {{ \App\Helpers\TimeHelper::formatToHms($serviceTotalDuration, false) }}
-                </span>
-                <i class="fas fa-chevron-up collapse-icon"></i>
+            <div class="report-time">
+                {{ \App\Helpers\TimeHelper::formatToHms($serviceTotalDuration, true) }}
             </div>
         </a>
         <div id="collapse-service-{{ $service->id }}" class="collapse show">
@@ -42,12 +39,12 @@
                                     </a>
                                 </div>
                                 <div class="collapse staff-breakdown mt-2" id="staff-breakdown-client-{{ $task->id }}">
-                                    <ul class="list-unstyled p-2">
+                                    <ul class="list-unstyled p-2 mb-0">
                                         @foreach($task->staff as $staffMember)
                                             <li class="d-flex justify-content-between border-bottom py-1 px-2">
                                                 <span class="text-muted">{{ $staffMember->name }}</span>
                                                 @if($staffMember->pivot->duration_in_seconds > 0)
-                                                    <span class="text-muted">{{ \App\Helpers\TimeHelper::formatToHms($staffMember->pivot->duration_in_seconds, false) }}</span>
+                                                    <span class="text-muted">{{ \App\Helpers\TimeHelper::formatToHms($staffMember->pivot->duration_in_seconds, true) }}</span>
                                                 @endif
                                             </li>
                                         @endforeach
