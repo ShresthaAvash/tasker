@@ -183,7 +183,7 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-7">
+    <div class="col-lg-6">
         <div class="card">
             <div class="card-header bg-white">
                 <h3 class="card-title">Task Status Overview</h3>
@@ -197,7 +197,7 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-5">
+    <div class="col-lg-6">
         <div class="card">
             <div class="card-header bg-white">
                 <h3 class="card-title">Recent Documents</h3>

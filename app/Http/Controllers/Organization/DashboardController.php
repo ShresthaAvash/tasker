@@ -73,14 +73,23 @@ class DashboardController extends Controller
         // --- END OF FIX ---
         
         // --- START: Service Pie Chart Data ---
-        $serviceCounts = AssignedTask::whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
-            ->join('services', 'assigned_tasks.service_id', '=', 'services.id')
-            ->select('services.name', DB::raw('count(assigned_tasks.id) as count'))
-            ->groupBy('services.name')
-            ->pluck('count', 'name');
+        $serviceStatusCounts = DB::table('client_service')
+            ->join('services', 'client_service.service_id', '=', 'services.id')
+            ->where('services.organization_id', $organizationId)
+            ->select('client_service.status', DB::raw('count(*) as count'))
+            ->groupBy('client_service.status')
+            ->pluck('count', 'status');
 
-        $serviceChartLabels = $serviceCounts->keys();
-        $serviceChartData = $serviceCounts->values();
+        $allServiceStatuses = collect([
+            'Not Started' => 0,
+            'Ongoing' => 0,
+            'Completed' => 0,
+        ]);
+
+        $serviceStatusCounts = $allServiceStatuses->merge($serviceStatusCounts);
+
+        $serviceChartLabels = $serviceStatusCounts->keys();
+        $serviceChartData = $serviceStatusCounts->values();
         // --- END: Service Pie Chart Data ---
 
         $chartLabels = $taskStatusCounts->keys()->map(fn($s) => ucwords(str_replace('_', ' ', $s)));
@@ -175,17 +184,6 @@ class DashboardController extends Controller
         $chartLabels = $chartData->keys()->map(fn($s) => ucwords(str_replace('_', ' ', $s)));
         $chartDataValues = $chartData->values();
 
-        // --- START: Service Pie Chart Data for Staff ---
-        $serviceCounts = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
-            ->join('services', 'assigned_tasks.service_id', '=', 'services.id')
-            ->select('services.name', DB::raw('count(assigned_tasks.id) as count'))
-            ->groupBy('services.name')
-            ->pluck('count', 'name');
-
-        $serviceChartLabels = $serviceCounts->keys();
-        $serviceChartData = $serviceCounts->values();
-        // --- END: Service Pie Chart Data for Staff ---
-
         $personalTasks = Task::where('staff_id', $staffId)
             ->whereNull('service_id')
             ->whereIn('status', ['to_do', 'ongoing'])
@@ -223,9 +221,7 @@ class DashboardController extends Controller
             'upcomingTasks', 
             'chartLabels', 
             'chartDataValues', 
-            'documentsCount',
-            'serviceChartLabels',
-            'serviceChartData'
+            'documentsCount'
         ));
     }
 }
