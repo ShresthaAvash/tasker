@@ -94,6 +94,9 @@ Route::middleware(['auth', 'isOrganization', 'checkUserStatus'])->prefix('organi
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('organization.dashboard');
     Route::get('reports/staff/{staff}', [OrganizationReportController::class, 'individualStaffReport'])->name('organization.reports.individual_staff');
     Route::get('reports/client/{client}', [OrganizationReportController::class, 'individualClientReport'])->name('organization.reports.individual_client');
+    Route::patch('reports/tasks/{taskId}/status', [OrganizationReportController::class, 'updateTaskStatus'])->name('reports.updateTaskStatus')->where('taskId', '.*');
+    // --- THIS IS THE NEW ROUTE FOR UPDATING THE PIVOT STATUS ---
+    Route::patch('reports/client/{client}/service/{service}/status', [OrganizationReportController::class, 'updateServiceStatus'])->name('organization.reports.updateServiceStatus');
 
     Route::get('subscription', [\App\Http\Controllers\Organization\SubscriptionController::class, 'index'])->name('organization.subscription.index');
     Route::get('subscription/change', [\App\Http\Controllers\Organization\SubscriptionController::class, 'showChangePlanForm'])->name('organization.subscription.change');

@@ -6,67 +6,73 @@
 @section('css')
     @parent 
     <style>
+        .content-wrapper { background-color: #f4f6f9; }
+        
+        /* New Filter Card Style */
         .filter-card {
-            background-color: #fff;
-            border-radius: .375rem; /* Sharper corners */
-            box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            background-color: #ffffff;
+            border: 1px solid #e3e6f0;
+            border-radius: .75rem;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 20px 0 rgba(0,0,0,0.04);
         }
+
+        /* Main Report Group Card */
         .report-group {
-            background-color: #fff;
-            border-radius: .375rem; /* Sharper corners */
-            box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
+            background: #fff;
+            border-radius: .75rem;
             margin-bottom: 1.5rem;
             overflow: hidden;
+            box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
+            border: 1px solid #e3e6f0;
+            animation: fadeInUp 0.5s ease-out forwards;
         }
+
+        /* Service Header */
         .report-header {
-            padding: 1rem 1.5rem;
+            padding: 0.75rem 1.25rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
             text-decoration: none !important;
-            color: inherit;
+            background-color: #0d6efd; 
+            color: white;
+            transition: background-color 0.2s ease-in-out;
         }
         .report-header:hover {
-            background-color: #f8f9fa;
+            background-color: #0b5ed7;
         }
-        .report-header.service { background-color: #0d6efd; color: white; }
-        .report-header.job { background-color: #f8f9fa; border-top: 1px solid #e9ecef; border-bottom: 1px solid #e9ecef; }
-        
         .report-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0; }
-        .report-time { font-size: 0.9rem; color: #6c757d; font-weight: 500; }
-        .report-header.service .report-time { color: rgba(255,255,255,0.8); }
+        .report-time { font-size: 1rem; color: rgba(255,255,255,0.9); font-weight: 500; }
 
+        /* Task List & Items */
+        .task-list { list-style: none; padding: 0; margin: 0; }
         .task-item {
             display: flex;
             align-items: center;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 1.1rem 1.25rem;
+            border-top: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease-in-out;
         }
-        .task-item:last-child { border-bottom: none; }
-        .task-icon { color: #6c757d; margin-right: 1rem; }
+        .task-item:hover { background-color: #f8f9fa; }
+        .task-icon { color: #6c757d; margin-right: 1rem; font-size: 1.2rem; width: 20px; text-align: center; }
         .task-details { flex-grow: 1; }
-        .task-name { font-weight: 500; }
+        .task-name { font-weight: 500; color: #343a40; }
         .task-meta { font-size: 0.85rem; color: #6c757d; }
-        .task-status {
-            padding: 0.25em 0.6em;
-            font-size: .75em;
-            font-weight: 700;
-            border-radius: .25rem; /* Sharper status pills */
-            text-align: center;
-            min-width: 80px;
-        }
-        .status-to_do { background-color: #f8d7da; color: #721c24; }
-        .status-ongoing { background-color: #d1ecf1; color: #0c5460; }
-        .status-completed { background-color: #d4edda; color: #155724; }
-
-        .staff-breakdown { background-color: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; }
+        .task-meta a { color: inherit; text-decoration: none; border-bottom: 1px dashed #6c757d; }
+        .task-meta a:hover { color: #0d6efd; }
         .collapse-icon { transition: transform 0.3s ease; }
-        a[aria-expanded="false"] .collapse-icon { transform: rotate(-180deg); } /* Changed rotation for up/down arrow */
+        a[aria-expanded="false"] .collapse-icon { transform: rotate(-90deg); }
+        .staff-breakdown { background-color: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; margin-left: 2.25rem; margin-top: 0.5rem; }
+        
+        /* Status Pills */
+        .status-pill { padding: .3em .8em; font-size: .75em; font-weight: 700; border-radius: 50px; text-align: center; min-width: 80px; }
+        .status-to_do { background-color: #f8d7da; color: #721c24; }
+        .status-ongoing { background-color: #cff4fc; color: #055160; }
+        .status-completed { background-color: #d1e7dd; color: #0f5132; }
 
-        /* --- NEW STYLES FOR NOTES & COMMENTS MODAL --- */
+        /* Comment Modal Styles */
         #notes-comments-list { max-height: 400px; overflow-y: auto; padding: 5px; }
         .comment-item { display: flex; margin-bottom: 1.25rem; max-width: 85%; animation: fadeInUp 0.4s ease forwards; }
         .comment-item.is-author { margin-left: auto; flex-direction: row-reverse; }
@@ -96,32 +102,32 @@
 @stop
 
 @section('content')
-<div class="filter-card d-print-none">
+<div class="filter-card d-print-none mb-4">
     <div class="row align-items-center">
-        <div class="col-md-9">
-            <div class="row">
-                <div class="col-md-4">
-                    <input type="text" id="search-input" class="form-control" placeholder="Search by Service, Job, or Task..." value="{{ $search ?? '' }}">
-                </div>
-                <div class="col-md-3">
-                    <select id="status-filter" class="form-control" multiple="multiple"></select>
-                </div>
-                <div class="col-md-5">
-                    <div class="d-flex align-items-center">
-                        <div id="dropdown-filters" class="row flex-grow-1">
-                            <div class="col"><select id="year-filter" class="form-control">@foreach($years as $year)<option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>{{ $year }}</option>@endforeach</select></div>
-                            <div class="col"><select id="month-filter" class="form-control">@foreach($months as $num => $name)<option value="{{ $num }}" {{ $num == $currentMonth ? 'selected' : '' }}>{{ $name }}</option>@endforeach</select></div>
-                        </div>
-                        <div id="custom-range-filters" class="row flex-grow-1" style="display: none;">
-                            <div class="col"><input type="date" id="start-date-filter" class="form-control" value="{{ $startDate->format('Y-m-d') }}"></div>
-                            <div class="col"><input type="date" id="end-date-filter" class="form-control" value="{{ $endDate->format('Y-m-d') }}"></div>
-                        </div>
-                        <div class="custom-control custom-switch ml-3">
-                            <input type="checkbox" class="custom-control-input" id="custom-range-switch" {{ $use_custom_range ? 'checked' : '' }}>
-                            <label class="custom-control-label" for="custom-range-switch">Custom</label>
-                        </div>
-                         <button class="btn btn-secondary ml-3" id="reset-filters">Reset</button>
+        <div class="col-md-4">
+            <input type="text" id="search-input" class="form-control" placeholder="Search by Service, Job, or Task..." value="{{ $search ?? '' }}">
+        </div>
+        <div class="col-md-3">
+            <select id="status-filter" class="form-control" multiple="multiple"></select>
+        </div>
+        <div class="col-md-5">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <div id="dropdown-filters" class="row">
+                        <div class="col"><select id="year-filter" class="form-control">@foreach($years as $year)<option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>{{ $year }}</option>@endforeach</select></div>
+                        <div class="col"><select id="month-filter" class="form-control">@foreach($months as $num => $name)<option value="{{ $num }}" {{ $num == $currentMonth ? 'selected' : '' }}>{{ $name }}</option>@endforeach</select></div>
                     </div>
+                    <div id="custom-range-filters" class="row" style="display: none;">
+                        <div class="col"><input type="date" id="start-date-filter" class="form-control" value="{{ $startDate->format('Y-m-d') }}"></div>
+                        <div class="col"><input type="date" id="end-date-filter" class="form-control" value="{{ $endDate->format('Y-m-d') }}"></div>
+                    </div>
+                </div>
+                <div class="col-md-5 d-flex align-items-center justify-content-end">
+                    <div class="custom-control custom-switch mr-3">
+                        <input type="checkbox" class="custom-control-input" id="custom-range-switch" {{ $use_custom_range ? 'checked' : '' }}>
+                        <label class="custom-control-label" for="custom-range-switch">Custom</label>
+                    </div>
+                     <button class="btn btn-secondary" id="reset-filters">Reset</button>
                 </div>
             </div>
         </div>
@@ -132,7 +138,7 @@
     @include('Client._report_table', ['groupedTasks' => $groupedTasks])
 </div>
 
-<!-- --- NEW COMMENTS MODAL --- -->
+<!-- Comments Modal -->
 <div class="modal fade" id="task-comments-modal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
@@ -145,9 +151,7 @@
             <div class="modal-body">
                 <p class="text-muted">Task: <strong id="modal-task-name"></strong></p>
                 <hr>
-                <div id="notes-comments-list" class="mb-3">
-                    {{-- Content will be loaded here via AJAX --}}
-                </div>
+                <div id="notes-comments-list" class="mb-3"></div>
                 <div id="note-comment-spinner" class="text-center" style="display: none;">
                     <i class="fas fa-spinner fa-spin fa-2x"></i>
                 </div>
@@ -230,20 +234,16 @@ $(document).ready(function() {
         fetch_report_data();
     });
 
-    // Initial state
     toggleDateFilters($('#custom-range-switch').is(':checked'));
 
     $('#search-input, #status-filter, #year-filter, #month-filter, #start-date-filter, #end-date-filter').on('keyup change', fetch_report_data);
 
-    // --- NEW SCRIPT FOR COMMENTS MODAL ---
     function loadComments() {
         const list = $('#notes-comments-list');
         const spinner = $('#note-comment-spinner');
         list.empty();
         spinner.show();
-
         const url = `/tasks/${currentAssignedTaskId}/comments`;
-
         $.get(url, function(data) {
             if (data.length === 0) {
                 list.html('<p class="text-center text-muted">No comments to show.</p>');
@@ -258,44 +258,15 @@ $(document).ready(function() {
         const authorName = isAuthor ? 'You' : item.author.name.split(' ')[0];
         const authorInitials = authorName.substring(0, 2).toUpperCase();
         const authorBadge = item.author.type === 'C' ? '' : '<span class="badge badge-info ml-2">Staff</span>';
-
-        const actions = isAuthor ? `
-            <div class="comment-actions">
-                <button class="btn btn-xs btn-link text-muted edit-comment-btn">Edit</button>
-                <button class="btn btn-xs btn-link text-danger delete-comment-btn">Delete</button>
-            </div>
-        ` : '';
-
-        return `
-            <div class="comment-item ${isAuthor ? 'is-author' : ''}" data-id="${item.id}">
-                <div class="comment-author-avatar">${authorInitials}</div>
-                <div class="comment-body">
-                    <div class="comment-meta">
-                        <span class="comment-author-name">${authorName}${authorBadge}</span>
-                        <span class="comment-timestamp">${new Date(item.created_at).toLocaleString()}</span>
-                    </div>
-                    <div class="comment-content"><p>${item.content}</p></div>
-                    <div class="comment-edit-form">
-                        <textarea class="form-control" rows="3">${item.content}</textarea>
-                        <div class="mt-2 text-right">
-                            <button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button>
-                            <button class="btn btn-xs btn-primary save-edit-btn">Save</button>
-                        </div>
-                    </div>
-                    ${actions}
-                </div>
-            </div>
-        `;
+        const actions = isAuthor ? `<div class="comment-actions"><button class="btn btn-xs btn-link text-muted edit-comment-btn">Edit</button><button class="btn btn-xs btn-link text-danger delete-comment-btn">Delete</button></div>` : '';
+        return `<div class="comment-item ${isAuthor ? 'is-author' : ''}" data-id="${item.id}"><div class="comment-author-avatar">${authorInitials}</div><div class="comment-body"><div class="comment-meta"><span class="comment-author-name">${authorName}${authorBadge}</span><span class="comment-timestamp">${new Date(item.created_at).toLocaleString()}</span></div><div class="comment-content"><p>${item.content}</p></div><div class="comment-edit-form"><textarea class="form-control" rows="3">${item.content}</textarea><div class="mt-2 text-right"><button class="btn btn-xs btn-secondary cancel-edit-btn">Cancel</button><button class="btn btn-xs btn-primary save-edit-btn">Save</button></div></div>${actions}</div></div>`;
     }
 
     $(document).on('click', '.open-comments-modal', function() {
-        const button = $(this);
-        currentAssignedTaskId = button.data('task-id');
-        currentTaskName = button.data('task-name');
-
+        currentAssignedTaskId = $(this).data('task-id');
+        currentTaskName = $(this).data('task-name');
         const modal = $('#task-comments-modal');
         modal.find('#modal-task-name').text(currentTaskName);
-
         loadComments();
         modal.modal('show');
     });
@@ -305,59 +276,46 @@ $(document).ready(function() {
         const form = $(this);
         const content = form.find('textarea[name="content"]').val();
         if (!content) return;
-
         $.post(`/tasks/${currentAssignedTaskId}/comments`, { content }, function(newItem) {
-            loadComments(); // Refresh the list
+            loadComments();
             form[0].reset();
         });
     });
 
     $(document).on('click', '.edit-comment-btn', function() {
         const itemDiv = $(this).closest('.comment-item');
-        itemDiv.find('.comment-content').hide();
-        itemDiv.find('.comment-actions').hide();
+        itemDiv.find('.comment-content, .comment-actions').hide();
         itemDiv.find('.comment-edit-form').show();
     });
     
     $(document).on('click', '.cancel-edit-btn', function() {
         const itemDiv = $(this).closest('.comment-item');
-        const originalContent = itemDiv.find('.comment-content p').text();
-        itemDiv.find('.comment-edit-form textarea').val(originalContent);
+        itemDiv.find('.comment-edit-form textarea').val(itemDiv.find('.comment-content p').text());
         itemDiv.find('.comment-edit-form').hide();
-        itemDiv.find('.comment-content').show();
-        itemDiv.find('.comment-actions').show();
+        itemDiv.find('.comment-content, .comment-actions').show();
     });
 
     $(document).on('click', '.save-edit-btn', function() {
         const itemDiv = $(this).closest('.comment-item');
         const itemId = itemDiv.data('id');
         const content = itemDiv.find('textarea').val();
-        
         $.ajax({
-            url: `/comments/${itemId}`,
-            method: 'PUT',
-            data: { content },
-            success: function(updatedItem) {
-                loadComments(); // Refresh the list
-            }
+            url: `/comments/${itemId}`, method: 'PUT', data: { content },
+            success: () => loadComments()
         });
     });
 
     $(document).on('click', '.delete-comment-btn', function() {
-        if (!confirm('Are you sure you want to delete this comment?')) return;
-
+        if (!confirm('Are you sure?')) return;
         const itemDiv = $(this).closest('.comment-item');
         const itemId = itemDiv.data('id');
-        
         $.ajax({
-            url: `/comments/${itemId}`,
-            method: 'DELETE',
+            url: `/comments/${itemId}`, method: 'DELETE',
             success: function() {
                 itemDiv.fadeOut(300, function() { 
                     $(this).remove(); 
-                    const list = $('#notes-comments-list');
-                    if (list.children('.comment-item').length === 0) {
-                         list.html('<p class="text-center text-muted">No comments to show.</p>');
+                    if ($('#notes-comments-list').children('.comment-item').length === 0) {
+                         $('#notes-comments-list').html('<p class="text-center text-muted">No comments to show.</p>');
                     }
                 });
             }
@@ -366,4 +324,3 @@ $(document).ready(function() {
 });
 </script>
 @stop
-

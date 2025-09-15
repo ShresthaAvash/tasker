@@ -20,7 +20,7 @@ class ReportController extends Controller
 
         $tasksQuery = AssignedTask::query()
             ->where('client_id', $client->id)
-            ->with(['service', 'staff']);
+            ->with(['service.clients', 'staff']); // Eager load the necessary relationship
 
         if ($search) {
             $tasksQuery->where(function ($q) use ($search) {
@@ -148,6 +148,11 @@ class ReportController extends Controller
 
     private function groupTasksByService(Collection $tasks): Collection
     {
-        return $tasks->groupBy('service.name');
+        return $tasks->groupBy('service.name')->map(function ($tasksInService, $serviceName) {
+            return [
+                'service' => $tasksInService->first()->service,
+                'tasks' => $tasksInService,
+            ];
+        });
     }
 }

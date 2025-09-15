@@ -7,6 +7,54 @@
     <h1>Clients</h1>
 @stop
 
+@section('css')
+<style>
+    .card-header-actions {
+        display: flex;
+        align-items: center;
+    }
+    .filter-bar {
+        padding: 1rem 1.25rem;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .table thead th {
+        border-bottom-width: 1px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+    }
+    .table thead th a {
+        color: #007bff;
+        text-decoration: none;
+    }
+    .action-buttons .btn {
+        margin-right: 5px;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    .select2-container .select2-selection--single {
+        height: calc(2.25rem + 2px) !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 2.25rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 2.25rem;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #343a40;
+        border-color: #343a40;
+        color: #fff;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: rgba(255,255,255,0.7);
+    }
+</style>
+@stop
+
 @section('content')
 <div id="action-bar" class="mb-3" style="display: none;">
     <button id="show-message-modal-btn" class="btn btn-primary" data-toggle="modal" data-target="#messageModal">
@@ -14,21 +62,30 @@
     </button>
 </div>
 
-<div class="card card-primary card-outline">
+<div class="card card-outline card-primary">
     <div class="card-header">
-        <h3 class="card-title">All Clients</h3>
-        <div class="card-tools">
-            <a href="{{ route('clients.create') }}" class="btn btn-primary btn-sm">Add New Client</a>
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">All Clients</h3>
+            <a href="{{ route('clients.create') }}" class="btn btn-primary">Add New Client</a>
         </div>
     </div>
-    <div class="card-body">
+    
+    {{-- MODIFIED FILTER BAR --}}
+    <div class="filter-bar">
         @if(session('success'))
             <div class="alert alert-success" id="success-alert">{{ session('success') }}</div>
         @endif
         
-        <div class="row mb-3">
-            <div class="col-md-8">
+        <div class="row">
+            <div class="col-md-4">
                 <input type="text" name="search" id="search-input" class="form-control" placeholder="Search by name or email..." value="{{ request('search') }}">
+            </div>
+            <div class="col-md-4">
+                <select name="service_id" id="service-filter" class="form-control" multiple="multiple">
+                    @foreach($services as $service)
+                        <option value="{{ $service->id }}">{{ $service->name }}</option>
+                    @endforeach
+                </select>
             </div>
             <div class="col-md-4">
                 <select name="statuses[]" id="status-filter" class="form-control" multiple="multiple">
@@ -37,13 +94,16 @@
                 </select>
             </div>
         </div>
+    </div>
 
+    <div class="card-body p-0">
         <div id="clients-table-container">
             @include('Organization.clients._clients_table', ['clients' => $clients, 'sort_by' => $sort_by, 'sort_order' => $sort_order])
         </div>
     </div>
 </div>
 
+{{-- Message Modal (No change needed) --}}
 <div class="modal fade" id="messageModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -86,16 +146,20 @@ $(document).ready(function() {
     let debounceTimer;
     let selectedClients = new Map();
 
+    // --- INITIALIZE SELECT2 FOR ALL FILTERS ---
     $('#status-filter').select2({
         placeholder: 'Filter by Status (All)'
     });
+    $('#service-filter').select2({
+        placeholder: 'Filter by Service (All)',
+    });
 
-    function fetch_clients_data(page, sort_by, sort_order, search, statuses) {
+    function fetch_clients_data(page, sort_by, sort_order, search, statuses, service_id) {
         $('#clients-table-container').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i></div>');
 
         $.ajax({
             url: "{{ route('clients.index') }}",
-            data: { page, sort_by, sort_order, search, statuses },
+            data: { page, sort_by, sort_order, search, statuses, service_id },
             success: function(data) {
                 $('#clients-table-container').html(data);
                 updateMessagingUI();
@@ -109,9 +173,10 @@ $(document).ready(function() {
     function trigger_fetch() {
         const search = $('#search-input').val();
         const statuses = $('#status-filter').val();
+        const service_id = $('#service-filter').val(); // Get service_id
         const sort_by = $('#sort_by').val() || 'created_at';
         const sort_order = $('#sort_order').val() || 'desc';
-        fetch_clients_data(1, sort_by, sort_order, search, statuses);
+        fetch_clients_data(1, sort_by, sort_order, search, statuses, service_id);
     }
 
     function trigger_fetch_debounced() {
@@ -138,7 +203,7 @@ $(document).ready(function() {
     }
     
     $('#search-input').on('keyup', trigger_fetch_debounced);
-    $('#status-filter').on('change', trigger_fetch);
+    $('#status-filter, #service-filter').on('change', trigger_fetch); // Add service filter to event listener
 
     $(document).on('click', '#clients-table-container .sort-link', function(e) {
         e.preventDefault();
@@ -150,7 +215,7 @@ $(document).ready(function() {
     $(document).on('click', '#clients-table-container .pagination a', function(e) {
         e.preventDefault();
         const page = new URLSearchParams($(this).attr('href').split('?')[1]).get('page');
-        fetch_clients_data(page, $('#sort_by').val(), $('#sort_order').val(), $('#search-input').val(), $('#status-filter').val());
+        fetch_clients_data(page, $('#sort_by').val(), $('#sort_order').val(), $('#search-input').val(), $('#status-filter').val(), $('#service-filter').val());
     });
     
     $(document).on('change', '#master-checkbox', function() {

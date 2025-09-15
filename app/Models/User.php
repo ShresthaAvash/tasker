@@ -148,7 +148,7 @@ class User extends Authenticatable
     public function assignedServices()
     {
         return $this->belongsToMany(Service::class, 'client_service', 'user_id', 'service_id')
-                    ->withPivot('start_date', 'end_date');
+                    ->withPivot('start_date', 'end_date', 'status');
     }
 
     /**
