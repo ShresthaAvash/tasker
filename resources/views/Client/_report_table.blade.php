@@ -11,16 +11,26 @@
         $statusClass = 'badge-secondary'; // Default for Not Started
         if ($currentServiceStatus === 'Ongoing') { $statusClass = 'badge-info'; }
         if ($currentServiceStatus === 'Completed') { $statusClass = 'badge-success'; }
+
+        // --- THIS IS THE FIX: Format dates for display ---
+        $startDate = $pivot && $pivot->start_date ? \Carbon\Carbon::parse($pivot->start_date)->format('d M Y') : 'N/A';
+        $endDate = $pivot && $pivot->end_date ? \Carbon\Carbon::parse($pivot->end_date)->format('d M Y') : 'N/A';
     @endphp
     
     <div class="report-group">
         <a href="#collapse-service-{{ $service->id }}" class="report-header" data-toggle="collapse" aria-expanded="true">
-            <h5 class="report-title mb-0">
-                <i class="fas fa-chevron-down collapse-icon mr-3"></i>
-                <i class="fas fa-concierge-bell mr-2"></i>
-                Service: {{ $serviceName }}
-                <span class="badge {{ $statusClass }} ml-2">{{ $currentServiceStatus }}</span>
-            </h5>
+            {{-- --- THIS IS THE FIX: Updated header structure --- --}}
+            <div class="d-flex flex-column flex-grow-1">
+                <h5 class="report-title mb-0">
+                    <i class="fas fa-chevron-down collapse-icon mr-3"></i>
+                    <i class="fas fa-concierge-bell mr-2"></i>
+                    Service: {{ $serviceName }}
+                    <span class="badge {{ $statusClass }} ml-2">{{ $currentServiceStatus }}</span>
+                </h5>
+                <small class="service-dates mt-1">
+                    Starts: {{ $startDate }} | Ends: {{ $endDate }}
+                </small>
+            </div>
             <div class="report-time">
                 {{ \App\Helpers\TimeHelper::formatToHms($serviceTotalDuration, true) }}
             </div>

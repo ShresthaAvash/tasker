@@ -41,10 +41,20 @@
             transition: background-color 0.2s ease-in-out;
         }
         .report-header:hover {
-            background-color: #0b5ed7;
+            /* This is the fix: Keep background blue and text white on hover */
+            background-color: #0d6efd !important;
+            color: white !important;
         }
         .report-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0; }
         .report-time { font-size: 1rem; color: rgba(255,255,255,0.9); font-weight: 500; }
+
+        /* --- THIS IS THE NEW STYLE FOR THE DATES --- */
+        .service-dates {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.8rem;
+            padding-left: 38px; /* Align with title text */
+        }
+        /* --- END OF NEW STYLE --- */
 
         /* Task List & Items */
         .task-list { list-style: none; padding: 0; margin: 0; }

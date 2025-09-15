@@ -41,9 +41,12 @@ class SubscriptionController extends Controller
             $user->newSubscription('default', $plan->stripe_price_id)
                  ->create($request->payment_method);
 
-            // --- THIS IS THE FIX: Offload tasks to the queue ---
-            // The old logic for status change and sending notifications has been removed.
-            // Now we simply dispatch our new job.
+            // --- THIS IS THE FIX: Update status immediately ---
+            $user->status = 'A';
+            $user->organization_id = $user->id;
+            $user->save();
+            
+            // Offload only the notifications to the queue
             PostSubscriptionActions::dispatch($user, $plan);
             // --- END OF FIX ---
 

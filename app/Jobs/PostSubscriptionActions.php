@@ -30,18 +30,15 @@ class PostSubscriptionActions implements ShouldQueue
      */
     public function handle(): void
     {
-        // 1. Update user status and organization_id
-        $this->user->status = 'A';
-        $this->user->organization_id = $this->user->id;
-        $this->user->save();
-
-        // 2. Send notification to Super Admins
+        // --- THIS IS THE FIX: Status update has been removed from the job ---
+        // 1. Send notification to Super Admins
         $superAdmins = User::where('type', 'S')->get();
         if ($superAdmins->isNotEmpty()) {
             Notification::send($superAdmins, new OrganizationSubscribed($this->user, $this->plan));
         }
 
-        // 3. Send confirmation email to the user
+        // 2. Send confirmation email to the user
         $this->user->notify(new SubscriptionSuccessful($this->user, $this->plan));
+        // --- END OF FIX ---
     }
 }
