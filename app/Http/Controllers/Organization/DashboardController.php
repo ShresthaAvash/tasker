@@ -71,6 +71,17 @@ class DashboardController extends Controller
         $taskStatusCounts = $allStatuses->merge($dbStatusCounts);
         
         // --- END OF FIX ---
+        
+        // --- START: Service Pie Chart Data ---
+        $serviceCounts = AssignedTask::whereHas('client', fn($q) => $q->where('organization_id', $organizationId))
+            ->join('services', 'assigned_tasks.service_id', '=', 'services.id')
+            ->select('services.name', DB::raw('count(assigned_tasks.id) as count'))
+            ->groupBy('services.name')
+            ->pluck('count', 'name');
+
+        $serviceChartLabels = $serviceCounts->keys();
+        $serviceChartData = $serviceCounts->values();
+        // --- END: Service Pie Chart Data ---
 
         $chartLabels = $taskStatusCounts->keys()->map(fn($s) => ucwords(str_replace('_', ' ', $s)));
         $chartData = $taskStatusCounts->values();
@@ -83,7 +94,9 @@ class DashboardController extends Controller
             'subscriptionCount',
             'upcomingTasks',
             'chartLabels',
-            'chartData'
+            'chartData',
+            'serviceChartLabels',
+            'serviceChartData'
         ));
     }
 
@@ -162,6 +175,17 @@ class DashboardController extends Controller
         $chartLabels = $chartData->keys()->map(fn($s) => ucwords(str_replace('_', ' ', $s)));
         $chartDataValues = $chartData->values();
 
+        // --- START: Service Pie Chart Data for Staff ---
+        $serviceCounts = AssignedTask::whereHas('staff', fn($q) => $q->where('users.id', $staffId))
+            ->join('services', 'assigned_tasks.service_id', '=', 'services.id')
+            ->select('services.name', DB::raw('count(assigned_tasks.id) as count'))
+            ->groupBy('services.name')
+            ->pluck('count', 'name');
+
+        $serviceChartLabels = $serviceCounts->keys();
+        $serviceChartData = $serviceCounts->values();
+        // --- END: Service Pie Chart Data for Staff ---
+
         $personalTasks = Task::where('staff_id', $staffId)
             ->whereNull('service_id')
             ->whereIn('status', ['to_do', 'ongoing'])
@@ -193,6 +217,15 @@ class DashboardController extends Controller
         $allTasks = $personalTasks->concat($assignedTasks);
         $upcomingTasks = $allTasks->sortBy('start')->take(10);
         
-        return view('Organization.staff.dashboard', compact('activeTaskCount', 'completedTaskCount', 'upcomingTasks', 'chartLabels', 'chartDataValues', 'documentsCount'));
+        return view('Organization.staff.dashboard', compact(
+            'activeTaskCount', 
+            'completedTaskCount', 
+            'upcomingTasks', 
+            'chartLabels', 
+            'chartDataValues', 
+            'documentsCount',
+            'serviceChartLabels',
+            'serviceChartData'
+        ));
     }
 }

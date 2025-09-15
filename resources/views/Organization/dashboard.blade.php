@@ -230,9 +230,10 @@
     </div>
 </div>
 
-{{-- Main Content Row - FIXED LAYOUT --}}
+{{-- Main Content Row - Reordered --}}
 <div class="row">
     <div class="col-lg-7 d-flex flex-column">
+        {{-- Quick Actions --}}
         <div class="card mb-4">
             <div class="card-header bg-white">
                 <h3 class="card-title">Quick Actions</h3>
@@ -246,6 +247,41 @@
                 </div>
             </div>
         </div>
+        
+        {{-- Pie Charts --}}
+        <div class="row flex-grow-1">
+            <div class="col-md-6 d-flex flex-column">
+                <div class="card flex-grow-1">
+                    <div class="card-header bg-white">
+                        <h3 class="card-title">Task Status Overview</h3>
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center">
+                        @if($chartData->isNotEmpty() && $chartData->sum() > 0)
+                            <canvas id="taskStatusChart"></canvas>
+                        @else
+                            <p class="text-muted">No task data to display.</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 d-flex flex-column">
+                <div class="card flex-grow-1">
+                    <div class="card-header bg-white">
+                        <h3 class="card-title">Service Distribution</h3>
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center">
+                        @if($serviceChartData->isNotEmpty() && $serviceChartData->sum() > 0)
+                            <canvas id="serviceDistributionChart"></canvas>
+                        @else
+                            <p class="text-muted">No service data to display.</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5 d-flex flex-column">
+        {{-- Upcoming Team Tasks --}}
         <div class="card flex-grow-1">
             <div class="card-header bg-white">
                 <h3 class="card-title">Upcoming Team Tasks</h3>
@@ -258,7 +294,7 @@
                             <br>
                             <small class="text-muted">
                                 Service: {{ optional($task->service)->name ?? 'N/A' }} |
-                                Job: {{ optional($task->job)->name ?? 'N/A' }} | 
+                                Client: {{ optional($task->client)->name ?? 'N/A' }} |
                                 Assigned to: {{ $task->staff->pluck('name')->join(', ') }}
                             </small>
                             <span class="float-right text-muted">{{ $task->start->diffForHumans() }}</span>
@@ -272,20 +308,6 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-5 d-flex flex-column">
-        <div class="card flex-grow-1">
-            <div class="card-header bg-white">
-                <h3 class="card-title">Task Status Overview</h3>
-            </div>
-            <div class="card-body d-flex align-items-center justify-content-center">
-                @if($chartData->isNotEmpty() && $chartData->sum() > 0)
-                    <canvas id="taskStatusChart"></canvas>
-                @else
-                    <p class="text-muted">No task data to display.</p>
-                @endif
-            </div>
-        </div>
-    </div>
 </div>
 
 @stop
@@ -294,16 +316,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(function () {
+            // Task Status Chart
             @if($chartData->isNotEmpty() && $chartData->sum() > 0)
-                var ctx = document.getElementById('taskStatusChart').getContext('2d');
-                var taskStatusChart = new Chart(ctx, {
+                var taskCtx = document.getElementById('taskStatusChart').getContext('2d');
+                var taskStatusChart = new Chart(taskCtx, {
                     type: 'pie',
                     data: {
                         labels: @json($chartLabels),
                         datasets: [{
                             data: @json($chartData),
-                            // --- THIS IS THE FIX ---
-                            // To Do => Blue, Ongoing => Yellow, Completed => Green
                             backgroundColor: [ '#0d6efd', '#ffc107', '#28a745' ],
                             borderColor: '#ffffff',
                             borderWidth: 2
@@ -323,6 +344,41 @@
                                 }
                             },
                         },
+                    }
+                });
+            @endif
+
+            // Service Distribution Chart
+            @if($serviceChartData->isNotEmpty() && $serviceChartData->sum() > 0)
+                var serviceCtx = document.getElementById('serviceDistributionChart').getContext('2d');
+                var serviceDistributionChart = new Chart(serviceCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: @json($serviceChartLabels),
+                        datasets: [{
+                            data: @json($serviceChartData),
+                            backgroundColor: [
+                                '#6f42c1', '#fd7e14', '#20c997', '#6610f2',
+                                '#17a2b8', '#d63384', '#ffc107', '#343a40'
+                            ],
+                            borderColor: '#ffffff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    padding: 15,
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            },
+                        }
                     }
                 });
             @endif

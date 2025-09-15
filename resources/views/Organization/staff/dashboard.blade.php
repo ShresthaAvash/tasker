@@ -181,7 +181,39 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-8">
+    <div class="col-lg-7">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h3 class="card-title">Task Overview</h3>
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 300px;">
+                        @if($chartDataValues->sum() > 0)
+                            <canvas id="taskStatusChart"></canvas>
+                        @else
+                            <p class="text-center text-muted p-3">No task data available right now.</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h3 class="card-title">Service Distribution</h3>
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 300px;">
+                        @if($serviceChartData->isNotEmpty() && $serviceChartData->sum() > 0)
+                            <canvas id="serviceDistributionChart"></canvas>
+                        @else
+                            <p class="text-muted">No service data to display.</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
         <div class="card">
             <div class="card-header bg-white">
                 <h3 class="card-title">My Upcoming Tasks</h3>
@@ -206,39 +238,22 @@
             </div>
         </div>
     </div>
-
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h3 class="card-title">Task Overview</h3>
-            </div>
-            <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 300px;">
-                @if($chartDataValues->sum() > 0)
-                    <canvas id="taskStatusChart"></canvas>
-                @else
-                    <p class="text-center text-muted p-3">No task data available right now.</p>
-                @endif
-            </div>
-        </div>
-    </div>
 </div>
-
 @stop
 
 @section('js')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(function () {
+            // Task Status Chart
             if ({{ $chartDataValues->sum() }} > 0) {
-                var ctx = document.getElementById('taskStatusChart').getContext('2d');
-                var taskStatusChart = new Chart(ctx, {
+                var taskCtx = document.getElementById('taskStatusChart').getContext('2d');
+                var taskStatusChart = new Chart(taskCtx, {
                     type: 'pie',
                     data: {
                         labels: @json($chartLabels),
                         datasets: [{
                             data: @json($chartDataValues),
-                            // --- THIS IS THE FIX ---
-                            // To Do => Blue, Ongoing => Yellow, Completed => Green
                             backgroundColor: [ '#0d6efd', '#ffc107', '#28a745' ],
                             borderColor: [ '#ffffff', '#ffffff', '#ffffff' ],
                             borderWidth: 2
@@ -256,6 +271,41 @@
                                 }
                             }
                         },
+                    }
+                });
+            }
+
+            // Service Distribution Chart
+            if ({{ $serviceChartData->sum() }} > 0) {
+                var serviceCtx = document.getElementById('serviceDistributionChart').getContext('2d');
+                var serviceDistributionChart = new Chart(serviceCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: @json($serviceChartLabels),
+                        datasets: [{
+                            data: @json($serviceChartData),
+                            backgroundColor: [
+                                '#6f42c1', '#fd7e14', '#20c997', '#6610f2',
+                                '#17a2b8', '#d63384', '#ffc107', '#343a40'
+                            ],
+                            borderColor: '#ffffff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    padding: 15,
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
             }
