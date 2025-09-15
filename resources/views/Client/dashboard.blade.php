@@ -186,6 +186,20 @@
     <div class="col-lg-7">
         <div class="card">
             <div class="card-header bg-white">
+                <h3 class="card-title">Task Status Overview</h3>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 300px;">
+                @if($chartDataValues->sum() > 0)
+                    <canvas id="taskStatusChart"></canvas>
+                @else
+                    <p class="text-center text-muted">No task data available right now.</p>
+                @endif
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header bg-white">
                 <h3 class="card-title">Recent Documents</h3>
             </div>
             <div class="card-body p-0">
@@ -220,21 +234,6 @@
             </div>
             <div class="card-footer text-center">
                 <a href="{{ route('client.documents.index') }}">View All Documents</a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-5">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h3 class="card-title">Task Status Overview</h3>
-            </div>
-            <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 300px;">
-                @if($chartDataValues->sum() > 0)
-                    <canvas id="taskStatusChart"></canvas>
-                @else
-                    <p class="text-center text-muted">No task data available right now.</p>
-                @endif
             </div>
         </div>
     </div>
