@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Organization;
 
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use App\Models\User; // Import User model
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -15,20 +16,31 @@ class ServiceController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Service::where('organization_id', Auth::id())->with('tasks');
+        // Define the variable here so it is available for the whole function
+        $organizationId = Auth::id();
 
-        // --- THIS IS THE FIX: Filter by an array of statuses if provided ---
+        $query = Service::where('organization_id', $organizationId)->with(['tasks', 'clients']);
+
+        // Filter by statuses
         $statuses = $request->get('statuses');
         if (!empty($statuses) && is_array($statuses)) {
             $query->whereIn('status', $statuses);
         }
 
-        // Search
+        // Search by name
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // Sort
+        // --- UPDATED: Filter by Client (Supports Multiple) ---
+        $clientIds = $request->get('client_ids');
+        if (!empty($clientIds) && is_array($clientIds)) {
+            $query->whereHas('clients', function ($q) use ($clientIds) {
+                $q->whereIn('users.id', $clientIds);
+            });
+        }
+
+        // Sort logic
         $sort_by = $request->get('sort_by', 'created_at');
         $sort_order = $request->get('sort_order', 'desc');
         if (in_array($sort_by, ['name', 'status', 'created_at'])) {
@@ -37,13 +49,19 @@ class ServiceController extends Controller
 
         $services = $query->paginate(10);
         
+        // Fetch clients for the dropdown
+        $clients = User::where('organization_id', $organizationId)
+            ->where('type', 'C')
+            ->orderBy('name')
+            ->get();
+
         if ($request->ajax()) {
             return view('Organization.services._services_table', compact('services', 'sort_by', 'sort_order'))->render();
         }
         
-        return view('Organization.services.index', compact('services', 'sort_by', 'sort_order'));
+        return view('Organization.services.index', compact('services', 'clients', 'sort_by', 'sort_order'));
     }
-    
+
     /**
      * Show the form for creating a new resource.
      */
@@ -86,7 +104,6 @@ class ServiceController extends Controller
             abort(403);
         }
 
-        // Eager load all relationships for the builder
         $service->load('tasks.designation');
         
         $designations = \App\Models\StaffDesignation::where('organization_id', Auth::id())->get();
@@ -145,7 +162,6 @@ class ServiceController extends Controller
         $service->status = $service->status === 'A' ? 'I' : 'A';
         $service->save();
 
-        // --- THIS IS THE FIX: Updated wording ---
         $message = $service->status === 'A' ? 'Service has been activated.' : 'Service has been made inactive.';
 
         return redirect()->back()->with('success', $message);

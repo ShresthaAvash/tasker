@@ -31,7 +31,7 @@ class ClientController extends Controller
         // --- THIS IS THE MODIFIED LOGIC ---
 
         $organizationId = Auth::id();
-        $query = User::where('type', 'C')->where('organization_id', $organizationId);
+        $query = User::where('type', 'C')->where('organization_id', $organizationId)->with('assignedServices');
 
         // Filter by an array of statuses if provided
         $statuses = $request->get('statuses');
@@ -85,6 +85,7 @@ class ClientController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'company_name' => 'nullable|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')],
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
@@ -93,7 +94,7 @@ class ClientController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        $data = $request->only(['name', 'email', 'phone', 'address', 'status']);
+        $data = $request->only(['name','company_name', 'email', 'phone', 'address', 'status']);
         $data['organization_id'] = Auth::id();
         $data['type'] = 'C';
         $data['password'] = Hash::make($request->password);
@@ -143,6 +144,7 @@ class ClientController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'company_name' => 'nullable|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($client->id)],
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
@@ -152,6 +154,7 @@ class ClientController extends Controller
         ]);
 
         $client->name = $request->name;
+        $client->company_name = $request->company_name;
         $client->email = $request->email;
         $client->phone = $request->phone;
         $client->address = $request->address;

@@ -2,6 +2,7 @@
 <form action="{{ route('clients.update', $client->id) }}" method="POST" enctype="multipart/form-data">
     @csrf @method('PUT')
     <div class="form-group"><label>Client Name</label><input type="text" class="form-control" name="name" value="{{ old('name', $client->name) }}" required></div>
+    <div class="form-group"><label>Company Name</label><input type="text" class="form-control" name="company_name" value="{{ old('company_name', $client->company_name) }}"></div>
     <div class="form-group"><label>Client Email</label><input type="email" class="form-control" name="email" value="{{ old('email', $client->email) }}" required></div>
     <div class="form-group"><label>Client Phone</label><input type="text" class="form-control" name="phone" value="{{ old('phone', $client->phone) }}"></div>
     <div class="form-group"><label>Client Address</label><textarea class="form-control" name="address">{{ old('address', $client->address) }}</textarea></div>

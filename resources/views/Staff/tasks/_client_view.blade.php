@@ -72,10 +72,30 @@
 
     {{-- Client Tasks Section --}}
     @forelse($clientTaskGroups as $clientName => $services)
+        @php
+            // Logic to display Company Name
+            // We get the first task to check the client relation for a company name
+            $companyName = null;
+            if ($services->isNotEmpty() && $services->first()->isNotEmpty()) {
+                $firstTaskInGroup = $services->first()->first();
+                if ($firstTaskInGroup->client && $firstTaskInGroup->client->company_name) {
+                    $companyName = $firstTaskInGroup->client->company_name;
+                }
+            }
+
+            // Construct display name
+            $displayClientName = $clientName;
+            // Only append if it's not already part of the name (to prevent duplication if controller was changed)
+            if ($companyName && !str_contains($clientName, $companyName)) {
+                $displayClientName .= ' (' . $companyName . ')';
+            }
+        @endphp
+
         <div class="card mb-2 shadow-sm">
             <div class="card-header p-0" id="heading-client-{{ Str::slug($clientName) }}">
                  <a href="#collapse-client-{{ Str::slug($clientName) }}" class="d-flex justify-content-between align-items-center p-3 text-dark accordion-toggle-link" data-toggle="collapse" aria-expanded="true">
-                    <span class="font-weight-bold"><i class="fas fa-building mr-2"></i> Client: {{ $clientName }}</span>
+                    {{-- UPDATED: Displaying Client Name + Company Name --}}
+                    <span class="font-weight-bold"><i class="fas fa-building mr-2"></i> Client: {{ $displayClientName }}</span>
                     <i class="fas fa-chevron-down collapse-icon"></i>
                 </a>
             </div>

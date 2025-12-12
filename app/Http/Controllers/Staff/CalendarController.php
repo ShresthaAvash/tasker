@@ -152,7 +152,16 @@ class CalendarController extends Controller
     private function formatEvent($task, $typePrefix, Carbon $instanceDate)
     {
         $isRecurring = ($task instanceof AssignedTask && optional($task->service)->is_recurring);
-        $title = ($typePrefix === 'a' && $task->client) ? $task->client->name . ': ' . $task->name : $task->name;
+        
+        // --- UPDATED: Title logic to include Company Name ---
+        $title = $task->name;
+        if ($typePrefix === 'a' && $task->client) {
+            $clientName = $task->client->name;
+            if ($task->client->company_name) {
+                $clientName .= ' (' . $task->client->company_name . ')';
+            }
+            $title = $clientName . ': ' . $task->name;
+        }
         
         $serviceName = 'Personal Task';
         if ($typePrefix === 'a') {

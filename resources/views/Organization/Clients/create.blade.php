@@ -33,6 +33,11 @@
             </div>
 
             <div class="form-group">
+                <label for="company_name">Company Name (Optional)</label>
+                <input type="text" class="form-control" id="company_name" name="company_name" value="{{ old('company_name') }}" placeholder="e.g. Acme Corp">
+            </div>
+
+            <div class="form-group">
                 <label for="email">Client Email</label>
                 <input type="email" class="form-control" id="email" name="email" value="{{ old('email') }}" required>
             </div>

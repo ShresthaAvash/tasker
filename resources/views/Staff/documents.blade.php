@@ -121,7 +121,7 @@
                             <option value="">-- Please select a client --</option>
                             @foreach($clients as $client)
                                 <option value="{{ $client->id }}" {{ ($selectedClient && $selectedClient->id == $client->id) ? 'selected' : '' }}>
-                                    {{ $client->name }}
+                                    {{ $client->name }} {{ $client->company_name ? '('.$client->company_name.')' : '' }}
                                 </option>
                             @endforeach
                         </select>

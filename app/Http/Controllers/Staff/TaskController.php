@@ -32,7 +32,6 @@ class TaskController extends Controller
         }
 
         // If no status filter is applied, default to showing only 'to_do' and 'ongoing' tasks.
-        // This ensures that when a task is marked as 'completed', it disappears from the list.
         if (empty($statuses)) {
             $statuses = ['to_do', 'ongoing'];
         }
@@ -54,12 +53,27 @@ class TaskController extends Controller
 
         [$taskInstances, $personalTasks] = $this->getTaskInstancesInDateRange($staffId, $startDate, $endDate, $search, $statuses);
 
-        // The dropdowns in the view will still show 'Completed' as an option for status changes.
         $allStatuses = ['to_do' => 'To Do', 'ongoing' => 'Ongoing', 'completed' => 'Completed'];
         
+        // Define the grouping logic closure to reuse for both AJAX and normal request
+        // This adds the (Company Name) to the client key
+        $groupingLogic = function($task) {
+            $name = $task->client->name;
+            if ($task->client && !empty($task->client->company_name)) {
+                $name .= ' (' . $task->client->company_name . ')';
+            }
+            return $name;
+        };
+
         if ($request->ajax()) {
             if ($viewType === 'client') {
-                $clientTaskGroups = $taskInstances->sortBy('due_date_instance')->groupBy(['client.name', 'service.name'], true);
+                // Apply custom grouping
+                $clientTaskGroups = $taskInstances->sortBy('due_date_instance')
+                    ->groupBy($groupingLogic)
+                    ->map(function ($tasks) {
+                        return $tasks->groupBy('service.name');
+                    });
+
                 return view('Staff.tasks._client_view', compact('clientTaskGroups', 'personalTasks', 'allStatuses'));
             } else { // time view
                 $allFlatTasks = $this->prepareTimeViewTasks($taskInstances, $personalTasks);
@@ -68,7 +82,13 @@ class TaskController extends Controller
             }
         }
         
-        $clientTaskGroups = $taskInstances->sortBy('due_date_instance')->groupBy(['client.name', 'service.name'], true);
+        // Apply custom grouping for initial page load
+        $clientTaskGroups = $taskInstances->sortBy('due_date_instance')
+            ->groupBy($groupingLogic)
+            ->map(function ($tasks) {
+                return $tasks->groupBy('service.name');
+            });
+
         $years = range(now()->year - 4, now()->year + 2);
         $months = [ 'all' => 'All Months', 1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'];
         

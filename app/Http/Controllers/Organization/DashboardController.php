@@ -208,7 +208,14 @@ class DashboardController extends Controller
             ->get()
             ->map(function ($task) {
                 $task->display_name = $task->name;
-                $task->task_details = "Service: {$task->service->name} | Client: {$task->client->name}";
+                
+                // --- UPDATED: Add Company Name to Dashboard Widget ---
+                $clientName = $task->client->name;
+                if ($task->client && !empty($task->client->company_name)) {
+                    $clientName .= ' (' . $task->client->company_name . ')';
+                }
+                
+                $task->task_details = "Service: {$task->service->name} | Client: {$clientName}";
                 return $task;
             });
         
